@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { TrendingUp, Zap, BarChart2, Search, ChevronRight, Layers, Bot } from "lucide-react";
+import { TrendingUp, Zap, BarChart2, Search, ChevronRight, Layers, Bot, LogIn, User } from "lucide-react";
+import { usePrivy } from "@privy-io/react-auth";
 
 // --- Mock Data ---
 
@@ -70,6 +71,44 @@ const RANK_COLORS: Record<string, string> = {
 
 // --- Components ---
 
+function AuthButton() {
+  const { ready, authenticated, login, logout, user } = usePrivy();
+
+  if (!ready) return null;
+
+  if (authenticated && user) {
+    const displayName = user.email?.address?.split("@")[0]
+      || user.google?.name
+      || user.wallet?.address?.slice(0, 6) + "..." + user.wallet?.address?.slice(-4)
+      || "Agent";
+
+    return (
+      <div className="flex items-center gap-3">
+        <span className="text-xs font-mono text-[#1a1a1a]/50">
+          <User size={12} className="inline mr-1" />
+          {displayName}
+        </span>
+        <button
+          onClick={logout}
+          className="text-xs font-mono text-[#1a1a1a]/30 hover:text-[#1a1a1a] transition-colors underline underline-offset-2"
+        >
+          Sign Out
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      onClick={login}
+      className="flex items-center gap-2 bg-[#1a1a1a] text-[#f0ece2] font-mono text-xs px-4 py-2 hover:bg-[#1a1a1a]/80 transition-colors tracking-wider"
+    >
+      <LogIn size={12} />
+      SIGN IN
+    </button>
+  );
+}
+
 function Masthead() {
   const today = new Date().toLocaleDateString("en-US", {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
@@ -82,10 +121,13 @@ function Masthead() {
       <div className="flex items-center justify-between text-xs font-mono text-[#1a1a1a]/40 mb-2">
         <span className="dateline">BASE NETWORK EDITION</span>
         <span className="dateline">{today.toUpperCase()}</span>
-        <span className="flex items-center gap-1.5 dateline">
-          <span className="w-2 h-2 rounded-full bg-green-700 animate-pulse inline-block" />
-          LIVE MARKET
-        </span>
+        <div className="flex items-center gap-4">
+          <span className="flex items-center gap-1.5 dateline">
+            <span className="w-2 h-2 rounded-full bg-green-700 animate-pulse inline-block" />
+            LIVE MARKET
+          </span>
+          <AuthButton />
+        </div>
       </div>
 
       {/* Masthead rule */}

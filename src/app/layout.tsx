@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { PrivyProvider } from "@/components/PrivyProvider";
 
 export const metadata: Metadata = {
-  title: "Maiat Dojo — AI Skill Marketplace",
+  title: "The Dojo — Maiat Skill Marketplace",
   description: "The daily dispatch of AI agent skills. Equip your agent, earn on-chain.",
 };
 
@@ -13,7 +14,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <PrivyProvider>{children}</PrivyProvider>
+      </body>
     </html>
   );
 }
