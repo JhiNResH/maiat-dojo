@@ -1,0 +1,143 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// --- Users ---
+model User {
+  id            String    @id @default(cuid())
+  privyId       String?   @unique
+  email         String?   @unique
+  walletAddress String?   @unique
+  displayName   String?
+  avatarUrl     String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  reviews       Review[]
+  purchases     Purchase[]
+  createdSkills Skill[]    @relation("SkillCreator")
+  ownedAgents   Agent[]    @relation("AgentOwner")
+}
+
+// --- Skills ---
+model Skill {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  longDescription String?
+  category    String
+  icon        String   @default("⚡")
+  price       Float    @default(0)
+  currency    String   @default("USD")
+  rating      Float    @default(0)
+  installs    Int      @default(0)
+  tags        String   @default("") // comma-separated
+  imageUrl    String?
+  fileUrl     String?  // the actual skill file (.md, etc.)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Creator
+  creatorId   String
+  creator     User     @relation("SkillCreator", fields: [creatorId], references: [id])
+
+  // Relations
+  reviews     Review[]
+  purchases   Purchase[]
+  equippedBy  AgentSkill[]
+}
+
+// --- Agents ---
+model Agent {
+  id             String   @id @default(cuid())
+  name           String
+  description    String
+  avatar         String   @default("🤖")
+  rank           String   @default("Kozo 小僧")
+  xp             Int      @default(0)
+  jobsCompleted  Int      @default(0)
+  successRate    Float    @default(0)
+  totalEarnings  Float    @default(0)
+  earningsCurrency String @default("ETH")
+  walletAddress  String?  @unique
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Owner
+  ownerId        String
+  owner          User     @relation("AgentOwner", fields: [ownerId], references: [id])
+
+  // Relations
+  skills         AgentSkill[]
+  reviews        Review[]
+  jobs           Job[]
+}
+
+// --- Agent <-> Skill (equipped) ---
+model AgentSkill {
+  id        String   @id @default(cuid())
+  agentId   String
+  skillId   String
+  equippedAt DateTime @default(now())
+
+  agent     Agent    @relation(fields: [agentId], references: [id])
+  skill     Skill    @relation(fields: [skillId], references: [id])
+
+  @@unique([agentId, skillId])
+}
+
+// --- Reviews ---
+model Review {
+  id         String   @id @default(cuid())
+  rating     Int      // 1-5
+  comment    String
+  createdAt  DateTime @default(now())
+
+  // Reviewer
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+
+  // Target (skill or agent)
+  skillId    String?
+  skill      Skill?   @relation(fields: [skillId], references: [id])
+  agentId    String?
+  agent      Agent?   @relation(fields: [agentId], references: [id])
+}
+
+// --- Purchases ---
+model Purchase {
+  id         String   @id @default(cuid())
+  amount     Float
+  currency   String   @default("USD")
+  status     String   @default("completed") // pending, completed, refunded
+  txHash     String?  // on-chain tx if crypto
+  stripeId   String?  // stripe payment intent
+  createdAt  DateTime @default(now())
+
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  skillId    String
+  skill      Skill    @relation(fields: [skillId], references: [id])
+}
+
+// --- Jobs ---
+model Job {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  status      String   @default("open") // open, in-progress, completed, rejected
+  payment     Float    @default(0)
+  currency    String   @default("USD")
+  rating      Int?     // 1-5 buyer rating
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+
+  agentId     String
+  agent       Agent    @relation(fields: [agentId], references: [id])
+}

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import Link from "next/link";
 import { TrendingUp, Zap, BarChart2, Search, ChevronRight, Layers, Bot, LogIn, User } from "lucide-react";
 import { usePrivy } from "@privy-io/react-auth";
 
@@ -255,6 +256,13 @@ function HeadlineSection() {
 }
 
 function TrendingSkills() {
+  const [skills, setSkills] = useState<any[]>([]);
+  useEffect(() => {
+    fetch("/api/skills").then(r => r.json()).then(setSkills).catch(() => {});
+  }, []);
+
+  const list = skills.length > 0 ? skills : TRENDING_SKILLS;
+
   return (
     <section>
       <div className="section-header">
@@ -266,29 +274,32 @@ function TrendingSkills() {
         </button>
       </div>
       <div>
-        {TRENDING_SKILLS.map((skill, i) => (
-          <div
+        {list.map((skill: any, i: number) => (
+          <Link
             key={skill.id}
-            className="flex items-center gap-4 py-3.5 border-b border-dotted border-[#1a1a1a]/15 last:border-b-0 hover:bg-[#1a1a1a]/[0.02] cursor-pointer px-2 transition-colors group"
+            href={`/skill/${skill.id}`}
+            className="flex items-center gap-4 py-3.5 border-b border-dotted border-[#1a1a1a]/15 last:border-b-0 hover:bg-[#1a1a1a]/[0.02] px-2 transition-colors group"
           >
             <span className="text-lg font-serif font-black text-[#1a1a1a]/20 w-6 text-right">{i + 1}</span>
             <span className="text-xl">{skill.icon}</span>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <p className="text-base font-serif font-bold truncate group-hover:underline decoration-1 underline-offset-2">{skill.name}</p>
-                {skill.hot && (
+                {(skill.hot || i < 2) && (
                   <span className="text-[10px] font-mono bg-[#8b0000] text-[#f0ece2] px-2 py-0.5 font-bold tracking-wider">HOT</span>
                 )}
               </div>
               <p className="text-xs font-mono text-[#1a1a1a]/35 mt-0.5">
-                {skill.category} · ★ {skill.rating} · {skill.installs.toLocaleString()} equipped
+                {skill.category} · ★ {Number(skill.rating).toFixed(1)} · {Number(skill.installs).toLocaleString()} equipped
               </p>
             </div>
             <div className="text-right">
-              <p className="text-sm font-mono font-bold">{skill.price === 0 ? "FREE" : `${skill.price} ETH`}</p>
-              <p className="text-xs font-mono text-green-800">{skill.delta}</p>
+              <p className="text-sm font-mono font-bold">
+                {Number(skill.price) === 0 ? "FREE" : `$${Number(skill.price).toFixed(2)}`}
+              </p>
+              {skill.delta && <p className="text-xs font-mono text-green-800">{skill.delta}</p>}
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </section>
@@ -296,6 +307,13 @@ function TrendingSkills() {
 }
 
 function AgentShowcase() {
+  const [agents, setAgents] = useState<any[]>([]);
+  useEffect(() => {
+    fetch("/api/agents").then(r => r.json()).then(setAgents).catch(() => {});
+  }, []);
+
+  const list = agents.length > 0 ? agents : FEATURED_AGENTS;
+
   return (
     <section>
       <div className="section-header">
@@ -306,11 +324,12 @@ function AgentShowcase() {
         Each agent is a curated collection of equipped skills
       </p>
       <div className="space-y-5">
-        {FEATURED_AGENTS.map((agent) => (
-          <div
+        {list.map((agent: any) => (
+          <Link
             key={agent.id}
-            className="classified hover:border-[#1a1a1a] cursor-pointer transition-colors"
-            data-label={agent.rank.split(" ")[0]}
+            href={`/agent/${agent.id}`}
+            className="classified hover:border-[#1a1a1a] transition-colors block"
+            data-label={(agent.rank || "").split(" ")[0]}
           >
             <div className="flex items-center gap-3 mb-3">
               <span className="text-2xl">{agent.avatar}</span>
@@ -322,19 +341,22 @@ function AgentShowcase() {
                   </span>
                 </div>
                 <p className="text-xs font-mono text-[#1a1a1a]/40">
-                  {agent.jobsCompleted.toLocaleString()} jobs · {agent.earnings} · ★ {agent.rating}
+                  {Number(agent.jobsCompleted).toLocaleString()} jobs · {agent.totalEarnings ?? agent.earnings} {agent.earningsCurrency ?? "ETH"} · ★ {agent.rating ?? "—"}
                 </p>
               </div>
             </div>
             <div className="flex flex-wrap gap-1.5">
-              {agent.skills.map((s, i) => (
-                <span key={i} className="text-xs font-mono border border-[#1a1a1a]/15 px-2.5 py-1 flex items-center gap-1.5 bg-[#1a1a1a]/[0.02]">
-                  <span className="text-sm">{s.icon}</span>
-                  {s.name}
-                </span>
-              ))}
+              {(agent.skills || []).map((s: any, i: number) => {
+                const sk = s.skill ?? s;
+                return (
+                  <span key={i} className="text-xs font-mono border border-[#1a1a1a]/15 px-2.5 py-1 flex items-center gap-1.5 bg-[#1a1a1a]/[0.02]">
+                    <span className="text-sm">{sk.icon}</span>
+                    {sk.name}
+                  </span>
+                );
+              })}
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </section>
