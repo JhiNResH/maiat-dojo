@@ -120,7 +120,7 @@ function HeadlineSection() {
   const skill = TRENDING_SKILLS[0];
 
   return (
-    <div className="bg-white border-2 border-[#0a0a0a] p-6 mb-6">
+    <div className="border-t-2 border-[#0a0a0a] p-6 mb-6">
       {/* Headline skill */}
       <div className="mb-6 pb-6 border-b-2 border-[#0a0a0a]/20">
         <div className="flex items-center gap-2 mb-3">
@@ -193,7 +193,7 @@ function HeadlineSection() {
 
 function TrendingSkills() {
   return (
-    <div className="bg-white border-2 border-[#0a0a0a] p-5">
+    <div className="border-t-2 border-[#0a0a0a] p-5">
       <div className="flex items-center justify-between mb-4 pb-3 border-b-2 border-[#0a0a0a]">
         <div className="flex items-center gap-2">
           <TrendingUp size={16} />
@@ -207,7 +207,7 @@ function TrendingSkills() {
         {TRENDING_SKILLS.map((skill, i) => (
           <div
             key={skill.id}
-            className="flex items-center gap-4 py-3 border-b border-[#0a0a0a]/10 last:border-b-0 hover:bg-[#f5f2eb] cursor-pointer px-2 transition-colors group"
+            className="flex items-center gap-4 py-3 border-b border-[#0a0a0a]/10 last:border-b-0 hover:bg-[#0a0a0a]/[0.03] cursor-pointer px-2 transition-colors group"
           >
             <span className="text-sm font-mono text-[#0a0a0a]/30 w-5 text-right font-bold">{i + 1}</span>
             <span className="text-xl">{skill.icon}</span>
@@ -233,7 +233,7 @@ function TrendingSkills() {
 
 function AgentShowcase() {
   return (
-    <div className="bg-white border-2 border-[#0a0a0a] p-5">
+    <div className="border-t-2 border-[#0a0a0a] p-5">
       <div className="flex items-center justify-between mb-4 pb-3 border-b-2 border-[#0a0a0a]">
         <div className="flex items-center gap-2">
           <Bot size={16} />
@@ -278,7 +278,7 @@ function AgentShowcase() {
 
 function BreakingNews() {
   return (
-    <div className="bg-white border-2 border-[#0a0a0a] p-5">
+    <div className="border-t-2 border-[#0a0a0a] p-5">
       <div className="flex items-center gap-2 mb-3 pb-3 border-b-2 border-[#0a0a0a]">
         <Zap size={14} className="text-red-600" />
         <span className="text-sm font-mono font-bold uppercase tracking-widest text-red-700">NEW ARRIVALS</span>
@@ -300,7 +300,7 @@ function BreakingNews() {
 
 function MarketPulse() {
   return (
-    <div className="bg-white border-2 border-[#0a0a0a] p-5">
+    <div className="border-t-2 border-[#0a0a0a] p-5">
       <div className="flex items-center gap-2 mb-3 pb-3 border-b-2 border-[#0a0a0a]">
         <BarChart2 size={14} />
         <span className="text-sm font-mono font-bold uppercase tracking-widest">MARKET PULSE</span>
@@ -352,7 +352,7 @@ export default function DojoPage() {
         <DojoHeader />
 
         {/* Category nav */}
-        <nav className="flex gap-0 mb-6 overflow-x-auto bg-white border-2 border-[#0a0a0a]">
+        <nav className="flex gap-0 mb-6 overflow-x-auto border-t-2 border-[#0a0a0a]">
           {CATEGORIES.map((cat) => (
             <button
               key={cat}
