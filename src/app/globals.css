@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  --ink: #0a0a0a;
+  --newsprint: #f5f2eb;
+  --accent: #16a34a;
+}
+
+body {
+  background-color: var(--newsprint);
+  color: var(--ink);
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* Newspaper dividers */
+.rule { border-top: 2px solid var(--ink); }
+.rule-thin { border-top: 1px solid var(--ink); }
+.rule-double {
+  border-top: 3px double var(--ink);
+}
