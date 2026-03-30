@@ -5,7 +5,7 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        serif: ["Georgia", "Times New Roman", "serif"],
+        serif: ["Playfair Display", "Georgia", "Times New Roman", "serif"],
         mono: ["JetBrains Mono", "Fira Code", "monospace"],
         sans: ["Inter", "system-ui", "sans-serif"],
       },
