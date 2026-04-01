@@ -91,6 +91,7 @@ export default function BuySkillButton({ skillId, price, skillName }: BuySkillBu
       refetchAllowance()
       handleBuyStep()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [approveConfirmed])
 
   // After buy confirms → done

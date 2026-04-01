@@ -8,3 +8,7 @@ dev.db
 prisma/dev.db
 prisma/prisma/
 tsconfig.tsbuildinfo
+
+# Foundry artifacts
+contracts/broadcast/
+contracts/cache/
