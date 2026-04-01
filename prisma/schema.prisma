@@ -28,6 +28,7 @@ model User {
 // --- Skills ---
 model Skill {
   id          String   @id @default(cuid())
+  onChainId   Int?     @unique  // maps to SkillNFT skillId on-chain
   name        String
   description String
   longDescription String?

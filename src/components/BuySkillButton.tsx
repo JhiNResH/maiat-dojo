@@ -23,6 +23,9 @@ export default function BuySkillButton({ skillId, price, skillName }: BuySkillBu
   const { ready, authenticated, login } = usePrivy()
   const { address } = useAccount()
   const [status, setStatus] = useState<Status>('idle')
+
+  // If no on-chain ID mapped yet, show "coming soon"
+  const hasOnChainId = skillId !== '' && skillId !== 'undefined'
   const [errorMsg, setErrorMsg] = useState('')
   const [txStep, setTxStep] = useState<'approve' | 'buy'>('approve')
 
@@ -47,13 +50,13 @@ export default function BuySkillButton({ skillId, price, skillName }: BuySkillBu
     query: { enabled: !!address },
   })
 
-  // Check if already owns this skill
+  // Check if already owns this skill (only if on-chain ID exists)
   const { data: owned } = useReadContract({
     address: contracts.skillNft,
     abi: SKILL_NFT_ABI,
     functionName: 'balanceOf',
-    args: address ? [address, BigInt(skillId)] : undefined,
-    query: { enabled: !!address },
+    args: address && hasOnChainId ? [address, BigInt(skillId)] : undefined,
+    query: { enabled: !!address && hasOnChainId },
   })
 
   const needsApproval = allowance !== undefined && allowance < priceRaw
@@ -127,6 +130,7 @@ export default function BuySkillButton({ skillId, price, skillName }: BuySkillBu
       return
     }
 
+    if (!hasOnChainId) return
     if (alreadyOwned) return
     if (!hasBalance) {
       setStatus('error')
@@ -163,6 +167,7 @@ export default function BuySkillButton({ skillId, price, skillName }: BuySkillBu
   // Button text
   const buttonText = () => {
     if (!authenticated) return 'Connect Wallet to Buy'
+    if (!hasOnChainId) return 'Coming Soon'
     if (alreadyOwned) return '✓ Already Equipped'
     if (!hasBalance && address) return `Need ${price} USDC`
     if (status === 'approving') return 'Approving USDC...'
@@ -173,6 +178,7 @@ export default function BuySkillButton({ skillId, price, skillName }: BuySkillBu
   }
 
   const isDisabled =
+    !hasOnChainId ||
     status === 'approving' ||
     status === 'buying' ||
     alreadyOwned ||

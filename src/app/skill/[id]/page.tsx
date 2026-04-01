@@ -102,7 +102,7 @@ export default async function SkillPage({ params }: { params: { id: string } }) 
               <p className="font-mono text-xs text-[#1a1a1a]/50 uppercase mb-4">
                 one-time purchase
               </p>
-              <BuySkillButton skillId={skill.id} price={skill.price} skillName={skill.name} />
+              <BuySkillButton skillId={skill.onChainId?.toString() ?? ''} price={skill.price} skillName={skill.name} />
             </div>
 
             {/* Stats */}
