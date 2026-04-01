@@ -3,12 +3,10 @@ pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-
-interface ISkillNFT {
-    function getCreator(uint256 skillId) external view returns (address);
-}
+import "./ISkillNFT.sol";
 
 /**
  * @title SkillRoyaltySplitter
@@ -22,6 +20,11 @@ interface ISkillNFT {
  *      - M-05: Consistent custom errors
  *      - L-02: FeeSplitUpdated event
  *      - L-03: PlatformWalletUpdated event
+ *      - AUDIT-2 M-2: pull-then-push pattern (USDC blacklist DoS fix)
+ *      - AUDIT-2 M-3: operator must hold skill NFT (unconstrained operator fix)
+ *      - AUDIT-2 L-4: check skill active status before payment
+ *      - AUDIT-2 Lead: MIN_AMOUNT to prevent zero-rounding
+ *      - AUDIT-2 Lead: rescueTokens for stuck funds
  */
 contract SkillRoyaltySplitter is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -29,11 +32,16 @@ contract SkillRoyaltySplitter is Ownable, ReentrancyGuard {
     // ── State ──────────────────────────────────────────────
     IERC20    public immutable usdc;
     ISkillNFT public immutable skillNft;
+    IERC1155  public immutable skillNftERC1155;
 
     uint16 public operatorBps = 8000;   // 80%
     uint16 public creatorBps  = 1500;   // 15%
     uint16 public platformBps = 500;    // 5%
     address public platformWallet;
+
+    /// @notice Minimum payment amount: 0.01 USDC (10000 units at 6 decimals)
+    /// @dev Prevents zero-rounding where operator/creator get 0 on tiny amounts
+    uint256 public constant MIN_AMOUNT = 10000;
 
     // ── Events ─────────────────────────────────────────────
     event ServicePayment(
@@ -47,14 +55,19 @@ contract SkillRoyaltySplitter is Ownable, ReentrancyGuard {
     );
 
     event FeeSplitUpdated(uint16 operatorBps, uint16 creatorBps, uint16 platformBps);
-    event PlatformWalletUpdated(address newWallet);
+    event PlatformWalletUpdated(address indexed newWallet);
+    event TokensRescued(address indexed token, address indexed to, uint256 amount);
 
     // ── Errors ─────────────────────────────────────────────
     error InvalidAddress();
     error ZeroAmount();
+    error AmountTooLow(uint256 amount, uint256 minAmount);
     error InvalidSkill(uint256 skillId);
+    error SkillInactive(uint256 skillId);
+    error UnauthorizedOperator(address operator, uint256 skillId);
     error InvalidFeeSplit();
     error OperatorBpsTooLow();
+    error TransferFailed(address recipient);
 
     // ── Constructor ────────────────────────────────────────
     constructor(
@@ -67,6 +80,7 @@ contract SkillRoyaltySplitter is Ownable, ReentrancyGuard {
         }
         usdc = IERC20(_usdc);
         skillNft = ISkillNFT(_skillNft);
+        skillNftERC1155 = IERC1155(_skillNft);
         platformWallet = _platformWallet;
     }
 
@@ -74,13 +88,30 @@ contract SkillRoyaltySplitter is Ownable, ReentrancyGuard {
 
     /**
      * @notice Pay for an agent service. Caller pays USDC, splits to operator/creator/platform.
+     *
+     * @dev AUDIT-2 fixes:
+     *      - M-2: Pull full amount to contract first, then push to each recipient.
+     *             If any push fails, funds stay in contract for rescueTokens().
+     *      - M-3: Operator must hold the skill NFT (balanceOf > 0).
+     *      - L-4: Skill must be active.
+     *      - Lead: MIN_AMOUNT enforced.
+     *
      * @param skillId  The skill being used (to look up creator for royalty)
-     * @param operator The agent operator running the service
-     * @param amount   Total USDC amount (6 decimals)
+     * @param operator The agent operator running the service (must hold skill NFT)
+     * @param amount   Total USDC amount (6 decimals, min 0.01 USDC)
      */
     function pay(uint256 skillId, address operator, uint256 amount) external nonReentrant {
         if (operator == address(0)) revert InvalidAddress();
         if (amount == 0) revert ZeroAmount();
+        if (amount < MIN_AMOUNT) revert AmountTooLow(amount, MIN_AMOUNT);
+
+        // AUDIT-2 L-4: check skill is active
+        if (!skillNft.getSkillActive(skillId)) revert SkillInactive(skillId);
+
+        // AUDIT-2 M-3: operator must hold skill NFT
+        if (skillNftERC1155.balanceOf(operator, skillId) == 0) {
+            revert UnauthorizedOperator(operator, skillId);
+        }
 
         address creator = skillNft.getCreator(skillId);
         if (creator == address(0)) revert InvalidSkill(skillId);
@@ -89,9 +120,13 @@ contract SkillRoyaltySplitter is Ownable, ReentrancyGuard {
         uint256 creatorAmt  = (amount * creatorBps) / 10000;
         uint256 platformAmt = amount - operatorAmt - creatorAmt;
 
-        usdc.safeTransferFrom(msg.sender, operator, operatorAmt);
-        usdc.safeTransferFrom(msg.sender, creator, creatorAmt);
-        usdc.safeTransferFrom(msg.sender, platformWallet, platformAmt);
+        // AUDIT-2 M-2: Pull full amount to contract first (single pull)
+        usdc.safeTransferFrom(msg.sender, address(this), amount);
+
+        // Push to each recipient — if any fails, funds stay in contract for rescue
+        usdc.safeTransfer(operator, operatorAmt);
+        usdc.safeTransfer(creator, creatorAmt);
+        usdc.safeTransfer(platformWallet, platformAmt);
 
         emit ServicePayment(skillId, operator, creator, amount, operatorAmt, creatorAmt, platformAmt);
     }
@@ -114,5 +149,17 @@ contract SkillRoyaltySplitter is Ownable, ReentrancyGuard {
         if (_wallet == address(0)) revert InvalidAddress();
         platformWallet = _wallet;
         emit PlatformWalletUpdated(_wallet);
+    }
+
+    // ── Emergency ──────────────────────────────────────────
+
+    /**
+     * @notice Rescue tokens stuck in the contract (e.g., from failed push distribution).
+     * @dev AUDIT-2 M-2: companion to pull-then-push pattern.
+     */
+    function rescueTokens(IERC20 token, address to, uint256 amount) external onlyOwner {
+        if (to == address(0)) revert InvalidAddress();
+        token.safeTransfer(to, amount);
+        emit TokensRescued(address(token), to, amount);
     }
 }

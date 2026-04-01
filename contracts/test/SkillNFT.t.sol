@@ -205,13 +205,35 @@ contract SkillNFTTest is Test {
 
     // ── Admin setters ──────────────────────────────────────
 
-    function test_setPlatformFeeBps() public {
-        nft.setPlatformFeeBps(500);
+    // AUDIT-2 M-1: atomic setFees replaces separate setters
+    function test_setFees_atomic() public {
+        nft.setFees(500, 200);
         assertEq(nft.platformFeeBps(), 500);
+        assertEq(nft.reputationPoolBps(), 200);
     }
 
-    function test_setReputationPoolBps() public {
-        nft.setReputationPoolBps(200);
-        assertEq(nft.reputationPoolBps(), 200);
+    function test_setFees_revert_tooHigh() public {
+        vm.expectRevert(SkillNFT.InvalidBps.selector);
+        nft.setFees(9500, 500); // sum = 10000, must be < 10000
+    }
+
+    function test_setFees_revert_notOwner() public {
+        vm.prank(buyer);
+        vm.expectRevert();
+        nft.setFees(500, 200);
+    }
+
+    // ── ISkillNFT interface views ──────────────────────────
+
+    function test_getSkillActive() public {
+        nft.createSkill(PRICE, creator, 1500, "uri");
+        assertTrue(nft.getSkillActive(1));
+        nft.setSkillActive(1, false);
+        assertFalse(nft.getSkillActive(1));
+    }
+
+    function test_getSkillRoyaltyBps() public {
+        nft.createSkill(PRICE, creator, 1500, "uri");
+        assertEq(nft.getSkillRoyaltyBps(1), 1500);
     }
 }

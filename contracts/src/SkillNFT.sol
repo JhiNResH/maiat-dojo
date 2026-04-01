@@ -6,7 +6,9 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/interfaces/IERC2981.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+import "./ISkillNFT.sol";
 
 /**
  * @title SkillNFT
@@ -24,8 +26,12 @@ import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
  *      - M-05: consistent custom errors (no more require strings)
  *      - L-01: SkillActiveChanged event added
  *      - L-05: nextSkillId starts at 1 (avoids off-chain 0=null confusion)
+ *      - AUDIT-2 M-1: atomic setFees replaces separate fee setters
+ *      - AUDIT-2 L-5: nonReentrant on buySkill
+ *      - AUDIT-2 Lead: implements ISkillNFT interface
+ *      - AUDIT-2 Lead: indexed address events
  */
-contract SkillNFT is ERC1155, IERC2981, Ownable {
+contract SkillNFT is ERC1155, IERC2981, Ownable, ReentrancyGuard, ISkillNFT {
     using SafeERC20 for IERC20;
 
     // ─────────────────────────────────────────────
@@ -96,10 +102,9 @@ contract SkillNFT is ERC1155, IERC2981, Ownable {
     );
 
     event SkillActiveChanged(uint256 indexed skillId, bool active);
-    event PlatformFeeUpdated(uint16 newBps);
-    event ReputationPoolFeeUpdated(uint16 newBps);
-    event PlatformWalletUpdated(address newWallet);
-    event ReputationPoolUpdated(address newPool);
+    event FeesUpdated(uint16 platformFeeBps, uint16 reputationPoolBps);
+    event PlatformWalletUpdated(address indexed newWallet);
+    event ReputationPoolUpdated(address indexed newPool);
     event TokensRescued(address indexed token, address indexed to, uint256 amount);
 
     // ─────────────────────────────────────────────
@@ -184,7 +189,7 @@ contract SkillNFT is ERC1155, IERC2981, Ownable {
      * @param skillId   The skill to purchase
      * @param recipient Address that receives the NFT
      */
-    function buySkill(uint256 skillId, address recipient) external {
+    function buySkill(uint256 skillId, address recipient) external nonReentrant {
         if (skillId == 0 || skillId >= nextSkillId) revert InvalidSkillId(skillId);
         if (recipient == address(0)) revert InvalidAddress();
 
@@ -257,9 +262,25 @@ contract SkillNFT is ERC1155, IERC2981, Ownable {
     /**
      * @notice Get creator address for a skill. Reverts for non-existent IDs. (M-01)
      */
-    function getCreator(uint256 skillId) external view returns (address) {
+    function getCreator(uint256 skillId) external view override returns (address) {
         if (skillId == 0 || skillId >= nextSkillId) revert InvalidSkillId(skillId);
         return skills[skillId].creator;
+    }
+
+    /**
+     * @notice Check if a skill is active. Used by SkillRoyaltySplitter. (AUDIT-2 L-4)
+     */
+    function getSkillActive(uint256 skillId) external view override returns (bool) {
+        if (skillId == 0 || skillId >= nextSkillId) revert InvalidSkillId(skillId);
+        return skills[skillId].active;
+    }
+
+    /**
+     * @notice Get royaltyBps for a skill. Used by SkillRoyaltySplitter. (AUDIT-2 Lead)
+     */
+    function getSkillRoyaltyBps(uint256 skillId) external view override returns (uint16) {
+        if (skillId == 0 || skillId >= nextSkillId) revert InvalidSkillId(skillId);
+        return skills[skillId].royaltyBps;
     }
 
     /**
@@ -293,18 +314,13 @@ contract SkillNFT is ERC1155, IERC2981, Ownable {
     //  Admin: Fee & Address Updates
     // ─────────────────────────────────────────────
 
-    /// @notice Update platform fee (in bps). Max combined fees must be < 10000.
-    function setPlatformFeeBps(uint16 newBps) external onlyOwner {
-        if (newBps + reputationPoolBps >= 10000) revert InvalidBps();
-        platformFeeBps = newBps;
-        emit PlatformFeeUpdated(newBps);
-    }
-
-    /// @notice Update reputation pool fee (in bps).
-    function setReputationPoolBps(uint16 newBps) external onlyOwner {
-        if (platformFeeBps + newBps >= 10000) revert InvalidBps();
-        reputationPoolBps = newBps;
-        emit ReputationPoolFeeUpdated(newBps);
+    /// @notice Atomically update both fee rates. Combined must be < 10000 bps.
+    /// @dev AUDIT-2 M-1: replaces separate setters to prevent non-atomic misconfiguration.
+    function setFees(uint16 _platformFeeBps, uint16 _reputationPoolBps) external onlyOwner {
+        if (uint256(_platformFeeBps) + _reputationPoolBps >= 10000) revert InvalidBps();
+        platformFeeBps = _platformFeeBps;
+        reputationPoolBps = _reputationPoolBps;
+        emit FeesUpdated(_platformFeeBps, _reputationPoolBps);
     }
 
     /// @notice Update platform wallet address.
