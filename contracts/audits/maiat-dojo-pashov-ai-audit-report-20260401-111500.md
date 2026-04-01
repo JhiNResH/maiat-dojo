@@ -49,7 +49,38 @@ Also consider adding a `pendingWithdrawal` mapping as fallback so a blacklisted 
 
 ---
 
-[75] **2. Missing `nonReentrant` on `buySkill` — CEI Violation**
+[78] **2. Non-Atomic Fee Update Allows Creator Share to Collapse to 0.01%**
+
+`SkillNFT.setPlatformFeeBps` / `SkillNFT.setReputationPoolBps` · Confidence: 78 · Severity: **Medium** · [agents: 2]
+
+**Description**  
+The two fee setters each validate their own change in isolation but read the *other* variable from storage at that moment. Two valid sequential owner transactions can result in a combined fee that leaves the creator share at 1/10000 of price (0.01%):
+
+```
+tx1: setPlatformFeeBps(9499)   → check: 9499 + 500 = 9999 < 10000 ✓
+tx2: setReputationPoolBps(499) → check: 9499 + 499 = 9998 < 10000 ✓
+→ creatorShare = price - (price * 9499/10000) - (price * 499/10000) = price * 2/10000
+```
+
+A griefing owner (or compromised key) can drain creator revenue in two txs that each pass validation.
+
+**Fix**
+
+```diff
++ function setFees(uint16 _platformBps, uint16 _reputationBps) external onlyOwner {
++     if (uint256(_platformBps) + _reputationBps >= 10000) revert InvalidBps();
++     platformFeeBps = _platformBps;
++     reputationPoolBps = _reputationBps;
++     emit PlatformFeeUpdated(_platformBps);
++     emit ReputationPoolFeeUpdated(_reputationBps);
++ }
+```
+
+Replace the two individual setters with a single atomic setter that validates the combined value.
+
+---
+
+[75] **3. Missing `nonReentrant` on `buySkill` — CEI Violation**
 
 `SkillNFT.buySkill` · Confidence: 75 · Severity: **Low**
 
@@ -78,6 +109,8 @@ _High-signal trails requiring manual verification. Not scored._
 
 - **Missing interface inheritance** — `SkillNFT` (contract) — Code smells: `SkillNFT` implements `getCreator(uint256)` but does not declare `ISkillNFT`; `SkillRoyaltySplitter` calls it via the interface. If a future upgrade renames or reorders `getCreator` without updating the interface, SkillRoyaltySplitter silently uses wrong ABI — verify the interface is locked or add `is ISkillNFT` to SkillNFT.
 
+- **`pay()` tiny-amount zero-rounding** — `SkillRoyaltySplitter.pay` — Code smells: for `amount < 2`, `operatorAmt = 0` and `creatorAmt = 0` — platform captures 100% of the payment; no `MIN_AMOUNT` guard exists unlike `SkillNFT.MIN_PRICE`. Relevant for x402 micro-payment flows.
+
 - **Per-skill `royaltyBps` never consumed by SkillRoyaltySplitter** — `SkillRoyaltySplitter.pay` — Code smells: `Skill.royaltyBps` is documented as "for SkillRoyaltySplitter" but `pay()` uses the flat contract-level `creatorBps` (15%) for every skill, ignoring the per-skill value entirely. This creates a silent mismatch: creator sets royaltyBps expecting differentiated Agent Service splits, but all get the same 15%. Verify if this is intentional or if `pay()` should read `skillNft.getSkill(skillId).royaltyBps`.
 
 - **No operator authenticity validation in `pay()`** — `SkillRoyaltySplitter.pay` — Code smells: `operator` is caller-specified with no check that they hold the relevant skill NFT or are registered anywhere. In x402/MPP flows where a facilitator routes payments, a misconfigured or compromised facilitator can route 80% of every payment to an arbitrary address. Consider requiring `operator` to hold `balanceOf(operator, skillId) > 0` via SkillNFT.
@@ -99,7 +132,8 @@ _High-signal trails requiring manual verification. Not scored._
 | # | Confidence | Title | Severity |
 |---|-----------|-------|----------|
 | 1 | [80] | USDC Blacklist DoS in `pay()` | Medium |
-| 2 | [75] | Missing `nonReentrant` + CEI violation in `buySkill` | Low |
+| 2 | [78] | Non-Atomic Fee Update → Creator share collapses to 0.01% | Medium |
+| 3 | [75] | Missing `nonReentrant` + CEI violation in `buySkill` | Low |
 
 ---
 
