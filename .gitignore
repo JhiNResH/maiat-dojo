@@ -4,3 +4,7 @@ node_modules
 *.log
 
 /src/generated/prisma
+dev.db
+prisma/dev.db
+prisma/prisma/
+tsconfig.tsbuildinfo
