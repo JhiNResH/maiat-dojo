@@ -2,6 +2,12 @@
 
 import { type ReactNode } from 'react'
 import { PrivyProvider as Privy } from '@privy-io/react-auth'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { WagmiProvider } from 'wagmi'
+import { config } from '@/lib/wagmi'
+import { base } from 'wagmi/chains'
+
+const queryClient = new QueryClient()
 
 export function PrivyProvider({ children }: { children: ReactNode }) {
   const appId = (process.env.NEXT_PUBLIC_PRIVY_APP_ID ?? '').trim()
@@ -23,9 +29,15 @@ export function PrivyProvider({ children }: { children: ReactNode }) {
         embeddedWallets: {
           createOnLogin: 'users-without-wallets',
         },
+        defaultChain: base,
+        supportedChains: [base],
       }}
     >
-      {children}
+      <QueryClientProvider client={queryClient}>
+        <WagmiProvider config={config}>
+          {children}
+        </WagmiProvider>
+      </QueryClientProvider>
     </Privy>
   )
 }

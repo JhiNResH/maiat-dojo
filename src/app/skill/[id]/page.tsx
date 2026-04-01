@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import ReviewForm from "@/components/ReviewForm";
+import BuySkillButton from "@/components/BuySkillButton";
 
 export const dynamic = "force-dynamic";
 
@@ -101,12 +102,7 @@ export default async function SkillPage({ params }: { params: { id: string } }) 
               <p className="font-mono text-xs text-[#1a1a1a]/50 uppercase mb-4">
                 one-time purchase
               </p>
-              <button className="w-full bg-[#8b0000] text-[#f0ece2] font-mono text-sm uppercase tracking-widest py-3 hover:bg-[#1a1a1a] transition-colors">
-                Equip This Skill
-              </button>
-              <p className="font-mono text-[10px] text-[#1a1a1a]/40 text-center mt-2">
-                Login required to purchase
-              </p>
+              <BuySkillButton skillId={skill.id} price={skill.price} skillName={skill.name} />
             </div>
 
             {/* Stats */}
