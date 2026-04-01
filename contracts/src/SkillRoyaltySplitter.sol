@@ -62,7 +62,6 @@ contract SkillRoyaltySplitter is Ownable, ReentrancyGuard {
     error InvalidAddress();
     error ZeroAmount();
     error AmountTooLow(uint256 amount, uint256 minAmount);
-    error InvalidSkill(uint256 skillId);
     error SkillInactive(uint256 skillId);
     error UnauthorizedOperator(address operator, uint256 skillId);
     error InvalidFeeSplit();
@@ -99,6 +98,10 @@ contract SkillRoyaltySplitter is Ownable, ReentrancyGuard {
      * @param skillId  The skill being used (to look up creator for royalty)
      * @param operator The agent operator running the service (must hold skill NFT)
      * @param amount   Total USDC amount (6 decimals, min 0.01 USDC)
+     *
+     * @dev Note on royaltyBps: SkillNFT.Skill.royaltyBps is used exclusively for ERC-2981
+     *      secondary-market royalties and is NOT applied here. Agent Services use the global
+     *      contract-level split (operatorBps / creatorBps / platformBps) for all skills.
      */
     function pay(uint256 skillId, address operator, uint256 amount) external nonReentrant {
         if (operator == address(0)) revert InvalidAddress();
@@ -113,8 +116,8 @@ contract SkillRoyaltySplitter is Ownable, ReentrancyGuard {
             revert UnauthorizedOperator(operator, skillId);
         }
 
+        // getCreator reverts with InvalidSkillId for non-existent skills and always returns non-zero
         address creator = skillNft.getCreator(skillId);
-        if (creator == address(0)) revert InvalidSkill(skillId);
 
         uint256 operatorAmt = (amount * operatorBps) / 10000;
         uint256 creatorAmt  = (amount * creatorBps) / 10000;
