@@ -115,10 +115,11 @@ export const CONTRACTS = {
     agentIdentity: "0x8004A169000000000000000000000000000b9432" as `0x${string}`, // existing
     reputationEngine: "0x0000000000000000000000000000000000000000" as `0x${string}`, // TODO: deploy
   },
-  // Base Sepolia (testnet)
+  // Base Sepolia (testnet) — deployed 2026-04-01
   baseSepolia: {
-    skillRegistry: "0x0000000000000000000000000000000000000000" as `0x${string}`, // TODO: deploy
-    agentIdentity: "0x0000000000000000000000000000000000000000" as `0x${string}`,
-    reputationEngine: "0x0000000000000000000000000000000000000000" as `0x${string}`,
+    skillRegistry: "0x52635F45b087c1059B3a997fb089bae5Db095B74" as `0x${string}`,
+    skillRoyaltySplitter: "0x98D34100F6030DFDc1370fB45dFa1Ad7980D4bD8" as `0x${string}`,
+    agentIdentity: "0x0000000000000000000000000000000000000000" as `0x${string}`, // TODO
+    reputationEngine: "0x0000000000000000000000000000000000000000" as `0x${string}`, // TODO
   },
 } as const;
