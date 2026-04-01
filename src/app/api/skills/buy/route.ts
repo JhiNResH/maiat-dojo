@@ -1,0 +1,111 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+
+export const dynamic = "force-dynamic";
+
+/**
+ * POST /api/skills/buy
+ * Purchase a skill and (optionally) equip it to an agent.
+ * Handles both fiat (Stripe) and crypto (tx hash).
+ *
+ * Body: {
+ *   privyId: string;       // buyer identity
+ *   skillId: string;
+ *   agentId?: string;      // if provided, auto-equip after purchase
+ *   paymentMethod: "stripe" | "crypto" | "free";
+ *   stripePaymentIntentId?: string;
+ *   txHash?: string;
+ * }
+ */
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { privyId, skillId, agentId, paymentMethod, stripePaymentIntentId, txHash } = body;
+
+    if (!privyId || !skillId || !paymentMethod) {
+      return NextResponse.json(
+        { error: "Missing required fields: privyId, skillId, paymentMethod" },
+        { status: 400 }
+      );
+    }
+
+    // Resolve user
+    const user = await prisma.user.findUnique({ where: { privyId } });
+    if (!user) {
+      return NextResponse.json({ error: "User not found — create account first" }, { status: 404 });
+    }
+
+    // Resolve skill
+    const skill = await prisma.skill.findUnique({ where: { id: skillId } });
+    if (!skill) {
+      return NextResponse.json({ error: "Skill not found" }, { status: 404 });
+    }
+
+    // Check for duplicate purchase
+    const existing = await prisma.purchase.findFirst({
+      where: { userId: user.id, skillId, status: "completed" },
+    });
+    if (existing) {
+      return NextResponse.json({ error: "Skill already purchased", purchase: existing }, { status: 409 });
+    }
+
+    // Validate payment (stub — integrate Stripe webhook / on-chain in Phase 2)
+    if (paymentMethod === "stripe" && !stripePaymentIntentId) {
+      return NextResponse.json({ error: "stripePaymentIntentId required for stripe payment" }, { status: 400 });
+    }
+    if (paymentMethod === "crypto" && !txHash) {
+      return NextResponse.json({ error: "txHash required for crypto payment" }, { status: 400 });
+    }
+    if (paymentMethod === "free" && skill.price > 0) {
+      return NextResponse.json({ error: "Skill is not free" }, { status: 400 });
+    }
+
+    // Record purchase
+    const purchase = await prisma.purchase.create({
+      data: {
+        userId: user.id,
+        skillId,
+        amount: skill.price,
+        currency: skill.currency,
+        status: "completed",
+        ...(txHash && { txHash }),
+        ...(stripePaymentIntentId && { stripeId: stripePaymentIntentId }),
+      },
+    });
+
+    // Increment install counter
+    await prisma.skill.update({
+      where: { id: skillId },
+      data: { installs: { increment: 1 } },
+    });
+
+    // Auto-equip to agent if provided
+    let equipment = null;
+    if (agentId) {
+      const agent = await prisma.agent.findFirst({
+        where: { id: agentId, ownerId: user.id },
+      });
+      if (!agent) {
+        return NextResponse.json(
+          { error: "Agent not found or not owned by user", purchase },
+          { status: 404 }
+        );
+      }
+
+      equipment = await prisma.agentSkill.upsert({
+        where: { agentId_skillId: { agentId, skillId } },
+        update: {},
+        create: { agentId, skillId },
+      });
+    }
+
+    return NextResponse.json(
+      { purchase, equipment, skill: { id: skill.id, name: skill.name } },
+      { status: 201 }
+    );
+  } catch (err: unknown) {
+    console.error("[POST /api/skills/buy]", err);
+    const message = err instanceof Error ? err.message : "Internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}

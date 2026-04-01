@@ -1,0 +1,9 @@
+# Compiler output
+cache/
+out/
+
+# Libraries (installed via forge install)
+lib/
+
+# Env
+.env
