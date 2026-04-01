@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 interface ISkillNFT {
     function getCreator(uint256 skillId) external view returns (address);
@@ -15,8 +16,14 @@ interface ISkillNFT {
  *         Used for x402 / MPP / direct service payments.
  *
  *         Default split: 80% operator / 15% creator / 5% platform
+ *
+ * @dev Audit fixes applied:
+ *      - C-02: ReentrancyGuard on pay()
+ *      - M-05: Consistent custom errors
+ *      - L-02: FeeSplitUpdated event
+ *      - L-03: PlatformWalletUpdated event
  */
-contract SkillRoyaltySplitter is Ownable {
+contract SkillRoyaltySplitter is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     // ── State ──────────────────────────────────────────────
@@ -39,15 +46,25 @@ contract SkillRoyaltySplitter is Ownable {
         uint256 platformAmt
     );
 
+    event FeeSplitUpdated(uint16 operatorBps, uint16 creatorBps, uint16 platformBps);
+    event PlatformWalletUpdated(address newWallet);
+
+    // ── Errors ─────────────────────────────────────────────
+    error InvalidAddress();
+    error ZeroAmount();
+    error InvalidSkill(uint256 skillId);
+    error InvalidFeeSplit();
+    error OperatorBpsTooLow();
+
     // ── Constructor ────────────────────────────────────────
     constructor(
         address _usdc,
         address _skillNft,
         address _platformWallet
     ) Ownable(msg.sender) {
-        require(_usdc != address(0), "zero usdc");
-        require(_skillNft != address(0), "zero skillNft");
-        require(_platformWallet != address(0), "zero platform");
+        if (_usdc == address(0) || _skillNft == address(0) || _platformWallet == address(0)) {
+            revert InvalidAddress();
+        }
         usdc = IERC20(_usdc);
         skillNft = ISkillNFT(_skillNft);
         platformWallet = _platformWallet;
@@ -61,12 +78,12 @@ contract SkillRoyaltySplitter is Ownable {
      * @param operator The agent operator running the service
      * @param amount   Total USDC amount (6 decimals)
      */
-    function pay(uint256 skillId, address operator, uint256 amount) external {
-        require(operator != address(0), "zero operator");
-        require(amount > 0, "zero amount");
+    function pay(uint256 skillId, address operator, uint256 amount) external nonReentrant {
+        if (operator == address(0)) revert InvalidAddress();
+        if (amount == 0) revert ZeroAmount();
 
         address creator = skillNft.getCreator(skillId);
-        require(creator != address(0), "skill !exist");
+        if (creator == address(0)) revert InvalidSkill(skillId);
 
         uint256 operatorAmt = (amount * operatorBps) / 10000;
         uint256 creatorAmt  = (amount * creatorBps) / 10000;
@@ -82,18 +99,20 @@ contract SkillRoyaltySplitter is Ownable {
     // ── Admin setters ──────────────────────────────────────
 
     /**
-     * @notice Update fee split. Must sum to 10000.
+     * @notice Update fee split. Must sum to 10000. Operator must be >= 50%.
      */
     function setFeeSplit(uint16 _operatorBps, uint16 _creatorBps, uint16 _platformBps) external onlyOwner {
-        require(uint256(_operatorBps) + _creatorBps + _platformBps == 10000, "must sum 10000");
-        require(_operatorBps >= 5000, "operator < 50%");
+        if (uint256(_operatorBps) + _creatorBps + _platformBps != 10000) revert InvalidFeeSplit();
+        if (_operatorBps < 5000) revert OperatorBpsTooLow();
         operatorBps = _operatorBps;
         creatorBps = _creatorBps;
         platformBps = _platformBps;
+        emit FeeSplitUpdated(_operatorBps, _creatorBps, _platformBps);
     }
 
     function setPlatformWallet(address _wallet) external onlyOwner {
-        require(_wallet != address(0), "zero");
+        if (_wallet == address(0)) revert InvalidAddress();
         platformWallet = _wallet;
+        emit PlatformWalletUpdated(_wallet);
     }
 }

@@ -14,6 +14,16 @@ import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
  *         Skills can be created by the owner and purchased with USDC.
  *         Payments are auto-split between creator, platform wallet, and reputation pool.
  *         Each skill stores royaltyBps for use by SkillRoyaltySplitter in Agent Services.
+ *
+ * @dev Audit fixes applied:
+ *      - C-01: price > 0 enforced in createSkill
+ *      - C-03: rescueTokens added for stuck funds
+ *      - M-01: bounds check on getSkill / getCreator
+ *      - M-02: minimum price enforced (0.01 USDC)
+ *      - M-04: setSkillActive replaces deactivateSkill (supports reactivation)
+ *      - M-05: consistent custom errors (no more require strings)
+ *      - L-01: SkillActiveChanged event added
+ *      - L-05: nextSkillId starts at 1 (avoids off-chain 0=null confusion)
  */
 contract SkillNFT is ERC1155, IERC2981, Ownable {
     using SafeERC20 for IERC20;
@@ -30,6 +40,13 @@ contract SkillNFT is ERC1155, IERC2981, Ownable {
         uint256 totalSold;   // Total units sold
         bool    active;      // Can be purchased
     }
+
+    // ─────────────────────────────────────────────
+    //  Constants
+    // ─────────────────────────────────────────────
+
+    /// @notice Minimum skill price: 0.01 USDC (10000 units at 6 decimals)
+    uint256 public constant MIN_PRICE = 10000;
 
     // ─────────────────────────────────────────────
     //  State
@@ -50,8 +67,8 @@ contract SkillNFT is ERC1155, IERC2981, Ownable {
     /// @notice Address that receives reputation pool fees
     address public reputationPool;
 
-    /// @notice Auto-incrementing skill ID counter
-    uint256 public nextSkillId;
+    /// @notice Auto-incrementing skill ID counter (starts at 1, 0 = invalid)
+    uint256 public nextSkillId = 1;
 
     /// @notice skillId → Skill data
     mapping(uint256 => Skill) public skills;
@@ -78,18 +95,22 @@ contract SkillNFT is ERC1155, IERC2981, Ownable {
         uint256 reputationShare
     );
 
+    event SkillActiveChanged(uint256 indexed skillId, bool active);
     event PlatformFeeUpdated(uint16 newBps);
     event ReputationPoolFeeUpdated(uint16 newBps);
     event PlatformWalletUpdated(address newWallet);
     event ReputationPoolUpdated(address newPool);
+    event TokensRescued(address indexed token, address indexed to, uint256 amount);
 
     // ─────────────────────────────────────────────
     //  Errors
     // ─────────────────────────────────────────────
 
     error InvalidSkillId(uint256 skillId);
+    error SkillInactive(uint256 skillId);
     error InvalidAddress();
     error InvalidBps();
+    error PriceTooLow(uint256 price, uint256 minPrice);
     error InsufficientBalance();
 
     // ─────────────────────────────────────────────
@@ -122,7 +143,7 @@ contract SkillNFT is ERC1155, IERC2981, Ownable {
 
     /**
      * @notice Create a new skill type. Only callable by owner.
-     * @param price       USDC price in 6-decimal units
+     * @param price       USDC price in 6-decimal units (min 0.01 USDC = 10000)
      * @param creator     Address that receives creator share of sales
      * @param royaltyBps  Royalty in basis points (stored for SkillRoyaltySplitter)
      * @param uri_        Metadata URI for this skill token
@@ -136,6 +157,7 @@ contract SkillNFT is ERC1155, IERC2981, Ownable {
     ) external onlyOwner returns (uint256 skillId) {
         if (creator == address(0)) revert InvalidAddress();
         if (royaltyBps > 10000) revert InvalidBps();
+        if (price < MIN_PRICE) revert PriceTooLow(price, MIN_PRICE); // C-01 + M-02
 
         skillId = nextSkillId++;
         skills[skillId] = Skill({
@@ -163,14 +185,14 @@ contract SkillNFT is ERC1155, IERC2981, Ownable {
      * @param recipient Address that receives the NFT
      */
     function buySkill(uint256 skillId, address recipient) external {
-        if (skillId >= nextSkillId) revert InvalidSkillId(skillId);
+        if (skillId == 0 || skillId >= nextSkillId) revert InvalidSkillId(skillId);
         if (recipient == address(0)) revert InvalidAddress();
 
         Skill storage skill = skills[skillId];
-        require(skill.active, "skill inactive");
+        if (!skill.active) revert SkillInactive(skillId); // M-05: custom error
         uint256 price = skill.price;
 
-        // Check buyer has enough balance (nice error message)
+        // Check buyer has enough balance
         if (usdc.balanceOf(msg.sender) < price) revert InsufficientBalance();
 
         // Calculate splits
@@ -208,28 +230,35 @@ contract SkillNFT is ERC1155, IERC2981, Ownable {
     }
 
     // ─────────────────────────────────────────────
-    //  ERC-1155 URI
+    //  Admin: Skill Lifecycle
     // ─────────────────────────────────────────────
 
     /**
-     * @notice Deactivate a skill (no more purchases).
+     * @notice Activate or deactivate a skill. (M-04: supports reactivation)
      */
-    function deactivateSkill(uint256 skillId) external onlyOwner {
-        if (skillId >= nextSkillId) revert InvalidSkillId(skillId);
-        skills[skillId].active = false;
+    function setSkillActive(uint256 skillId, bool active) external onlyOwner {
+        if (skillId == 0 || skillId >= nextSkillId) revert InvalidSkillId(skillId);
+        skills[skillId].active = active;
+        emit SkillActiveChanged(skillId, active); // L-01
     }
 
+    // ─────────────────────────────────────────────
+    //  View: Skill Getters
+    // ─────────────────────────────────────────────
+
     /**
-     * @notice Get full skill info.
+     * @notice Get full skill info. Reverts for non-existent IDs. (M-01)
      */
     function getSkill(uint256 skillId) external view returns (Skill memory) {
+        if (skillId == 0 || skillId >= nextSkillId) revert InvalidSkillId(skillId);
         return skills[skillId];
     }
 
     /**
-     * @notice Get creator address for a skill.
+     * @notice Get creator address for a skill. Reverts for non-existent IDs. (M-01)
      */
     function getCreator(uint256 skillId) external view returns (address) {
+        if (skillId == 0 || skillId >= nextSkillId) revert InvalidSkillId(skillId);
         return skills[skillId].creator;
     }
 
@@ -237,7 +266,7 @@ contract SkillNFT is ERC1155, IERC2981, Ownable {
      * @notice Returns the metadata URI for a given skill token.
      */
     function uri(uint256 skillId) public view override returns (string memory) {
-        if (skillId >= nextSkillId) revert InvalidSkillId(skillId);
+        if (skillId == 0 || skillId >= nextSkillId) revert InvalidSkillId(skillId);
         return skills[skillId].uri;
     }
 
@@ -247,10 +276,6 @@ contract SkillNFT is ERC1155, IERC2981, Ownable {
 
     /**
      * @notice Returns royalty info for a skill token per ERC-2981.
-     * @param skillId    Token ID
-     * @param salePrice  Sale price in any currency
-     * @return receiver  The creator address
-     * @return royaltyAmount  The royalty amount based on royaltyBps
      */
     function royaltyInfo(uint256 skillId, uint256 salePrice)
         external
@@ -258,7 +283,7 @@ contract SkillNFT is ERC1155, IERC2981, Ownable {
         override
         returns (address receiver, uint256 royaltyAmount)
     {
-        if (skillId >= nextSkillId) revert InvalidSkillId(skillId);
+        if (skillId == 0 || skillId >= nextSkillId) revert InvalidSkillId(skillId);
         Skill storage skill = skills[skillId];
         receiver = skill.creator;
         royaltyAmount = (salePrice * skill.royaltyBps) / 10000;
@@ -294,6 +319,22 @@ contract SkillNFT is ERC1155, IERC2981, Ownable {
         if (newPool == address(0)) revert InvalidAddress();
         reputationPool = newPool;
         emit ReputationPoolUpdated(newPool);
+    }
+
+    // ─────────────────────────────────────────────
+    //  Admin: Emergency (C-03)
+    // ─────────────────────────────────────────────
+
+    /**
+     * @notice Rescue tokens stuck in the contract (e.g., from partial distribution failure).
+     * @param token  ERC-20 token to rescue
+     * @param to     Recipient address
+     * @param amount Amount to rescue
+     */
+    function rescueTokens(IERC20 token, address to, uint256 amount) external onlyOwner {
+        if (to == address(0)) revert InvalidAddress();
+        token.safeTransfer(to, amount);
+        emit TokensRescued(address(token), to, amount);
     }
 
     // ─────────────────────────────────────────────

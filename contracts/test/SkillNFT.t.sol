@@ -30,9 +30,9 @@ contract SkillNFTTest is Test {
 
     function test_createSkill() public {
         uint256 id = nft.createSkill(PRICE, creator, 1500, "ipfs://skill1");
-        assertEq(id, 0); // first skill = 0
+        assertEq(id, 1); // L-05: starts at 1
 
-        SkillNFT.Skill memory s = nft.getSkill(0);
+        SkillNFT.Skill memory s = nft.getSkill(1);
         assertEq(s.price, PRICE);
         assertEq(s.creator, creator);
         assertEq(s.royaltyBps, 1500);
@@ -43,8 +43,8 @@ contract SkillNFTTest is Test {
     function test_createSkill_incrementsId() public {
         uint256 id1 = nft.createSkill(PRICE, creator, 1500, "a");
         uint256 id2 = nft.createSkill(PRICE, creator, 1500, "b");
-        assertEq(id1, 0);
-        assertEq(id2, 1);
+        assertEq(id1, 1);
+        assertEq(id2, 2);
     }
 
     function test_createSkill_revert_notOwner() public {
@@ -58,6 +58,22 @@ contract SkillNFTTest is Test {
         nft.createSkill(PRICE, address(0), 1500, "a");
     }
 
+    // C-01: price must be >= MIN_PRICE
+    function test_createSkill_revert_zeroPrice() public {
+        vm.expectRevert(abi.encodeWithSelector(SkillNFT.PriceTooLow.selector, 0, 10000));
+        nft.createSkill(0, creator, 1500, "a");
+    }
+
+    function test_createSkill_revert_priceTooLow() public {
+        vm.expectRevert(abi.encodeWithSelector(SkillNFT.PriceTooLow.selector, 9999, 10000));
+        nft.createSkill(9999, creator, 1500, "a");
+    }
+
+    function test_createSkill_minPrice() public {
+        uint256 id = nft.createSkill(10000, creator, 1500, "min"); // exactly 0.01 USDC
+        assertEq(id, 1);
+    }
+
     // ── buySkill ───────────────────────────────────────────
 
     function test_buySkill_splits() public {
@@ -68,7 +84,7 @@ contract SkillNFTTest is Test {
         uint256 repPoolBefore  = usdc.balanceOf(repPool);
 
         vm.prank(buyer);
-        nft.buySkill(0, buyer);
+        nft.buySkill(1, buyer);
 
         // 10% platform = 1 USDC, 5% rep pool = 0.5 USDC, 85% creator = 8.5 USDC
         assertEq(usdc.balanceOf(platform) - platformBefore, 1e6);
@@ -76,38 +92,55 @@ contract SkillNFTTest is Test {
         assertEq(usdc.balanceOf(creator) - creatorBefore, 8.5e6);
 
         // NFT minted
-        assertEq(nft.balanceOf(buyer, 0), 1);
+        assertEq(nft.balanceOf(buyer, 1), 1);
 
         // totalSold
-        SkillNFT.Skill memory s = nft.getSkill(0);
-        assertEq(s.totalSold, 1);
+        assertEq(nft.getSkill(1).totalSold, 1);
     }
 
     function test_buySkill_multipleBuys() public {
         nft.createSkill(PRICE, creator, 1500, "uri");
 
         vm.startPrank(buyer);
-        nft.buySkill(0, buyer);
-        nft.buySkill(0, buyer);
+        nft.buySkill(1, buyer);
+        nft.buySkill(1, buyer);
         vm.stopPrank();
 
-        assertEq(nft.balanceOf(buyer, 0), 2);
-        assertEq(nft.getSkill(0).totalSold, 2);
+        assertEq(nft.balanceOf(buyer, 1), 2);
+        assertEq(nft.getSkill(1).totalSold, 2);
     }
 
-    function test_buySkill_revert_inactive() public {
+    // M-04: setSkillActive (deactivate + reactivate)
+    function test_setSkillActive_deactivate() public {
         nft.createSkill(PRICE, creator, 1500, "uri");
-        nft.deactivateSkill(0);
+        nft.setSkillActive(1, false);
 
         vm.prank(buyer);
-        vm.expectRevert("skill inactive");
-        nft.buySkill(0, buyer);
+        vm.expectRevert(abi.encodeWithSelector(SkillNFT.SkillInactive.selector, 1));
+        nft.buySkill(1, buyer);
+    }
+
+    function test_setSkillActive_reactivate() public {
+        nft.createSkill(PRICE, creator, 1500, "uri");
+        nft.setSkillActive(1, false);
+        nft.setSkillActive(1, true);
+
+        vm.prank(buyer);
+        nft.buySkill(1, buyer); // should work again
+        assertEq(nft.balanceOf(buyer, 1), 1);
     }
 
     function test_buySkill_revert_nonexistent() public {
         vm.prank(buyer);
-        vm.expectRevert();
+        vm.expectRevert(abi.encodeWithSelector(SkillNFT.InvalidSkillId.selector, 99));
         nft.buySkill(99, buyer);
+    }
+
+    // L-05: skill ID 0 is invalid
+    function test_buySkill_revert_id0() public {
+        vm.prank(buyer);
+        vm.expectRevert(abi.encodeWithSelector(SkillNFT.InvalidSkillId.selector, 0));
+        nft.buySkill(0, buyer);
     }
 
     function test_buySkill_revert_insufficientBalance() public {
@@ -119,8 +152,8 @@ contract SkillNFTTest is Test {
         usdc.approve(address(nft), type(uint256).max);
 
         vm.prank(poorBuyer);
-        vm.expectRevert();
-        nft.buySkill(0, poorBuyer);
+        vm.expectRevert(SkillNFT.InsufficientBalance.selector);
+        nft.buySkill(1, poorBuyer);
     }
 
     // ── royaltyInfo (ERC-2981) ─────────────────────────────
@@ -128,7 +161,7 @@ contract SkillNFTTest is Test {
     function test_royaltyInfo() public {
         nft.createSkill(PRICE, creator, 1500, "uri");
 
-        (address receiver, uint256 royaltyAmount) = nft.royaltyInfo(0, 100e6);
+        (address receiver, uint256 royaltyAmount) = nft.royaltyInfo(1, 100e6);
         assertEq(receiver, creator);
         assertEq(royaltyAmount, 15e6); // 15% of 100 USDC
     }
@@ -137,7 +170,37 @@ contract SkillNFTTest is Test {
 
     function test_uri() public {
         nft.createSkill(PRICE, creator, 1500, "ipfs://skill1");
-        assertEq(nft.uri(0), "ipfs://skill1");
+        assertEq(nft.uri(1), "ipfs://skill1");
+    }
+
+    // ── M-01: getSkill / getCreator bounds checks ──────────
+
+    function test_getSkill_revert_nonexistent() public {
+        vm.expectRevert(abi.encodeWithSelector(SkillNFT.InvalidSkillId.selector, 99));
+        nft.getSkill(99);
+    }
+
+    function test_getCreator_revert_nonexistent() public {
+        vm.expectRevert(abi.encodeWithSelector(SkillNFT.InvalidSkillId.selector, 99));
+        nft.getCreator(99);
+    }
+
+    // ── C-03: rescueTokens ─────────────────────────────────
+
+    function test_rescueTokens() public {
+        // Send some USDC directly to contract (simulating stuck funds)
+        usdc.mint(address(nft), 5e6);
+        assertEq(usdc.balanceOf(address(nft)), 5e6);
+
+        nft.rescueTokens(IERC20(address(usdc)), platform, 5e6);
+        assertEq(usdc.balanceOf(address(nft)), 0);
+        assertEq(usdc.balanceOf(platform), 5e6);
+    }
+
+    function test_rescueTokens_revert_notOwner() public {
+        vm.prank(buyer);
+        vm.expectRevert();
+        nft.rescueTokens(IERC20(address(usdc)), buyer, 1e6);
     }
 
     // ── Admin setters ──────────────────────────────────────

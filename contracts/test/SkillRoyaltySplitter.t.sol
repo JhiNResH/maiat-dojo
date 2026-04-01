@@ -25,7 +25,7 @@ contract SkillRoyaltySplitterTest is Test {
         nft = new SkillNFT(address(usdc), platform, repPool);
         splitter = new SkillRoyaltySplitter(address(usdc), address(nft), platform);
 
-        // Create a skill (id = 0)
+        // Create a skill (id = 1, nextSkillId starts at 1)
         nft.createSkill(10e6, creator, 1500, "uri");
 
         usdc.mint(buyer, 1000e6);
@@ -41,7 +41,7 @@ contract SkillRoyaltySplitterTest is Test {
         uint256 platformBefore = usdc.balanceOf(platform);
 
         vm.prank(buyer);
-        splitter.pay(0, operator, AMOUNT);
+        splitter.pay(1, operator, AMOUNT);
 
         // 80% operator, 15% creator, 5% platform
         assertEq(usdc.balanceOf(operator) - operatorBefore, 0.8e6);
@@ -53,7 +53,7 @@ contract SkillRoyaltySplitterTest is Test {
         uint256 amount = 100e6; // 100 USDC
 
         vm.prank(buyer);
-        splitter.pay(0, operator, amount);
+        splitter.pay(1, operator, amount);
 
         assertEq(usdc.balanceOf(operator), 80e6);
         assertEq(usdc.balanceOf(creator), 15e6);
@@ -62,19 +62,19 @@ contract SkillRoyaltySplitterTest is Test {
 
     function test_pay_revert_zeroOperator() public {
         vm.prank(buyer);
-        vm.expectRevert("zero operator");
-        splitter.pay(0, address(0), AMOUNT);
+        vm.expectRevert(SkillRoyaltySplitter.InvalidAddress.selector);
+        splitter.pay(1, address(0), AMOUNT);
     }
 
     function test_pay_revert_zeroAmount() public {
         vm.prank(buyer);
-        vm.expectRevert("zero amount");
-        splitter.pay(0, operator, 0);
+        vm.expectRevert(SkillRoyaltySplitter.ZeroAmount.selector);
+        splitter.pay(1, operator, 0);
     }
 
     function test_pay_revert_nonexistentSkill() public {
         vm.prank(buyer);
-        vm.expectRevert("skill !exist");
+        vm.expectRevert(); // getCreator reverts with InvalidSkillId
         splitter.pay(99, operator, AMOUNT);
     }
 
@@ -86,7 +86,7 @@ contract SkillRoyaltySplitterTest is Test {
 
         vm.prank(poorBuyer);
         vm.expectRevert();
-        splitter.pay(0, operator, AMOUNT);
+        splitter.pay(1, operator, AMOUNT);
     }
 
     // ── setFeeSplit ────────────────────────────────────────
@@ -99,12 +99,27 @@ contract SkillRoyaltySplitterTest is Test {
     }
 
     function test_setFeeSplit_revert_notSum10000() public {
-        vm.expectRevert("must sum 10000");
+        vm.expectRevert(SkillRoyaltySplitter.InvalidFeeSplit.selector);
         splitter.setFeeSplit(7000, 2000, 500);
     }
 
     function test_setFeeSplit_revert_operatorTooLow() public {
-        vm.expectRevert("operator < 50%");
+        vm.expectRevert(SkillRoyaltySplitter.OperatorBpsTooLow.selector);
         splitter.setFeeSplit(4000, 4000, 2000);
+    }
+
+    // ── L-02: events ───────────────────────────────────────
+
+    function test_setFeeSplit_emitsEvent() public {
+        vm.expectEmit(false, false, false, true);
+        emit SkillRoyaltySplitter.FeeSplitUpdated(7000, 2000, 1000);
+        splitter.setFeeSplit(7000, 2000, 1000);
+    }
+
+    function test_setPlatformWallet_emitsEvent() public {
+        address newWallet = makeAddr("newPlatform");
+        vm.expectEmit(false, false, false, true);
+        emit SkillRoyaltySplitter.PlatformWalletUpdated(newWallet);
+        splitter.setPlatformWallet(newWallet);
     }
 }
