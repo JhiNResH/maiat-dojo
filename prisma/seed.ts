@@ -29,85 +29,203 @@ async function main() {
     data: { displayName: "Agent_Smith", email: "smith@dojo.maiat.io" },
   });
 
-  // --- Skills ---
+  // --- Skills (8 specific skills with realistic descriptions) ---
   const skills = await Promise.all([
+    // 1. DeFi Yield Optimizer (Trading, $2.00)
     prisma.skill.create({
       data: {
         name: "DeFi Yield Optimizer",
-        description: "Scans 12 protocols, finds the highest risk-adjusted APY in under 3 seconds.",
-        longDescription: "The DeFi Yield Optimizer continuously monitors yield opportunities across Ethereum, Base, and Arbitrum. It analyzes protocol risk scores, TVL changes, impermanent loss projections, and historical APY stability to recommend optimal positions. Supports Aave, Compound, Lido, Rocket Pool, Curve, Convex, Yearn, and 5 more protocols. Built for autonomous agents that need to manage treasury positions without human intervention.\n\nKey capabilities:\n• Real-time APY comparison across 12 protocols\n• Risk-adjusted scoring (considers smart contract risk, oracle risk, liquidity risk)\n• Auto-rebalance suggestions when yield differential exceeds threshold\n• Gas-optimized transaction bundling\n• Slippage protection and MEV-aware routing",
-        category: "Trading", icon: "⚡", price: 4.99, currency: "USD",
-        rating: 4.9, installs: 4821, tags: "defi,yield,farming,apy",
+        description: "Scans 12+ DeFi protocols across Ethereum, Base, and Arbitrum to find the highest risk-adjusted APY in under 3 seconds.",
+        longDescription: `The DeFi Yield Optimizer is the gold standard for autonomous yield farming. It continuously monitors yield opportunities across multiple chains to identify the best opportunities for your capital.
+
+Key capabilities:
+• Real-time APY comparison across Aave, Compound, Lido, Rocket Pool, Curve, Convex, Yearn, and more
+• Risk-adjusted scoring based on smart contract audits, TVL, and historical performance
+• Auto-rebalance suggestions when yield differential exceeds threshold
+• Gas-optimized transaction bundling for maximum efficiency
+• Impermanent loss calculations for LP positions
+• Integration with MEV Shield for protected transactions
+
+Perfect for agents managing DeFi portfolios, automated treasury management, or yield aggregation services.`,
+        category: "Trading", icon: "⚡", price: 2.00, currency: "USD",
+        rating: 4.9, installs: 4821, tags: "yield,farming,apy,defi,optimization,aave,compound,curve",
         creatorId: creator1.id,
       },
     }),
-    prisma.skill.create({
-      data: {
-        name: "On-Chain Forensics",
-        description: "Trace fund flows, identify wallet clusters, and detect suspicious patterns.",
-        longDescription: "Advanced on-chain investigation tool that maps transaction graphs across EVM chains. Uses heuristic clustering to identify related wallets, flags mixer interactions, and generates visual fund flow diagrams. Integrates with known scam/hack databases for automatic risk flagging.",
-        category: "Security", icon: "🔍", price: 7.99, currency: "USD",
-        rating: 4.8, installs: 2310, tags: "security,forensics,investigation,tracing",
-        creatorId: creator2.id,
-      },
-    }),
-    prisma.skill.create({
-      data: {
-        name: "Twitter Alpha Scanner",
-        description: "Monitors crypto Twitter for early alpha signals and sentiment shifts.",
-        longDescription: "Scans 500+ key opinion leaders, project accounts, and whale watchers in real-time. Uses NLP to extract actionable signals from noise. Tracks narrative momentum, identifies emerging tokens before they trend, and correlates social sentiment with on-chain data.",
-        category: "Content", icon: "🐦", price: 2.99, currency: "USD",
-        rating: 4.7, installs: 3890, tags: "twitter,alpha,sentiment,social",
-        creatorId: creator3.id,
-      },
-    }),
-    prisma.skill.create({
-      data: {
-        name: "Gas Fee Predictor",
-        description: "Predicts optimal gas prices for the next 1-60 minutes on EVM chains.",
-        longDescription: "ML model trained on 2 years of gas price data. Predicts base fee and priority fee with 94% accuracy within 15-minute windows. Helps agents time transactions to minimize gas costs.",
-        category: "Infra", icon: "⛽", price: 1.99, currency: "USD",
-        rating: 4.6, installs: 1540, tags: "gas,optimization,infra,evm",
-        creatorId: creator1.id,
-      },
-    }),
+
+    // 2. Smart Contract Auditor (Security, $5.00)
     prisma.skill.create({
       data: {
         name: "Smart Contract Auditor",
-        description: "Static analysis + AI review. Catches 94% of known vulnerability patterns.",
-        longDescription: "Combines Slither-style static analysis with LLM-powered semantic review. Detects reentrancy, integer overflow, access control issues, oracle manipulation, and 40+ vulnerability patterns. Generates detailed audit reports with severity ratings and fix suggestions.",
-        category: "Security", icon: "🛡️", price: 11.99, currency: "USD",
-        rating: 4.9, installs: 980, tags: "security,audit,smart-contract,solidity",
+        description: "Performs automated security analysis on Solidity contracts, detecting vulnerabilities from reentrancy to access control issues.",
+        longDescription: `The Smart Contract Auditor brings enterprise-grade security analysis to your AI agent. It combines static analysis, symbolic execution, and pattern matching to identify vulnerabilities before they become exploits.
+
+Detection capabilities:
+• Reentrancy vulnerabilities (all variants including cross-function and cross-contract)
+• Integer overflow/underflow issues
+• Access control misconfigurations
+• Front-running susceptibility
+• Oracle manipulation risks
+• Flash loan attack vectors
+• Proxy upgrade vulnerabilities
+• Gas griefing opportunities
+
+Outputs detailed reports with severity ratings, affected code locations, and remediation suggestions. Integrates with GitHub for automated PR reviews.`,
+        category: "Security", icon: "🛡️", price: 5.00, currency: "USD",
+        rating: 4.9, installs: 980, tags: "audit,security,solidity,vulnerabilities,smart-contracts,reentrancy",
         creatorId: creator2.id,
       },
     }),
+
+    // 3. Twitter Alpha Scanner (Content, $1.50)
     prisma.skill.create({
       data: {
-        name: "MEV Shield",
-        description: "Protects transactions from sandwich attacks and frontrunning.",
-        longDescription: "Routes transactions through private mempools (Flashbots Protect, MEV Blocker) and uses backrunning-aware slippage settings. Monitors pending transactions for potential MEV extraction and alerts the agent.",
-        category: "DeFi", icon: "🔒", price: 5.99, currency: "USD",
-        rating: 4.5, installs: 762, tags: "mev,protection,defi,security",
-        creatorId: creator2.id,
-      },
-    }),
-    prisma.skill.create({
-      data: {
-        name: "Sentiment Analyzer",
-        description: "Multi-source sentiment analysis for crypto assets and narratives.",
-        longDescription: "Aggregates sentiment from Twitter, Reddit, Telegram, Discord, and on-chain governance forums. Produces hourly sentiment scores per asset with trend direction and confidence levels.",
-        category: "Analytics", icon: "📊", price: 3.99, currency: "USD",
-        rating: 4.4, installs: 1203, tags: "analytics,sentiment,social,data",
+        name: "Twitter Alpha Scanner",
+        description: "Monitors crypto Twitter in real-time, extracting actionable alpha from KOLs, developers, and on-chain sleuths.",
+        longDescription: `Stay ahead of the market with the Twitter Alpha Scanner. This skill processes thousands of tweets per minute, filtering noise to surface genuine alpha before it becomes common knowledge.
+
+Features:
+• Real-time monitoring of 500+ curated crypto accounts
+• Sentiment analysis with market impact scoring
+• Detection of coordinated shill campaigns
+• Developer activity tracking (commits, deployments)
+• On-chain correlation (wallet mentions → transaction analysis)
+• Breaking news detection with <60 second latency
+• Token mention frequency and velocity tracking
+
+Ideal for trading agents, research assistants, and market intelligence operations.`,
+        category: "Content", icon: "🐦", price: 1.50, currency: "USD",
+        rating: 4.7, installs: 3890, tags: "twitter,alpha,social,sentiment,kol,news,crypto",
         creatorId: creator3.id,
       },
     }),
+
+    // 4. On-Chain Forensics (Security, $3.00)
+    prisma.skill.create({
+      data: {
+        name: "On-Chain Forensics",
+        description: "Traces fund flows, identifies wallet clusters, and detects suspicious patterns across EVM chains.",
+        longDescription: `On-Chain Forensics transforms your agent into a blockchain investigator. Whether tracking stolen funds, analyzing whale movements, or conducting due diligence, this skill provides deep transaction graph analysis.
+
+Capabilities:
+• Multi-hop transaction tracing (unlimited depth)
+• Wallet clustering and entity identification
+• Exchange deposit/withdrawal tracking
+• Tornado Cash and mixer detection
+• Bridge transaction following (cross-chain)
+• Time-pattern analysis for automated behaviors
+• Integration with known scammer databases
+• Custom alert rules for monitored addresses
+
+Used by security teams, researchers, and compliance-focused agents worldwide.`,
+        category: "Security", icon: "🔍", price: 3.00, currency: "USD",
+        rating: 4.8, installs: 2310, tags: "forensics,investigation,tracing,wallets,security,compliance",
+        creatorId: creator2.id,
+      },
+    }),
+
+    // 5. Gas Fee Predictor (Infra, FREE)
+    prisma.skill.create({
+      data: {
+        name: "Gas Fee Predictor",
+        description: "Predicts optimal gas prices using mempool analysis and historical patterns. Reduces transaction costs by up to 40%.",
+        longDescription: `Stop overpaying for gas. The Gas Fee Predictor uses machine learning models trained on mempool data and historical patterns to recommend optimal gas prices for any transaction type.
+
+Features:
+• Real-time mempool monitoring
+• Transaction type classification (swap, transfer, mint, etc.)
+• Time-to-confirmation predictions
+• Base fee forecasting (EIP-1559)
+• Priority fee optimization
+• Network congestion alerts
+• Scheduled transaction recommendations
+• Multi-chain support (Ethereum, Base, Arbitrum, Polygon)
+
+Essential for any agent executing on-chain transactions. Free tier available.`,
+        category: "Infra", icon: "⛽", price: 0, currency: "USD",
+        rating: 4.6, installs: 1540, tags: "gas,optimization,mempool,eip1559,transactions,free",
+        creatorId: creator1.id,
+      },
+    }),
+
+    // 6. MEV Shield (DeFi, $2.50)
+    prisma.skill.create({
+      data: {
+        name: "MEV Shield",
+        description: "Protects transactions from sandwich attacks and front-running using private mempools and intelligent routing.",
+        longDescription: `MEV Shield is your agent's defense against value extraction. It routes transactions through MEV-protected pathways, ensuring your trades execute at fair prices without predatory interference.
+
+Protection mechanisms:
+• Private mempool submission (Flashbots Protect, MEV Blocker)
+• Intelligent DEX aggregation with MEV-aware routing
+• Sandwich attack detection and avoidance
+• Just-in-time liquidity analysis
+• Slippage optimization based on MEV risk
+• Transaction simulation before submission
+• Backrun opportunity detection (profit sharing available)
+
+Critical for any DeFi trading agent. Pairs perfectly with DeFi Yield Optimizer.`,
+        category: "DeFi", icon: "🔒", price: 2.50, currency: "USD",
+        rating: 4.5, installs: 762, tags: "mev,protection,flashbots,sandwich,frontrunning,defi",
+        creatorId: creator2.id,
+      },
+    }),
+
+    // 7. Sentiment Analyzer (Analytics, $1.00)
+    prisma.skill.create({
+      data: {
+        name: "Sentiment Analyzer",
+        description: "Aggregates and analyzes sentiment from social media, news, and on-chain data to gauge market mood.",
+        longDescription: `Understand the market's emotional state with the Sentiment Analyzer. This skill processes data from multiple sources to provide a comprehensive view of market sentiment for any token or sector.
+
+Data sources:
+• Twitter/X (crypto-specific accounts)
+• Reddit (r/cryptocurrency, r/ethfinance, etc.)
+• Discord servers (curated alpha groups)
+• Telegram channels
+• News aggregators
+• On-chain metrics (active addresses, transaction counts)
+
+Output metrics:
+• Overall sentiment score (-100 to +100)
+• Sentiment momentum (rate of change)
+• Fear & Greed index contribution
+• Unusual activity alerts
+• Historical sentiment correlation with price
+
+Perfect for trading signals, risk management, and market research.`,
+        category: "Analytics", icon: "📊", price: 1.00, currency: "USD",
+        rating: 4.4, installs: 1203, tags: "sentiment,analytics,social,market,mood,signals",
+        creatorId: creator3.id,
+      },
+    }),
+
+    // 8. Polymarket Arbitrage (Trading, $3.50)
     prisma.skill.create({
       data: {
         name: "Polymarket Arbitrage",
-        description: "Finds mispriced prediction markets and calculates EV opportunities.",
-        longDescription: "Scans Polymarket, Kalshi, and other prediction markets for arbitrage between platforms and +EV bets based on aggregated probability models. Calculates Kelly criterion sizing and tracks historical accuracy.",
-        category: "Trading", icon: "🎯", price: 6.99, currency: "USD",
-        rating: 4.3, installs: 445, tags: "trading,prediction,arbitrage,polymarket",
+        description: "Identifies mispriced prediction market contracts and executes cross-platform arbitrage opportunities.",
+        longDescription: `The Polymarket Arbitrage skill turns your agent into a prediction market specialist. It continuously monitors odds across platforms to find and execute profitable arbitrage opportunities.
+
+Capabilities:
+• Real-time odds tracking across Polymarket, Kalshi, and others
+• Cross-platform arbitrage detection
+• Implied probability calculation
+• Liquidity depth analysis
+• Execution timing optimization
+• Position management and hedging
+• Event outcome monitoring
+• Settlement automation
+
+Advanced features:
+• News-based odds prediction
+• Market maker detection
+• Slippage modeling
+• Multi-leg arbitrage strategies
+
+Ideal for agents specializing in prediction markets and event-driven trading.`,
+        category: "Trading", icon: "🎯", price: 3.50, currency: "USD",
+        rating: 4.3, installs: 445, tags: "polymarket,arbitrage,predictions,betting,odds,trading",
         creatorId: creator4.id,
       },
     }),
@@ -141,16 +259,16 @@ async function main() {
   await prisma.agentSkill.createMany({
     data: [
       { agentId: ronin.id, skillId: skills[0].id },
-      { agentId: ronin.id, skillId: skills[3].id },
+      { agentId: ronin.id, skillId: skills[4].id },
       { agentId: ronin.id, skillId: skills[5].id },
-      { agentId: ronin.id, skillId: skills[1].id },
+      { agentId: ronin.id, skillId: skills[3].id },
     ],
   });
   // Sentinel: Smart Contract Auditor, On-Chain Forensics, Sentiment Analyzer
   await prisma.agentSkill.createMany({
     data: [
-      { agentId: sentinel.id, skillId: skills[4].id },
       { agentId: sentinel.id, skillId: skills[1].id },
+      { agentId: sentinel.id, skillId: skills[3].id },
       { agentId: sentinel.id, skillId: skills[6].id },
     ],
   });
@@ -161,7 +279,7 @@ async function main() {
       { agentId: oracle.id, skillId: skills[6].id },
       { agentId: oracle.id, skillId: skills[7].id },
       { agentId: oracle.id, skillId: skills[0].id },
-      { agentId: oracle.id, skillId: skills[3].id },
+      { agentId: oracle.id, skillId: skills[4].id },
     ],
   });
 
@@ -169,7 +287,7 @@ async function main() {
   await prisma.review.createMany({
     data: [
       { rating: 5, comment: "Best yield optimizer I've used. Found 12% APY on Aave that I missed.", userId: buyer1.id, skillId: skills[0].id },
-      { rating: 5, comment: "Caught a reentrancy bug in my contract that Slither missed. Worth every penny.", userId: buyer1.id, skillId: skills[4].id },
+      { rating: 5, comment: "Caught a reentrancy bug in my contract that Slither missed. Worth every penny.", userId: buyer1.id, skillId: skills[1].id },
       { rating: 4, comment: "Good alpha signals but sometimes slow during high-traffic events.", userId: buyer1.id, skillId: skills[2].id },
       { rating: 5, comment: "Saved me from a sandwich attack on a 50 ETH swap. Paid for itself instantly.", userId: buyer1.id, skillId: skills[5].id },
       { rating: 5, comment: "Ronin managed my DeFi positions for a month. Zero incidents, consistent yield.", userId: buyer1.id, agentId: ronin.id },
@@ -188,6 +306,19 @@ async function main() {
   });
 
   console.log("✅ Seed complete");
+  console.log("   - 5 users created");
+  console.log("   - 8 skills created:");
+  console.log("     1. DeFi Yield Optimizer (Trading, $2.00)");
+  console.log("     2. Smart Contract Auditor (Security, $5.00)");
+  console.log("     3. Twitter Alpha Scanner (Content, $1.50)");
+  console.log("     4. On-Chain Forensics (Security, $3.00)");
+  console.log("     5. Gas Fee Predictor (Infra, FREE)");
+  console.log("     6. MEV Shield (DeFi, $2.50)");
+  console.log("     7. Sentiment Analyzer (Analytics, $1.00)");
+  console.log("     8. Polymarket Arbitrage (Trading, $3.50)");
+  console.log("   - 3 agents created");
+  console.log("   - 6 reviews created");
+  console.log("   - 4 jobs created");
 }
 
 main()
