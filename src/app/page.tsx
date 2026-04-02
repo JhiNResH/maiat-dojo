@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { TrendingUp, Zap, BarChart2, Search, ChevronRight, Layers, Bot, LogIn, User } from "lucide-react";
 import { usePrivy } from "@privy-io/react-auth";
+import TrustBadge from "@/components/TrustBadge";
 
 // --- Mock Data ---
 
@@ -110,7 +111,7 @@ function AuthButton() {
   );
 }
 
-function Masthead() {
+function Masthead({ searchQuery, onSearchChange }: { searchQuery: string; onSearchChange: (q: string) => void }) {
   const today = new Date().toLocaleDateString("en-US", {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
   });
@@ -167,6 +168,8 @@ function Masthead() {
         <div className="flex items-center gap-2 border border-[#1a1a1a]/20 px-4 py-2 text-sm font-mono">
           <Search size={14} className="text-[#1a1a1a]/30" />
           <input
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search the Dojo..."
             className="bg-transparent outline-none w-48 placeholder:text-[#1a1a1a]/25"
           />
@@ -255,12 +258,7 @@ function HeadlineSection() {
   );
 }
 
-function TrendingSkills() {
-  const [skills, setSkills] = useState<any[]>([]);
-  useEffect(() => {
-    fetch("/api/skills").then(r => r.json()).then(setSkills).catch(() => {});
-  }, []);
-
+function TrendingSkills({ skills, loading }: { skills: any[]; loading: boolean }) {
   const list = skills.length > 0 ? skills : TRENDING_SKILLS;
 
   return (
@@ -269,39 +267,45 @@ function TrendingSkills() {
         <TrendingUp size={16} />
         <span className="text-sm font-mono font-bold uppercase tracking-[0.2em]">Trending Skills</span>
         <span className="flex-1" />
-        <button className="text-xs font-mono text-[#1a1a1a]/40 hover:text-[#1a1a1a] flex items-center gap-1 transition-colors">
+        <Link href="/leaderboard" className="text-xs font-mono text-[#1a1a1a]/40 hover:text-[#1a1a1a] flex items-center gap-1 transition-colors">
           Full Rankings <ChevronRight size={12} />
-        </button>
+        </Link>
       </div>
-      <div>
-        {list.map((skill: any, i: number) => (
-          <Link
-            key={skill.id}
-            href={`/skill/${skill.id}`}
-            className="flex items-center gap-4 py-3.5 border-b border-dotted border-[#1a1a1a]/15 last:border-b-0 hover:bg-[#1a1a1a]/[0.02] px-2 transition-colors group"
-          >
-            <span className="text-lg font-serif font-black text-[#1a1a1a]/20 w-6 text-right">{i + 1}</span>
-            <span className="text-xl">{skill.icon}</span>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <p className="text-base font-serif font-bold truncate group-hover:underline decoration-1 underline-offset-2">{skill.name}</p>
-                {(skill.hot || i < 2) && (
-                  <span className="text-[10px] font-mono bg-[#8b0000] text-[#f0ece2] px-2 py-0.5 font-bold tracking-wider">HOT</span>
-                )}
+      {loading ? (
+        <div className="py-8 text-center">
+          <p className="font-mono text-xs text-[#1a1a1a]/40 animate-pulse">Loading skills...</p>
+        </div>
+      ) : (
+        <div>
+          {list.map((skill: any, i: number) => (
+            <Link
+              key={skill.id}
+              href={`/skill/${skill.id}`}
+              className="flex items-center gap-4 py-3.5 border-b border-dotted border-[#1a1a1a]/15 last:border-b-0 hover:bg-[#1a1a1a]/[0.02] px-2 transition-colors group"
+            >
+              <span className="text-lg font-serif font-black text-[#1a1a1a]/20 w-6 text-right">{i + 1}</span>
+              <span className="text-xl">{skill.icon}</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="text-base font-serif font-bold truncate group-hover:underline decoration-1 underline-offset-2">{skill.name}</p>
+                  {(skill.hot || i < 2) && (
+                    <span className="text-[10px] font-mono bg-[#8b0000] text-[#f0ece2] px-2 py-0.5 font-bold tracking-wider">HOT</span>
+                  )}
+                </div>
+                <p className="text-xs font-mono text-[#1a1a1a]/35 mt-0.5">
+                  {skill.category} · ★ {Number(skill.rating).toFixed(1)} · {Number(skill.installs).toLocaleString()} equipped
+                </p>
               </div>
-              <p className="text-xs font-mono text-[#1a1a1a]/35 mt-0.5">
-                {skill.category} · ★ {Number(skill.rating).toFixed(1)} · {Number(skill.installs).toLocaleString()} equipped
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="text-sm font-mono font-bold">
-                {Number(skill.price) === 0 ? "FREE" : `$${Number(skill.price).toFixed(2)}`}
-              </p>
-              {skill.delta && <p className="text-xs font-mono text-green-800">{skill.delta}</p>}
-            </div>
-          </Link>
-        ))}
-      </div>
+              <div className="text-right">
+                <p className="text-sm font-mono font-bold">
+                  {Number(skill.price) === 0 ? "FREE" : `$${Number(skill.price).toFixed(2)}`}
+                </p>
+                {skill.delta && <p className="text-xs font-mono text-green-800">{skill.delta}</p>}
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
@@ -339,6 +343,12 @@ function AgentShowcase() {
                   <span className={`text-xs font-serif italic ${RANK_COLORS[agent.rank] || ""}`}>
                     {agent.rank}
                   </span>
+                  <TrustBadge
+                    successRate={agent.successRate ?? 95}
+                    rating={agent.rating ?? 4.5}
+                    jobsCompleted={agent.jobsCompleted ?? 0}
+                    size="sm"
+                  />
                 </div>
                 <p className="text-xs font-mono text-[#1a1a1a]/40">
                   {Number(agent.jobsCompleted).toLocaleString()} jobs · {agent.totalEarnings ?? agent.earnings} {agent.earningsCurrency ?? "ETH"} · ★ {agent.rating ?? "—"}
@@ -451,18 +461,61 @@ function SenseiCTA() {
 // --- Main Page ---
 export default function DojoPage() {
   const [activeCategory, setActiveCategory] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [skills, setSkills] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // Debounce search query (300ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Fetch skills when category or search changes
+  const fetchSkills = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (activeCategory !== "All") {
+        params.set("category", activeCategory);
+      }
+      if (debouncedSearch) {
+        params.set("q", debouncedSearch);
+      }
+      params.set("limit", "20");
+
+      const res = await fetch(`/api/skills?${params.toString()}`);
+      const data = await res.json();
+      setSkills(data.skills || []);
+    } catch (err) {
+      console.error("Failed to fetch skills:", err);
+      setSkills([]);
+    }
+    setLoading(false);
+  }, [activeCategory, debouncedSearch]);
+
+  useEffect(() => {
+    fetchSkills();
+  }, [fetchSkills]);
+
+  const handleCategoryChange = (cat: string) => {
+    setActiveCategory(cat);
+  };
 
   return (
     <div className="min-h-screen bg-[#f0ece2]">
       <div className="max-w-7xl mx-auto px-8 py-6 page-container">
-        <Masthead />
+        <Masthead searchQuery={searchQuery} onSearchChange={setSearchQuery} />
 
         {/* Category nav — newspaper section tabs */}
         <nav className="flex gap-0 mb-8 border-y-2 border-[#1a1a1a]/30">
           {CATEGORIES.map((cat) => (
             <button
               key={cat}
-              onClick={() => setActiveCategory(cat)}
+              onClick={() => handleCategoryChange(cat)}
               className={`px-5 py-3 text-sm font-mono uppercase tracking-[0.15em] whitespace-nowrap transition-colors ${
                 activeCategory === cat
                   ? "bg-[#1a1a1a] text-[#f0ece2] font-bold"
@@ -491,7 +544,7 @@ export default function DojoPage() {
 
           {/* Center column — with column rules */}
           <div className="col-span-5 column-rule pr-6">
-            <TrendingSkills />
+            <TrendingSkills skills={skills} loading={loading} />
           </div>
 
           {/* Right column */}
