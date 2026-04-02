@@ -46,61 +46,41 @@ export const TBA_REGISTRY_ABI = [
 
 /**
  * Compute the deterministic TBA address for an ERC-721 token.
- * Uses the ERC-6551 CREATE2 formula.
+ * Uses the ERC-6551 Registry's `account()` view function on-chain.
+ *
+ * NOTE: Off-chain computation requires keccak256 (viem/ethers).
+ * For MVP, use this with a publicClient to call the registry directly:
+ *
+ *   const address = await publicClient.readContract({
+ *     address: TBA_REGISTRY_ADDRESS,
+ *     abi: TBA_REGISTRY_ABI,
+ *     functionName: 'account',
+ *     args: [implementation, salt, chainId, tokenContract, tokenId],
+ *   });
  *
  * @param tokenContract - The NFT contract address (e.g., Agent NFT)
  * @param tokenId - The token ID
  * @param chainId - The chain ID (default: Base Sepolia)
  * @param implementation - The TBA implementation address
  * @param salt - Optional salt for address derivation
- * @returns The computed TBA address
+ * @returns Args tuple for calling registry.account() on-chain
  */
-export function computeTbaAddress(
+export function getTbaAccountArgs(
   tokenContract: `0x${string}`,
   tokenId: bigint,
   chainId: bigint = BASE_SEPOLIA_CHAIN_ID,
   implementation: `0x${string}` = TBA_ACCOUNT_IMPLEMENTATION,
   salt: `0x${string}` = "0x0000000000000000000000000000000000000000000000000000000000000000"
-): `0x${string}` {
-  // ERC-6551 uses a specific CREATE2 address derivation
-  // The actual computation requires keccak256 which we'd normally do with ethers/viem
-  // For now, we return a placeholder that would be computed on-chain
-
-  // This is a simplified representation - actual computation requires:
-  // 1. Encode init code: implementation + salt + chainId + tokenContract + tokenId
-  // 2. keccak256(0xff ++ registry ++ salt ++ keccak256(initCode))
-
-  // Placeholder computation for demonstration
-  // In production, use viem's getContractAddress or ethers equivalent
-  const components = [
-    implementation.slice(2).toLowerCase(),
-    salt.slice(2),
-    chainId.toString(16).padStart(64, "0"),
-    tokenContract.slice(2).toLowerCase().padStart(64, "0"),
-    tokenId.toString(16).padStart(64, "0"),
-  ].join("");
-
-  // Return a deterministic placeholder based on inputs
-  // Real implementation would use proper CREATE2 computation
-  const hash = simpleHash(components);
-  return `0x${hash.slice(0, 40)}` as `0x${string}`;
-}
-
-/**
- * Simple hash function for placeholder address generation.
- * NOT cryptographically secure - just for deterministic placeholder generation.
- * In production, use keccak256.
- */
-function simpleHash(input: string): string {
-  let hash = 0;
-  for (let i = 0; i < input.length; i++) {
-    const char = input.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32bit integer
-  }
-  // Extend to 40 hex chars
-  const base = Math.abs(hash).toString(16);
-  return (base + base + base + base).slice(0, 40).padStart(40, "0");
+) {
+  // TODO: Replace with proper CREATE2 computation using viem's getContractAddress
+  // For now, return the args needed for on-chain registry.account() call
+  return {
+    implementation,
+    salt,
+    chainId,
+    tokenContract,
+    tokenId,
+  } as const;
 }
 
 /**
@@ -176,7 +156,9 @@ export function getTbaConfig(
     tokenContract,
     tokenId,
     salt,
-    computedAddress: computeTbaAddress(tokenContract, tokenId, chainId),
+    // NOTE: computedAddress requires on-chain call to registry.account()
+    // Use getTbaAccountArgs() with publicClient.readContract() to get actual address
+    computedAddress: "0x0000000000000000000000000000000000000000" as `0x${string}`, // placeholder — compute on-chain
     createAccountCalldata: encodeCreateAccountCall(tokenContract, tokenId, chainId),
   };
 }

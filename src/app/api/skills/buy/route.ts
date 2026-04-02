@@ -60,6 +60,14 @@ export async function POST(req: NextRequest) {
     if (paymentMethod === "crypto" && !txHash) {
       return NextResponse.json({ error: "txHash required for crypto payment" }, { status: 400 });
     }
+    // SECURITY: For crypto payments, mark as "pending_verification" until
+    // we can verify the tx on-chain. The BuySkillButton frontend handles
+    // the actual on-chain purchase via SkillNFT.buySkill() — this API
+    // should be called AFTER the tx confirms, and we verify the receipt.
+    // TODO: Add on-chain verification via publicClient.getTransactionReceipt()
+    // to confirm: (1) tx exists, (2) SkillPurchased event emitted,
+    // (3) buyer matches, (4) skillId matches.
+    const cryptoStatus = paymentMethod === "crypto" ? "pending_verification" : "completed";
     if (paymentMethod === "free" && skill.price > 0) {
       return NextResponse.json({ error: "Skill is not free" }, { status: 400 });
     }
@@ -94,14 +102,14 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Record purchase
+    // Record purchase — crypto purchases start as pending_verification
     const purchase = await prisma.purchase.create({
       data: {
         userId: user.id,
         skillId,
         amount: skill.price,
         currency: skill.currency,
-        status: "completed",
+        status: paymentMethod === "free" ? "completed" : cryptoStatus,
         ...(txHash && { txHash }),
         ...(stripePaymentIntentId && { stripeId: stripePaymentIntentId }),
         ...(attestationUid && { attestationUid }),

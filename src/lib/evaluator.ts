@@ -8,14 +8,21 @@ export interface EvaluationResult {
 }
 
 // Valid categories for skills
+// Categories must match the frontend create form + API routes (Title Case)
 const VALID_CATEGORIES = [
+  "trading",
+  "security",
+  "content",
+  "defi",
+  "analytics",
+  "infra",
+  "social",
   "development",
   "design",
   "marketing",
   "writing",
   "data",
   "automation",
-  "security",
   "devops",
   "ai",
   "blockchain",
