@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import ReviewForm from "@/components/ReviewForm";
+import TrustBadge from "@/components/TrustBadge";
 
 export const dynamic = "force-dynamic";
 
@@ -54,9 +55,17 @@ export default async function AgentPage({ params }: { params: { id: string } }) 
         <div className="flex items-start gap-5 mb-2">
           <span className="text-6xl">{agent.avatar}</span>
           <div>
-            <h1 className="font-serif font-black text-5xl md:text-6xl text-[#1a1a1a] leading-[1.05] tracking-tight">
-              {agent.name}
-            </h1>
+            <div className="flex items-center gap-4">
+              <h1 className="font-serif font-black text-5xl md:text-6xl text-[#1a1a1a] leading-[1.05] tracking-tight">
+                {agent.name}
+              </h1>
+              <TrustBadge
+                successRate={agent.successRate}
+                rating={agent.reviews.length > 0 ? agent.reviews.reduce((a, r) => a + r.rating, 0) / agent.reviews.length : 0}
+                jobsCompleted={agent.jobsCompleted}
+                size="lg"
+              />
+            </div>
             <div className="flex items-center gap-3 mt-2">
               <span className={`inline-block font-mono text-xs uppercase tracking-widest px-2 py-1 ${rankColor[agent.rank] || "bg-[#1a1a1a]/10 text-[#1a1a1a]/70"}`}>
                 {agent.rank}
