@@ -12,8 +12,8 @@ export const EAS_CONTRACTS = {
 // Schema: address buyer, address creator, uint256 skillId, uint256 amount, uint8 rating, bool verified
 export const SKILL_PURCHASE_SCHEMA = "address buyer, address creator, uint256 skillId, uint256 amount, uint8 rating, bool verified";
 
-// Placeholder schema UID - to be replaced after on-chain registration
-export const SKILL_PURCHASE_SCHEMA_UID = "0x0000000000000000000000000000000000000000000000000000000000000000" as `0x${string}`;
+// Registered on Base Sepolia — tx: 0x8f3dafe3a88b11bfb278eb04b4b87698d028774917992ee5e24fd190e292ac7d
+export const SKILL_PURCHASE_SCHEMA_UID = "0xef10f3104166bbf8a1fb345e65daf768388abc81cbf83fd0bdde8b0a2b432688" as `0x${string}`;
 
 // ─── ABI Types ──────────────────────────────────────────────────────────────
 
