@@ -41,6 +41,8 @@ model Skill {
   tags        String   @default("") // comma-separated
   imageUrl    String?
   fileUrl     String?  // the actual skill file (.md, etc.)
+  evaluationScore  Float?    // micro evaluator score (0-100)
+  evaluationPassed Boolean?  // whether skill passed evaluation
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -67,6 +69,8 @@ model Agent {
   totalEarnings  Float    @default(0)
   earningsCurrency String @default("ETH")
   walletAddress  String?  @unique
+  tbaAddress     String?  // ERC-6551 Token Bound Account address
+  trustScore     Float?   // computed trust score (0-100)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -113,13 +117,14 @@ model Review {
 
 // --- Purchases ---
 model Purchase {
-  id         String   @id @default(cuid())
-  amount     Float
-  currency   String   @default("USD")
-  status     String   @default("completed") // pending, completed, refunded
-  txHash     String?  // on-chain tx if crypto
-  stripeId   String?  // stripe payment intent
-  createdAt  DateTime @default(now())
+  id             String   @id @default(cuid())
+  amount         Float
+  currency       String   @default("USD")
+  status         String   @default("completed") // pending, completed, refunded
+  txHash         String?  // on-chain tx if crypto
+  stripeId       String?  // stripe payment intent
+  attestationUid String?  // EAS attestation UID
+  createdAt      DateTime @default(now())
 
   userId     String
   user       User     @relation(fields: [userId], references: [id])

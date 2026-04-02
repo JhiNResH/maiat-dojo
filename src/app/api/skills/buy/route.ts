@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import {
+  createPurchaseAttestation,
+  generatePlaceholderAttestationUid,
+} from "@/lib/eas";
 
 export const dynamic = "force-dynamic";
 
@@ -60,6 +64,36 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Skill is not free" }, { status: 400 });
     }
 
+    // Generate EAS attestation data (placeholder until on-chain registration)
+    let attestationUid: string | undefined;
+    const buyerAddress = user.walletAddress as `0x${string}` | null;
+    const creatorAddress = (await prisma.user.findUnique({
+      where: { id: skill.creatorId },
+      select: { walletAddress: true },
+    }))?.walletAddress as `0x${string}` | null;
+
+    if (buyerAddress && creatorAddress && skill.onChainId !== null) {
+      // Prepare attestation data for future on-chain submission
+      const attestation = createPurchaseAttestation(
+        buyerAddress,
+        creatorAddress,
+        BigInt(skill.onChainId),
+        BigInt(Math.floor(skill.price * 1e6)) // Convert to USDC decimals
+      );
+      // Store placeholder UID - will be replaced when on-chain attestation is created
+      attestationUid = generatePlaceholderAttestationUid(
+        buyerAddress,
+        skillId,
+        Date.now()
+      );
+      // Log attestation data for debugging
+      console.log("[EAS] Attestation prepared:", {
+        schemaUid: attestation.schemaUid,
+        encodedDataLength: attestation.encodedData.length,
+        placeholderUid: attestationUid,
+      });
+    }
+
     // Record purchase
     const purchase = await prisma.purchase.create({
       data: {
@@ -70,6 +104,7 @@ export async function POST(req: NextRequest) {
         status: "completed",
         ...(txHash && { txHash }),
         ...(stripePaymentIntentId && { stripeId: stripePaymentIntentId }),
+        ...(attestationUid && { attestationUid }),
       },
     });
 
@@ -100,7 +135,12 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json(
-      { purchase, equipment, skill: { id: skill.id, name: skill.name } },
+      {
+        purchase,
+        equipment,
+        skill: { id: skill.id, name: skill.name },
+        attestation: attestationUid ? { uid: attestationUid, status: "pending" } : null,
+      },
       { status: 201 }
     );
   } catch (err: unknown) {
