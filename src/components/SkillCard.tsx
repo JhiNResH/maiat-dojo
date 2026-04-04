@@ -91,10 +91,11 @@ export function SkillCard({
         ${isLegendary ? "legendary-shimmer" : ""}
       `}
       style={{
-        border: `${config.borderWidth} solid ${rarityColor}`,
+        border: `1px solid #b8a990`,
+        borderTop: `3px solid ${rarity === "common" ? "#b8a990" : rarityColor}`,
         boxShadow: isLegendary
-          ? `0 0 12px ${rarityColor}40, 0 0 24px ${rarityColor}20`
-          : `0 2px 4px rgba(0,0,0,0.05)`,
+          ? `0 0 8px ${rarityColor}30`
+          : `0 1px 3px rgba(0,0,0,0.04)`,
       }}
       onClick={onClick}
     >
@@ -138,13 +139,13 @@ export function SkillCard({
         </p>
       )}
 
-      {/* Rarity badge */}
+      {/* Rarity badge — ink style, color only for legendary */}
       <div
-        className={`
-          font-mono font-bold uppercase tracking-wider text-center
-          ${RARITY_BG_COLORS[rarity]} ${RARITY_TEXT_COLORS[rarity]}
-          ${config.badge}
-        `}
+        className={`font-mono font-bold uppercase tracking-wider text-center ${config.badge}`}
+        style={{
+          color: rarity === "legendary" ? rarityColor : "#1a1a1a",
+          opacity: rarity === "common" ? 0.35 : 0.7,
+        }}
       >
         {RARITY_LABELS[rarity]}
       </div>
