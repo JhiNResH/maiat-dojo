@@ -1,0 +1,686 @@
+diff --git a/.gitmodules b/.gitmodules
+index 1199c89..bb01d35 100644
+--- a/.gitmodules
++++ b/.gitmodules
+@@ -1,3 +1,12 @@
++[submodule "lib/openzeppelin-contracts"]
++	path = lib/openzeppelin-contracts
++	url = https://github.com/OpenZeppelin/openzeppelin-contracts
++[submodule "lib/forge-std"]
++	path = lib/forge-std
++	url = https://github.com/foundry-rs/forge-std
+ [submodule "lib/openzeppelin-contracts-upgradeable"]
+ 	path = lib/openzeppelin-contracts-upgradeable
+ 	url = https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable
++[submodule "contracts/acp"]
++	path = contracts/acp
++	url = https://github.com/erc-8183/base-contracts
+diff --git a/MAINTAINERS.md b/MAINTAINERS.md
+index a1ceed5..570616d 100644
+--- a/MAINTAINERS.md
++++ b/MAINTAINERS.md
+@@ -2,15 +2,12 @@
+ 
+ This document lists current maintainers in the ERC-8183 project.
+ 
+-**Last updated:** March 12, 2026
++**Last updated:** March 20, 2026
+ 
+-## Lead Maintainers
++## Core Maintainers
+ 
+ - [Davide Crapis](https://github.com/dcrapis)
+ - [Bryan Lim](https://github.com/ai-virtual-b)
+-
+-## Core Maintainers
+-
+ - [Tay Weixiong](https://github.com/twx-virtuals)
+ - [Chooi Zuhwa](https://github.com/Zuhwa)
+ - [Brianna Chang](https://github.com/psmiratisu)
+diff --git a/README.md b/README.md
+index 92b22a7..cdf10c3 100644
+--- a/README.md
++++ b/README.md
+@@ -27,18 +27,9 @@ Contributed by [Maiat Protocol](https://github.com/JhiNResH/maiat-protocol) —
+ 
+ | Contract | Description |
+ |----------|-------------|
+-| **[EvaluatorRegistry.sol](./contracts/EvaluatorRegistry.sol)** | Trust-ranked evaluator discovery. Multiple evaluators per domain with on-chain performance tracking (success rate, total jobs). Paginated queries sorted by performance. Auto-delists underperforming evaluators. |
+-| **[TrustGateACPHook.sol](./contracts/hooks/TrustGateACPHook.sol)** | Gates job lifecycle by trust score from an external oracle. Dynamic value-tier thresholds — higher value jobs require higher trust. |
+-| **[TrustBasedEvaluator.sol](./contracts/hooks/TrustBasedEvaluator.sol)** | Reference evaluator that auto-approves/rejects based on provider trust score. Feeds outcomes back to EvaluatorRegistry for performance tracking. |
+-
+-**Documentation:** [04-evaluator-patterns.md](./04-evaluator-patterns.md) — Four evaluator design patterns including trust-ranked discovery.
+-
+-```
+-Registry.getEvaluator("trust")  →  Best evaluator for domain
+-TrustGateACPHook                →  Pre-screens participants by trust
+-TrustBasedEvaluator             →  Auto-evaluates deliverables
+-Registry.recordOutcome()        →  Feeds back performance data
+-```
++| [TrustGateACPHook.sol](./contracts/hooks/TrustGateACPHook.sol) | Gates job funding and submission behind configurable trust-score thresholds. Value-tiered requirements scale the safety bar with financial risk. |
++| [TrustBasedEvaluator.sol](./contracts/hooks/TrustBasedEvaluator.sol) | Auto-evaluator that approves/rejects based on on-chain trust oracle scores, with registry feedback loop. |
++| [EvaluatorRegistry.sol](./contracts/EvaluatorRegistry.sol) | On-chain evaluator discovery with multi-evaluator support and auto-delisting below 30% success rate. |
+ 
+ ## Building a Hook
+ 
+diff --git a/contracts/BaseACPHook.sol b/contracts/BaseACPHook.sol
+index 69e661d..893c8d0 100644
+--- a/contracts/BaseACPHook.sol
++++ b/contracts/BaseACPHook.sol
+@@ -1,7 +1,8 @@
+ // SPDX-License-Identifier: MIT
+ pragma solidity ^0.8.20;
+ 
+-import "./IACPHook.sol";
++import "@acp/IACPHook.sol";
++import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+ 
+ /**
+  * @title BaseACPHook
+@@ -12,23 +13,25 @@ import "./IACPHook.sol";
+  *      NOT part of the ERC standard — this is a helper contract that can be
+  *      updated independently without changing the IACPHook interface.
+  *
+- *      Data encoding per selector (as produced by AgenticCommerceHooked):
+- *        setProvider  : abi.encode(address provider, bytes optParams)
+- *        setBudget    : abi.encode(uint256 amount, bytes optParams)
+- *        fund         : optParams (raw bytes)
+- *        submit       : abi.encode(bytes32 deliverable, bytes optParams)
+- *        complete     : abi.encode(bytes32 reason, bytes optParams)
+- *        reject       : abi.encode(bytes32 reason, bytes optParams)
++ *      All virtual functions include an `address caller` parameter because
++ *      AgenticCommerce supports operators, so the actual caller matters.
++ *
++ *      Data encoding per selector (as produced by AgenticCommerce):
++ *        setBudget   : abi.encode(caller, amount, optParams)
++ *        fund        : abi.encode(caller, optParams)
++ *        submit      : abi.encode(caller, deliverable, optParams)
++ *        complete    : abi.encode(caller, reason, optParams)
++ *        reject      : abi.encode(caller, reason, optParams)
+  *
+  *      Example:
+  *          contract MyHook is BaseACPHook {
+  *              constructor(address acp) BaseACPHook(acp) {}
+- *              function _postFund(uint256 jobId, bytes memory optParams) internal override {
++ *              function _postFund(uint256 jobId, address caller, bytes memory optParams) internal override {
+  *                  // custom logic after fund
+  *              }
+  *          }
+  */
+-abstract contract BaseACPHook is IACPHook {
++abstract contract BaseACPHook is ERC165, IACPHook {
+     address public immutable acpContract;
+ 
+     error OnlyACPContract();
+@@ -42,89 +45,151 @@ abstract contract BaseACPHook is IACPHook {
+         acpContract = acpContract_;
+     }
+ 
++    function supportsInterface(
++        bytes4 interfaceId
++    ) public view virtual override(ERC165, IERC165) returns (bool) {
++        return
++            interfaceId == type(IACPHook).interfaceId ||
++            super.supportsInterface(interfaceId);
++    }
++
+     // --- Selector constants (avoid repeated keccak at runtime) ----------------
+-    // These match AgenticCommerceHooked function selectors.
+-    bytes4 private constant SEL_SET_PROVIDER = bytes4(keccak256("setProvider(uint256,address,bytes)"));
+-    bytes4 private constant SEL_SET_BUDGET   = bytes4(keccak256("setBudget(uint256,uint256,bytes)"));
+-    bytes4 private constant SEL_FUND         = bytes4(keccak256("fund(uint256,bytes)"));
+-    bytes4 private constant SEL_SUBMIT       = bytes4(keccak256("submit(uint256,bytes32,bytes)"));
+-    bytes4 private constant SEL_COMPLETE     = bytes4(keccak256("complete(uint256,bytes32,bytes)"));
+-    bytes4 private constant SEL_REJECT       = bytes4(keccak256("reject(uint256,bytes32,bytes)"));
++    // These match AgenticCommerce function selectors.
++    bytes4 private constant SEL_SET_BUDGET =
++        bytes4(keccak256("setBudget(uint256,uint256,bytes)"));
++    bytes4 private constant SEL_FUND =
++        bytes4(keccak256("fund(uint256,uint256,bytes)"));
++    bytes4 private constant SEL_SUBMIT =
++        bytes4(keccak256("submit(uint256,bytes32,bytes)"));
++    bytes4 private constant SEL_COMPLETE =
++        bytes4(keccak256("complete(uint256,bytes32,bytes)"));
++    bytes4 private constant SEL_REJECT =
++        bytes4(keccak256("reject(uint256,bytes32,bytes)"));
+ 
+     // --- IACPHook implementation (router) ------------------------------------
+ 
+-    function beforeAction(uint256 jobId, bytes4 selector, bytes calldata data) external override onlyACP {
+-        if (selector == SEL_SET_PROVIDER) {
+-            (address provider_, bytes memory optParams) = abi.decode(data, (address, bytes));
+-            _preSetProvider(jobId, provider_, optParams);
+-        } else if (selector == SEL_SET_BUDGET) {
+-            (uint256 amount, bytes memory optParams) = abi.decode(data, (uint256, bytes));
+-            _preSetBudget(jobId, amount, optParams);
++    function beforeAction(
++        uint256 jobId,
++        bytes4 selector,
++        bytes calldata data
++    ) external override onlyACP {
++        if (selector == SEL_SET_BUDGET) {
++            (address caller, uint256 amount, bytes memory optParams) = abi
++                .decode(data, (address, uint256, bytes));
++            _preSetBudget(jobId, caller, amount, optParams);
+         } else if (selector == SEL_FUND) {
+-            _preFund(jobId, data);
++            (address caller, bytes memory optParams) = abi.decode(
++                data,
++                (address, bytes)
++            );
++            _preFund(jobId, caller, optParams);
+         } else if (selector == SEL_SUBMIT) {
+-            (bytes32 deliverable, bytes memory optParams) = abi.decode(data, (bytes32, bytes));
+-            _preSubmit(jobId, deliverable, optParams);
++            (address caller, bytes32 deliverable, bytes memory optParams) = abi
++                .decode(data, (address, bytes32, bytes));
++            _preSubmit(jobId, caller, deliverable, optParams);
+         } else if (selector == SEL_COMPLETE) {
+-            (bytes32 reason, bytes memory optParams) = abi.decode(data, (bytes32, bytes));
+-            _preComplete(jobId, reason, optParams);
++            (address caller, bytes32 reason, bytes memory optParams) = abi
++                .decode(data, (address, bytes32, bytes));
++            _preComplete(jobId, caller, reason, optParams);
+         } else if (selector == SEL_REJECT) {
+-            (bytes32 reason, bytes memory optParams) = abi.decode(data, (bytes32, bytes));
+-            _preReject(jobId, reason, optParams);
++            (address caller, bytes32 reason, bytes memory optParams) = abi
++                .decode(data, (address, bytes32, bytes));
++            _preReject(jobId, caller, reason, optParams);
+         }
+     }
+ 
+-    function afterAction(uint256 jobId, bytes4 selector, bytes calldata data) external override onlyACP {
+-        if (selector == SEL_SET_PROVIDER) {
+-            (address provider_, bytes memory optParams) = abi.decode(data, (address, bytes));
+-            _postSetProvider(jobId, provider_, optParams);
+-        } else if (selector == SEL_SET_BUDGET) {
+-            (uint256 amount, bytes memory optParams) = abi.decode(data, (uint256, bytes));
+-            _postSetBudget(jobId, amount, optParams);
++    function afterAction(
++        uint256 jobId,
++        bytes4 selector,
++        bytes calldata data
++    ) external override onlyACP {
++        if (selector == SEL_SET_BUDGET) {
++            (address caller, uint256 amount, bytes memory optParams) = abi
++                .decode(data, (address, uint256, bytes));
++            _postSetBudget(jobId, caller, amount, optParams);
+         } else if (selector == SEL_FUND) {
+-            _postFund(jobId, data);
++            (address caller, bytes memory optParams) = abi.decode(
++                data,
++                (address, bytes)
++            );
++            _postFund(jobId, caller, optParams);
+         } else if (selector == SEL_SUBMIT) {
+-            (bytes32 deliverable, bytes memory optParams) = abi.decode(data, (bytes32, bytes));
+-            _postSubmit(jobId, deliverable, optParams);
++            (address caller, bytes32 deliverable, bytes memory optParams) = abi
++                .decode(data, (address, bytes32, bytes));
++            _postSubmit(jobId, caller, deliverable, optParams);
+         } else if (selector == SEL_COMPLETE) {
+-            (bytes32 reason, bytes memory optParams) = abi.decode(data, (bytes32, bytes));
+-            _postComplete(jobId, reason, optParams);
++            (address caller, bytes32 reason, bytes memory optParams) = abi
++                .decode(data, (address, bytes32, bytes));
++            _postComplete(jobId, caller, reason, optParams);
+         } else if (selector == SEL_REJECT) {
+-            (bytes32 reason, bytes memory optParams) = abi.decode(data, (bytes32, bytes));
+-            _postReject(jobId, reason, optParams);
++            (address caller, bytes32 reason, bytes memory optParams) = abi
++                .decode(data, (address, bytes32, bytes));
++            _postReject(jobId, caller, reason, optParams);
+         }
+     }
+ 
+     // --- Virtual functions (override what you need) --------------------------
+ 
+-    function _preSetProvider(uint256 jobId, address provider_, bytes memory optParams) internal virtual {}
+-    function _postSetProvider(uint256 jobId, address provider_, bytes memory optParams) internal virtual {}
+-
+-    function _preSetBudget(uint256 jobId, uint256 amount, bytes memory optParams) internal virtual {}
+-    function _postSetBudget(uint256 jobId, uint256 amount, bytes memory optParams) internal virtual {}
+-
+-    function _preFund(uint256 jobId, bytes memory optParams) internal virtual {}
+-    function _postFund(uint256 jobId, bytes memory optParams) internal virtual {}
+-
+-    function _preSubmit(uint256 jobId, bytes32 deliverable, bytes memory optParams) internal virtual {}
+-    function _postSubmit(uint256 jobId, bytes32 deliverable, bytes memory optParams) internal virtual {}
+-
+-    function _preComplete(uint256 jobId, bytes32 reason, bytes memory optParams) internal virtual {}
+-    function _postComplete(uint256 jobId, bytes32 reason, bytes memory optParams) internal virtual {}
+-
+-    function _preReject(uint256 jobId, bytes32 reason, bytes memory optParams) internal virtual {}
+-    function _postReject(uint256 jobId, bytes32 reason, bytes memory optParams) internal virtual {}
+-
+-    // --- Helper: read job from ACP contract ----------------------------------
+-
+-    function _getJobClient(uint256 jobId) internal view returns (address client) {
+-        (bool ok, bytes memory data) = acpContract.staticcall(
+-            abi.encodeWithSignature("getJob(uint256)", jobId)
+-        );
+-        require(ok, "getJob failed");
+-        // Job struct: (id, client, provider, evaluator, hook, description, budget, expiredAt, status)
+-        (, client,,,,,,, ) = abi.decode(
+-            data, (uint256, address, address, address, address, string, uint256, uint256, uint8)
+-        );
+-    }
++    function _preSetBudget(
++        uint256 jobId,
++        address caller,
++        uint256 amount,
++        bytes memory optParams
++    ) internal virtual {}
++    function _postSetBudget(
++        uint256 jobId,
++        address caller,
++        uint256 amount,
++        bytes memory optParams
++    ) internal virtual {}
++
++    function _preFund(
++        uint256 jobId,
++        address caller,
++        bytes memory optParams
++    ) internal virtual {}
++    function _postFund(
++        uint256 jobId,
++        address caller,
++        bytes memory optParams
++    ) internal virtual {}
++
++    function _preSubmit(
++        uint256 jobId,
++        address caller,
++        bytes32 deliverable,
++        bytes memory optParams
++    ) internal virtual {}
++    function _postSubmit(
++        uint256 jobId,
++        address caller,
++        bytes32 deliverable,
++        bytes memory optParams
++    ) internal virtual {}
++
++    function _preComplete(
++        uint256 jobId,
++        address caller,
++        bytes32 reason,
++        bytes memory optParams
++    ) internal virtual {}
++    function _postComplete(
++        uint256 jobId,
++        address caller,
++        bytes32 reason,
++        bytes memory optParams
++    ) internal virtual {}
++
++    function _preReject(
++        uint256 jobId,
++        address caller,
++        bytes32 reason,
++        bytes memory optParams
++    ) internal virtual {}
++    function _postReject(
++        uint256 jobId,
++        address caller,
++        bytes32 reason,
++        bytes memory optParams
++    ) internal virtual {}
+ }
+diff --git a/contracts/hooks/BiddingHook.sol b/contracts/hooks/BiddingHook.sol
+index 6fcbd2b..6f82a73 100644
+--- a/contracts/hooks/BiddingHook.sol
++++ b/contracts/hooks/BiddingHook.sol
+@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
+ import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+ import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+ import "../BaseACPHook.sol";
++import "@acp/AgenticCommerce.sol";
+ 
+ /**
+  * @title BiddingHook
+@@ -19,24 +20,22 @@ import "../BaseACPHook.sol";
+  * hook verifies the signature on-chain — proving the provider actually
+  * committed to that price.
+  *
+- * FLOW (all interactions through core contract → hook callbacks)
++ * FLOW (all interactions through core contract -> hook callbacks)
+  * ----
+  *  1. createJob(provider=0, evaluator, expiredAt, description, hook=this)
+  *  2. setBudget(jobId, maxBudget, optParams=abi.encode(biddingDeadline))
+- *     → _preSetBudget: store deadline for this jobId.
++ *     -> _preSetBudget (mode 1): store deadline for this jobId.
+  *  3. Bidding happens OFF-CHAIN:
+  *     Providers sign: keccak256(abi.encode(chainId, hookAddress, jobId, bidAmount))
+  *     Client collects signed bids and selects the winner.
+- *  4. setProvider(jobId, winnerAddress, optParams=abi.encode(bidAmount, signature))
+- *     → _preSetProvider: verify deadline passed, recover signer from signature,
+- *       validate signer == provider, store committed bidAmount.
+- *     → core: job.provider = winnerAddress
+- *     → _postSetProvider: mark bidding finalised.
+- *     Then: setBudget(jobId, bidAmount, "")
+- *     → _preSetBudget: enforce budget == committedAmount.
+- *  5. fund(jobId, "") — _preFund enforces budget == committedAmount (blocks
+- *     funding if client skipped the second setBudget).
+- *  6. Job continues normally: submit → complete.
++ *  4. setProvider(jobId, winnerAddress, agentId) — no hook, just sets provider.
++ *  5. setBudget(jobId, bidAmount, optParams=abi.encode(signature))
++ *     -> _preSetBudget (mode 2): verify deadline passed, recover signer from
++ *        signature, validate signer == provider, store committed bidAmount,
++ *        enforce budget == bidAmount.
++ *  6. fund(jobId, ...) — _preFund enforces budget == committedAmount (blocks
++ *     funding if client skipped step 5).
++ *  7. Job continues normally: submit -> complete.
+  *
+  * TRUST MODEL
+  * -----------
+@@ -45,7 +44,7 @@ import "../BaseACPHook.sol";
+  * the client from fabricating a provider commitment.
+  *
+  * KEY PROPERTY: Zero direct external calls to the hook. Everything flows
+- * through core contract → hook callbacks.
++ * through core contract -> hook callbacks.
+  */
+ contract BiddingHook is BaseACPHook {
+     using ECDSA for bytes32;
+@@ -53,82 +52,72 @@ contract BiddingHook is BaseACPHook {
+ 
+     struct Bidding {
+         uint256 deadline;
+-        uint256 committedAmount; // winning bid amount, set at setProvider
+-        bool finalized;
++        uint256 committedAmount; // winning bid amount, set during bid verification
+     }
+ 
+     mapping(uint256 => Bidding) public biddings;
+ 
+     error DeadlineMustBeFuture();
+     error BiddingStillOpen();
+-    error BiddingAlreadyFinalized();
+     error InvalidBidSignature();
+     error NoBidDeadline();
+     error BudgetMismatch();
++    error ProviderNotSet();
+ 
+     constructor(address acpContract_) BaseACPHook(acpContract_) {}
+ 
+     // --- Hook callbacks only (no direct external functions) ---
+ 
+-    /// @dev Two modes:
+-    ///  1. Initial call (before provider): decode deadline from optParams, store it.
+-    ///  2. Post-provider call (committedAmount set): enforce budget == committedAmount.
+-    function _preSetBudget(uint256 jobId, uint256 amount, bytes memory optParams) internal override {
++    /// @dev Three modes based on bidding state:
++    ///  1. deadline == 0: initial call, decode deadline from optParams.
++    ///  2. deadline > 0 && committedAmount == 0: bid verification, decode
++    ///     signature from optParams, verify against provider.
++    ///  3. committedAmount > 0: enforce budget == committedAmount.
++    function _preSetBudget(uint256 jobId, address, uint256 amount, bytes memory optParams) internal override {
+         Bidding storage b = biddings[jobId];
+ 
+-        // After provider selected: enforce budget matches the winning bid
++        // Mode 3: enforce budget matches the winning bid
+         if (b.committedAmount > 0) {
+             if (amount != b.committedAmount) revert BudgetMismatch();
+             return;
+         }
+ 
+-        // Initial call: store bidding deadline from optParams
+-        if (optParams.length == 0) return;
+-        uint256 deadline = abi.decode(optParams, (uint256));
+-        if (deadline <= block.timestamp) revert DeadlineMustBeFuture();
+-        b.deadline = deadline;
+-    }
++        // Mode 1: store bidding deadline
++        if (b.deadline == 0) {
++            if (optParams.length == 0) return;
++            uint256 deadline = abi.decode(optParams, (uint256));
++            if (deadline <= block.timestamp) revert DeadlineMustBeFuture();
++            b.deadline = deadline;
++            return;
++        }
+ 
+-    /// @dev Verify signed bid from provider. Client passes (bidAmount, signature) in optParams.
+-    function _preSetProvider(uint256 jobId, address provider_, bytes memory optParams) internal override {
+-        Bidding storage b = biddings[jobId];
+-        if (b.deadline == 0) revert NoBidDeadline();
++        // Mode 2: verify signed bid and store committedAmount
+         if (block.timestamp < b.deadline) revert BiddingStillOpen();
+-        if (b.finalized) revert BiddingAlreadyFinalized();
+ 
+-        (uint256 bidAmount, bytes memory signature) = abi.decode(optParams, (uint256, bytes));
++        address provider = _core().getJob(jobId).provider;
++        if (provider == address(0)) revert ProviderNotSet();
++
++        bytes memory signature = abi.decode(optParams, (bytes));
+ 
+-        // Verify the provider signed this bid
+-        bytes32 messageHash = keccak256(abi.encode(block.chainid, address(this), jobId, bidAmount));
++        bytes32 messageHash = keccak256(abi.encode(block.chainid, address(this), jobId, amount));
+         bytes32 ethSignedHash = messageHash.toEthSignedMessageHash();
+         address signer = ECDSA.recover(ethSignedHash, signature);
+-        if (signer != provider_) revert InvalidBidSignature();
++        if (signer != provider) revert InvalidBidSignature();
+ 
+-        b.committedAmount = bidAmount;
++        b.committedAmount = amount;
+     }
+ 
+     /// @dev Block funding if budget hasn't been set to the committed bid amount.
+-    function _preFund(uint256 jobId, bytes memory) internal override {
++    function _preFund(uint256 jobId, address, bytes memory) internal override {
+         Bidding storage b = biddings[jobId];
+         if (b.committedAmount == 0) return; // no bidding for this job
+-        uint256 budget = _getJobBudget(jobId);
+-        if (budget != b.committedAmount) revert BudgetMismatch();
++        if (_core().getJob(jobId).budget != b.committedAmount) revert BudgetMismatch();
+     }
+ 
+-    function _postSetProvider(uint256 jobId, address, bytes memory) internal override {
+-        biddings[jobId].finalized = true;
+-    }
++    // --- Helpers --------------------------------------------------------------
+ 
+-    // --- Helper --------------------------------------------------------------
+-
+-    function _getJobBudget(uint256 jobId) internal view returns (uint256 budget) {
+-        (bool ok, bytes memory data) = acpContract.staticcall(
+-            abi.encodeWithSignature("getJob(uint256)", jobId)
+-        );
+-        require(ok, "getJob failed");
+-        // Job struct: (id, client, provider, evaluator, hook, description, budget, expiredAt, status)
+-        (,,,,,, budget,,) = abi.decode(
+-            data, (uint256, address, address, address, address, string, uint256, uint256, uint8)
+-        );
++    /// @dev Typed accessor for the core contract
++    function _core() internal view returns (AgenticCommerce) {
++        return AgenticCommerce(acpContract);
+     }
+ }
+diff --git a/contracts/hooks/FundTransferHook.sol b/contracts/hooks/FundTransferHook.sol
+index 6e6e140..6189a02 100644
+--- a/contracts/hooks/FundTransferHook.sol
++++ b/contracts/hooks/FundTransferHook.sol
+@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
+ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+ import "../BaseACPHook.sol";
++import "@acp/AgenticCommerce.sol";
+ 
+ /**
+  * @title FundTransferHook
+@@ -20,30 +21,30 @@ import "../BaseACPHook.sol";
+  * The service fee for the job is handled by the core ACP escrow (job.budget).
+  * The capital and output token flow is handled entirely by this hook.
+  *
+- * FLOW (hook callbacks marked with →)
++ * FLOW (hook callbacks marked with ->)
+  * ----
+  *  1. createJob(provider, evaluator, expiredAt, description, hook=this)
+  *
+  *  2. Client calls setBudget(jobId, serviceFee, optParams: abi.encode(buyer, transferAmount)):
+- *     → _preSetBudget: decode optParams, store {buyer, transferAmount} as commitment.
+- *     → core: set job.budget = serviceFee.
++ *     -> _preSetBudget: decode optParams, store {buyer, transferAmount} as commitment.
++ *     -> core: set job.budget = serviceFee.
+  *
+  *  3. Client approves core contract for serviceFee AND this hook for transferAmount.
+  *     Client calls fund(jobId, ""):
+- *     → _preFund: verify client has approved this hook for transferAmount.
+- *     → core: pull serviceFee from client into escrow, set Funded.
+- *     → _postFund: pull transferAmount from client, forward to provider (capital).
++ *     -> _preFund: verify client has approved this hook for transferAmount.
++ *     -> core: pull serviceFee from client into escrow, set Funded.
++ *     -> _postFund: pull transferAmount from client, forward to provider (capital).
+  *
+  *  4. Provider uses the capital to produce output tokens off-chain/on-chain.
+  *
+  *  5. Provider approves this hook for transferAmount.
+  *     Provider calls submit(jobId, deliverable, ""):
+- *     → _preSubmit: pull transferAmount from provider into hook (escrow).
+- *     → core: set Submitted.
++ *     -> _preSubmit: pull transferAmount from provider into hook (escrow).
++ *     -> core: set Submitted.
+  *
+  *  6. Evaluator calls complete(jobId, reason, ""):
+- *     → core: release serviceFee to provider.
+- *     → _postComplete: release transferAmount from hook to buyer.
++ *     -> core: release serviceFee to provider.
++ *     -> _postComplete: release transferAmount from hook to buyer.
+  *
+  * RECOVERY
+  * --------
+@@ -80,12 +81,17 @@ contract FundTransferHook is BaseACPHook {
+         token = IERC20(token_);
+     }
+ 
++    /// @dev Typed accessor for the core contract
++    function _core() internal view returns (AgenticCommerce) {
++        return AgenticCommerce(acpContract);
++    }
++
+     // -------------------------------------------------------------------------
+-    // Hook callbacks (called by AgenticCommerceHooked via beforeAction/afterAction)
++    // Hook callbacks (called by AgenticCommerce via beforeAction/afterAction)
+     // -------------------------------------------------------------------------
+ 
+     /// @dev Store transfer commitment from setBudget optParams.
+-    function _preSetBudget(uint256 jobId, uint256, bytes memory optParams) internal override {
++    function _preSetBudget(uint256 jobId, address, uint256, bytes memory optParams) internal override {
+         if (optParams.length == 0) return;
+         (address buyer, uint256 transferAmount) = abi.decode(optParams, (address, uint256));
+         if (buyer == address(0)) revert ZeroAddress();
+@@ -98,34 +104,33 @@ contract FundTransferHook is BaseACPHook {
+     }
+ 
+     /// @dev Verify client has approved this hook for the committed transferAmount.
+-    function _preFund(uint256 jobId, bytes memory) internal override {
++    function _preFund(uint256 jobId, address, bytes memory) internal override {
+         TransferCommitment memory c = commitments[jobId];
+         if (c.buyer == address(0)) revert CommitmentNotSet();
+-        address client = _getJobClient(jobId);
+-        uint256 allowance = token.allowance(client, address(this));
++        AgenticCommerce.Job memory job = _core().getJob(jobId);
++        uint256 allowance = token.allowance(job.client, address(this));
+         if (allowance < c.transferAmount) revert InsufficientAllowance();
+     }
+ 
+     /// @dev Pull transferAmount from client and forward to provider (capital).
+-    function _postFund(uint256 jobId, bytes memory) internal override {
++    function _postFund(uint256 jobId, address, bytes memory) internal override {
+         TransferCommitment memory c = commitments[jobId];
+-        address client = _getJobClient(jobId);
+-        (address provider,) = _getJobProviderAndStatus(jobId);
+-        token.safeTransferFrom(client, provider, c.transferAmount);
++        AgenticCommerce.Job memory job = _core().getJob(jobId);
++        token.safeTransferFrom(job.client, job.provider, c.transferAmount);
+     }
+ 
+     /// @dev Pull transferAmount from provider into hook escrow (output tokens).
+-    function _preSubmit(uint256 jobId, bytes32, bytes memory) internal override {
++    function _preSubmit(uint256 jobId, address, bytes32, bytes memory) internal override {
+         TransferCommitment storage c = commitments[jobId];
+         if (c.buyer == address(0)) revert CommitmentNotSet();
+         if (c.providerDeposited) revert AlreadyDeposited();
+-        (address provider,) = _getJobProviderAndStatus(jobId);
++        AgenticCommerce.Job memory job = _core().getJob(jobId);
+         c.providerDeposited = true;
+-        token.safeTransferFrom(provider, address(this), c.transferAmount);
++        token.safeTransferFrom(job.provider, address(this), c.transferAmount);
+     }
+ 
+     /// @dev Release escrowed tokens to buyer after evaluator completes the job.
+-    function _postComplete(uint256 jobId, bytes32, bytes memory) internal override {
++    function _postComplete(uint256 jobId, address, bytes32, bytes memory) internal override {
+         TransferCommitment memory c = commitments[jobId];
+         if (!c.providerDeposited) revert NotDeposited();
+         delete commitments[jobId];
+@@ -133,15 +138,15 @@ contract FundTransferHook is BaseACPHook {
+     }
+ 
+     /// @dev Return escrowed tokens to provider on rejection.
+-    function _postReject(uint256 jobId, bytes32, bytes memory) internal override {
++    function _postReject(uint256 jobId, address, bytes32, bytes memory) internal override {
+         TransferCommitment memory c = commitments[jobId];
+         if (!c.providerDeposited) {
+             delete commitments[jobId];
+             return;
+         }
+-        (address provider,) = _getJobProviderAndStatus(jobId);
++        AgenticCommerce.Job memory job = _core().getJob(jobId);
+         delete commitments[jobId];
+-        token.safeTransfer(provider, c.transferAmount);
++        token.safeTransfer(job.provider, c.transferAmount);
+     }
+ 
+     // -------------------------------------------------------------------------
+@@ -153,11 +158,10 @@ contract FundTransferHook is BaseACPHook {
+     function recoverTokens(uint256 jobId) external {
+         TransferCommitment memory c = commitments[jobId];
+         if (!c.providerDeposited) revert NothingToRecover();
+-        (address provider, uint8 status) = _getJobProviderAndStatus(jobId);
+-        // Status 5 = Expired (set by claimRefund)
+-        if (status != 5) revert JobNotExpired();
++        AgenticCommerce.Job memory job = _core().getJob(jobId);
++        if (job.status != AgenticCommerce.JobStatus.Expired) revert JobNotExpired();
+         delete commitments[jobId];
+-        token.safeTransfer(provider, c.transferAmount);
++        token.safeTransfer(job.provider, c.transferAmount);
+     }
+ 
+     // -------------------------------------------------------------------------
+@@ -168,19 +172,4 @@ contract FundTransferHook is BaseACPHook {
+         TransferCommitment memory c = commitments[jobId];
+         return (c.buyer, c.transferAmount, c.providerDeposited);
+     }
+-
+-    // -------------------------------------------------------------------------
+-    // Internal helpers
+-    // -------------------------------------------------------------------------
+-
+-    function _getJobProviderAndStatus(uint256 jobId) internal view returns (address provider, uint8 status) {
+-        (bool ok, bytes memory data) = acpContract.staticcall(
+-            abi.encodeWithSignature("getJob(uint256)", jobId)
+-        );
+-        require(ok, "getJob failed");
+-        // Job struct: (id, client, provider, evaluator, hook, description, budget, expiredAt, status)
+-        (,, provider,,,,,, status) = abi.decode(
+-            data, (uint256, address, address, address, address, string, uint256, uint256, uint8)
+-        );
+-    }
+ }
+diff --git a/contracts/hooks/TrustGateACPHook.sol b/contracts/hooks/TrustGateACPHook.sol
+index 309ba24..7fe777f 100644
+--- a/contracts/hooks/TrustGateACPHook.sol
++++ b/contracts/hooks/TrustGateACPHook.sol
+@@ -64,7 +64,7 @@ contract TrustGateACPHook is IACPHook, OwnableUpgradeable {
+     uint256 public constant MAX_TRUST_SCORE = 100;
+ 
+     /// @dev Well-known selectors from AgenticCommerce
+-    bytes4 public constant FUND_SEL     = bytes4(keccak256("fund(uint256,bytes)"));
++    bytes4 public constant FUND_SEL     = bytes4(keccak256("fund(uint256,uint256,bytes)"));
+     bytes4 public constant SUBMIT_SEL   = bytes4(keccak256("submit(uint256,bytes32,bytes)"));
+     bytes4 public constant COMPLETE_SEL = bytes4(keccak256("complete(uint256,bytes32,bytes)"));
+     bytes4 public constant REJECT_SEL   = bytes4(keccak256("reject(uint256,bytes32,bytes)"));
