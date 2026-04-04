@@ -173,3 +173,24 @@ Week 4: Step 3（xlayer mainnet）+ 第一批 skill 上架
 > 在 xlayer mainnet 上有第一筆真實的 8183 job record，來自真實用戶付費購買真實 skill。
 
 不是 mock，不是 seed data，不是測試帳號。
+
+---
+
+## Post-Merge TODOs（Mainnet 前必須修）
+
+### P1 — buy/route.ts: privyId consistency check
+**位置:** `src/app/api/skills/[id]/buy/route.ts`
+**問題:** JWT 驗過了，但 `body.privyId` 沒有跟 JWT claims 的 privyId 做比對，理論上可以不一致。
+**修法:** 加一行：
+```typescript
+if (body.privyId !== authResult.userId) {
+  return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+}
+```
+**優先級:** Mainnet 前必修，testnet 可接受。
+
+### P2 — DojoJobRegistry: jobExists mapping
+**位置:** `contracts/src/DojoJobRegistry.sol`
+**問題:** `createdAt == 0` 作為 job 存在的 sentinel，fragile。
+**修法:** 加 `mapping(uint256 => bool) public jobExists`，createJob 時設 true。
+**優先級:** Phase 2。

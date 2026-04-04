@@ -128,3 +128,39 @@ body::before {
 .page-container {
   box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.04);
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   SKILL CARD — Legendary Shimmer Animation
+═══════════════════════════════════════════════════════════════════ */
+
+@keyframes legendary-shimmer {
+  0% {
+    background-position: 200% 200%;
+  }
+  100% {
+    background-position: -200% -200%;
+  }
+}
+
+.legendary-shimmer-overlay {
+  animation: legendary-shimmer 3s ease-in-out infinite;
+}
+
+.legendary-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Subtle gold glow pulse for legendary cards */
+@keyframes legendary-glow {
+  0%, 100% {
+    box-shadow: 0 0 12px #c9a84c40, 0 0 24px #c9a84c20;
+  }
+  50% {
+    box-shadow: 0 0 16px #c9a84c50, 0 0 32px #c9a84c30;
+  }
+}
+
+.legendary-shimmer {
+  animation: legendary-glow 2s ease-in-out infinite;
+}
