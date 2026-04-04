@@ -11,6 +11,7 @@ import {
   generatePlaceholderAttestationUid,
 } from '@/lib/eas';
 import { createJobOnChain } from '@/lib/xlayer';
+import { verifyPrivyAuth } from '@/lib/privy-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,6 +50,19 @@ export async function POST(
         { error: 'Missing required fields: privyId, x402Proof' },
         { status: 400 }
       );
+    }
+
+    // Verify JWT and ensure privyId matches token claims
+    const authHeader = req.headers.get('Authorization');
+    const token = authHeader?.replace('Bearer ', '');
+    if (token) {
+      const authResult = await verifyPrivyAuth(token);
+      if (!authResult.success || authResult.privyId !== privyId) {
+        return NextResponse.json(
+          { error: 'Unauthorized — privyId mismatch' },
+          { status: 403 }
+        );
+      }
     }
 
     if (currency !== 'USDC') {
