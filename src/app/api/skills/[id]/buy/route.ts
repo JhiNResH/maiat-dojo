@@ -109,7 +109,16 @@ export async function POST(
       );
     }
 
-    const verifyResult = verifyPaymentProof(proof);
+    // Verify x402 payment proof with EIP-712 signature validation
+    const creatorAddress = skill.creator.walletAddress as `0x${string}` | null;
+    if (!creatorAddress) {
+      return NextResponse.json(
+        { error: 'Skill creator has no wallet address configured' },
+        { status: 400 }
+      );
+    }
+
+    const verifyResult = await verifyPaymentProof(proof, creatorAddress);
     if (!verifyResult.valid) {
       return NextResponse.json(
         { error: `Payment verification failed: ${verifyResult.error}` },
@@ -135,9 +144,8 @@ export async function POST(
     // Generate EAS attestation data
     let attestationUid: string | undefined;
     const buyerAddress = user.walletAddress as `0x${string}` | null;
-    const creatorAddress = skill.creator.walletAddress as `0x${string}` | null;
 
-    if (buyerAddress && creatorAddress && skill.onChainId !== null) {
+    if (buyerAddress && skill.onChainId !== null) {
       const attestation = createPurchaseAttestation(
         buyerAddress,
         creatorAddress,
@@ -157,6 +165,8 @@ export async function POST(
     }
 
     // Create purchase record
+    // Note: txHash is null for x402 off-chain payments.
+    // It will be set when on-chain job is confirmed via onchainJobId.
     const purchase = await prisma.purchase.create({
       data: {
         userId: user.id,
@@ -164,7 +174,7 @@ export async function POST(
         amount: skill.price,
         currency: 'USDC',
         status: 'completed',
-        txHash: proof.payload.signature?.slice(0, 66), // Store signature as reference
+        txHash: null, // x402 payments are off-chain; real txHash comes from on-chain job
         ...(attestationUid && { attestationUid }),
       },
     });
@@ -177,7 +187,7 @@ export async function POST(
 
     // Fire-and-forget: Create ERC-8183 job record on X Layer
     // Non-blocking — failures are logged but don't affect the purchase
-    if (buyerAddress && creatorAddress && skill.onChainId !== null) {
+    if (buyerAddress && skill.onChainId !== null) {
       createJobOnChain({
         skillId: BigInt(skill.onChainId),
         buyerAddr: buyerAddress,
@@ -186,10 +196,13 @@ export async function POST(
       })
         .then(async (result) => {
           if (result.success && result.jobId) {
-            // Update purchase with on-chain job ID
+            // Update purchase with on-chain job ID and real txHash
             await prisma.purchase.update({
               where: { id: purchase.id },
-              data: { onchainJobId: result.jobId },
+              data: {
+                onchainJobId: result.jobId,
+                ...(result.txHash && { txHash: result.txHash }),
+              },
             });
             console.log('[x402] On-chain job created:', {
               purchaseId: purchase.id,

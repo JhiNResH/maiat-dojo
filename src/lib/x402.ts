@@ -6,6 +6,7 @@
  */
 
 import { x402Version } from '@x402/core';
+import { verifyTypedData } from 'viem';
 
 // ─── Chain Configuration ─────────────────────────────────────────────────────
 
@@ -146,12 +147,15 @@ export function generatePaymentRequest(
 }
 
 /**
- * Verify a x402 payment proof
+ * Verify a x402 payment proof using EIP-712 signature verification
  *
- * This performs basic structural validation. For production,
- * integrate with x402 facilitator for on-chain verification.
+ * Validates the cryptographic signature against the payment authorization data.
+ * Uses viem's verifyTypedData for proper EIP-712 verification.
  */
-export function verifyPaymentProof(proof: X402PaymentProof): VerifyResult {
+export async function verifyPaymentProof(
+  proof: X402PaymentProof,
+  expectedPayTo: `0x${string}`
+): Promise<VerifyResult> {
   try {
     // Basic structural validation
     if (!proof.x402Version || proof.x402Version < 1) {
@@ -166,8 +170,25 @@ export function verifyPaymentProof(proof: X402PaymentProof): VerifyResult {
       return { valid: false, error: 'Missing payment signature' };
     }
 
-    // Extract payer from authorization if available
-    const payer = proof.payload.authorization?.from;
+    if (!proof.payload.authorization) {
+      return { valid: false, error: 'Missing payment authorization data' };
+    }
+
+    const { authorization } = proof.payload;
+
+    // Validate authorization has required fields
+    if (!authorization.from || !authorization.nonce) {
+      return { valid: false, error: 'Incomplete authorization data' };
+    }
+
+    // Validate timing constraints
+    const now = Math.floor(Date.now() / 1000);
+    if (authorization.validAfter > now) {
+      return { valid: false, error: 'Payment authorization not yet valid' };
+    }
+    if (authorization.validBefore < now) {
+      return { valid: false, error: 'Payment authorization expired' };
+    }
 
     // Parse amount
     const amount = BigInt(proof.accepted.amount || '0');
@@ -175,13 +196,38 @@ export function verifyPaymentProof(proof: X402PaymentProof): VerifyResult {
       return { valid: false, error: 'Invalid payment amount' };
     }
 
-    // For production: call x402 facilitator to verify signature
-    // const facilitator = new HTTPFacilitatorClient({ url: 'https://x402.org/facilitator' });
-    // const verifyResult = await facilitator.verify(proof, requirements);
+    // Extract chain ID from network string (e.g., "eip155:196" -> 196)
+    const chainIdMatch = proof.accepted.network.match(/eip155:(\d+)/);
+    if (!chainIdMatch) {
+      return { valid: false, error: 'Invalid network format' };
+    }
+    const chainId = parseInt(chainIdMatch[1], 10);
+
+    // Verify EIP-712 signature using viem
+    const isValid = await verifyTypedData({
+      address: authorization.from as `0x${string}`,
+      domain: getX402Domain(chainId, proof.accepted.asset as `0x${string}`),
+      types: X402_PAYMENT_TYPES,
+      primaryType: 'PaymentAuthorization',
+      message: {
+        from: authorization.from as `0x${string}`,
+        to: expectedPayTo,
+        asset: proof.accepted.asset as `0x${string}`,
+        amount,
+        validAfter: BigInt(authorization.validAfter),
+        validBefore: BigInt(authorization.validBefore),
+        nonce: authorization.nonce as `0x${string}`,
+      },
+      signature: proof.payload.signature as `0x${string}`,
+    });
+
+    if (!isValid) {
+      return { valid: false, error: 'Invalid payment signature' };
+    }
 
     return {
       valid: true,
-      payer,
+      payer: authorization.from,
       amount,
       network: proof.accepted.network,
     };

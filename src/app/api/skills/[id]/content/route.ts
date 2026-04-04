@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { verifyPrivyAuth } from "@/lib/privy-server";
 
 export const dynamic = "force-dynamic";
 
@@ -7,23 +8,25 @@ export const dynamic = "force-dynamic";
  * GET /api/skills/[id]/content
  * Returns skill content if user has purchased it.
  *
- * Query params:
- *   privyId: string  // buyer identity
+ * Authentication: Bearer token in Authorization header (Privy JWT)
  */
 export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const { searchParams } = new URL(req.url);
-    const privyId = searchParams.get("privyId");
+    // Verify Privy JWT from Authorization header
+    const authHeader = req.headers.get("authorization");
+    const authResult = await verifyPrivyAuth(authHeader);
 
-    if (!privyId) {
+    if (!authResult.success || !authResult.privyId) {
       return NextResponse.json(
-        { error: "Missing required query param: privyId" },
+        { error: authResult.error || "Authentication required" },
         { status: 401 }
       );
     }
+
+    const privyId = authResult.privyId;
 
     // Find user
     const user = await prisma.user.findUnique({ where: { privyId } });
