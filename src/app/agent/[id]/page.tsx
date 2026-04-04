@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import ReviewForm from "@/components/ReviewForm";
 import TrustBadge from "@/components/TrustBadge";
+import EquippedBuild from "./EquippedBuild";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,16 @@ const statusStyle: Record<string, string> = {
   open: "bg-blue-900/10 text-blue-900",
   rejected: "bg-red-900/10 text-red-900",
 };
+
+export interface AgentSkillData {
+  id: string;
+  name: string;
+  icon: string;
+  category: string;
+  rating: number;
+  installs: number;
+  price: number;
+}
 
 export default async function AgentPage({ params }: { params: { id: string } }) {
   const agent = await prisma.agent.findUnique({
@@ -38,6 +49,17 @@ export default async function AgentPage({ params }: { params: { id: string } }) 
       ? (agent.reviews.reduce((a, r) => a + r.rating, 0) / agent.reviews.length).toFixed(1)
       : "—";
 
+  // Transform skills for client component
+  const equippedSkills: AgentSkillData[] = agent.skills.map(({ skill }) => ({
+    id: skill.id,
+    name: skill.name,
+    icon: skill.icon,
+    category: skill.category,
+    rating: skill.rating,
+    installs: skill.installs,
+    price: skill.price,
+  }));
+
   return (
     <main className="min-h-screen bg-[#f0ece2]">
       {/* Paper texture */}
@@ -45,7 +67,7 @@ export default async function AgentPage({ params }: { params: { id: string } }) 
         style={{ backgroundImage: "url('data:image/svg+xml,%3Csvg width=\"200\" height=\"200\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cfilter id=\"noise\"%3E%3CfeTurbulence baseFrequency=\"0.9\" numOctaves=\"4\" stitchTiles=\"stitch\"/%3E%3C/filter%3E%3Crect width=\"100%25\" height=\"100%25\" filter=\"url(%23noise)\" opacity=\"0.4\"/%3E%3C/svg%3E')" }}
       />
 
-      <div className="relative z-10 max-w-4xl mx-auto px-6 py-8">
+      <div className="relative z-10 max-w-4xl mx-auto px-6 py-8 page-container">
         {/* Back */}
         <Link href="/" className="inline-block font-mono text-xs uppercase tracking-widest text-[#8b0000] hover:text-[#1a1a1a] transition-colors mb-8">
           ← The Dojo
@@ -99,33 +121,12 @@ export default async function AgentPage({ params }: { params: { id: string } }) 
         {/* Divider */}
         <div className="border-t-2 border-double border-[#1a1a1a]/30 mb-6" />
 
-        {/* Equipped Skills */}
-        <h2 className="font-mono text-xs uppercase tracking-widest text-[#1a1a1a]/50 mb-4">
-          Equipped Skills ({agent.skills.length})
-        </h2>
-        <div className="grid sm:grid-cols-2 gap-4 mb-8">
-          {agent.skills.map(({ skill }) => (
-            <Link
-              key={skill.id}
-              href={`/skill/${skill.id}`}
-              className="group flex items-start gap-3 border-b border-dotted border-[#1a1a1a]/15 pb-3 hover:border-[#8b0000]/30 transition-colors"
-            >
-              <span className="text-2xl mt-0.5">{skill.icon}</span>
-              <div className="flex-1 min-w-0">
-                <div className="font-serif font-bold text-[#1a1a1a] group-hover:text-[#8b0000] transition-colors">
-                  {skill.name}
-                </div>
-                <div className="font-mono text-xs text-[#1a1a1a]/50 flex items-center gap-2">
-                  <span>{skill.category}</span>
-                  <span>·</span>
-                  <span>★ {skill.rating.toFixed(1)}</span>
-                  <span>·</span>
-                  <span>${skill.price.toFixed(2)}</span>
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
+        {/* Equipped Skills — Client Component with Copy Build */}
+        <EquippedBuild
+          agentId={agent.id}
+          agentName={agent.name}
+          skills={equippedSkills}
+        />
 
         {/* Job History */}
         {agent.jobs.length > 0 && (

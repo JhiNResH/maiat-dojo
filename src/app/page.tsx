@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { TrendingUp, Zap, BarChart2, Search, ChevronRight, Layers, Bot, LogIn, User } from "lucide-react";
+import { TrendingUp, Zap, BarChart2, Search, ChevronRight, Layers, Bot, LogIn, User, LayoutGrid, List } from "lucide-react";
 import { usePrivy } from "@privy-io/react-auth";
 import TrustBadge from "@/components/TrustBadge";
+import { SkillCard, type SkillCardData } from "@/components/SkillCard";
 
 // --- Mock Data ---
 
@@ -63,6 +64,19 @@ const BREAKING_SKILLS = [
 ];
 
 const CATEGORIES = ["All", "Trading", "Security", "Content", "DeFi", "Analytics", "Infra", "Social"];
+
+// --- Types ---
+interface SkillListItem {
+  id: string;
+  name: string;
+  category: string;
+  installs: number;
+  price: number;
+  rating: number;
+  icon: string;
+  delta?: string;
+  hot?: boolean;
+}
 
 const RANK_COLORS: Record<string, string> = {
   "Kozo 小僧": "text-[#1a1a1a]/50",
@@ -258,8 +272,20 @@ function HeadlineSection() {
   );
 }
 
-function TrendingSkills({ skills, loading }: { skills: any[]; loading: boolean }) {
+function TrendingSkills({ skills, loading }: { skills: SkillListItem[]; loading: boolean }) {
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const list = skills.length > 0 ? skills : TRENDING_SKILLS;
+
+  // Convert to SkillCardData format
+  const cardSkills: SkillCardData[] = list.map((skill) => ({
+    id: skill.id,
+    name: skill.name,
+    icon: skill.icon,
+    category: skill.category,
+    rating: Number(skill.rating),
+    installs: Number(skill.installs),
+    price: Number(skill.price),
+  }));
 
   return (
     <section>
@@ -267,6 +293,23 @@ function TrendingSkills({ skills, loading }: { skills: any[]; loading: boolean }
         <TrendingUp size={16} />
         <span className="text-sm font-mono font-bold uppercase tracking-[0.2em]">Trending Skills</span>
         <span className="flex-1" />
+        {/* View toggle */}
+        <div className="flex items-center gap-1 mr-3">
+          <button
+            onClick={() => setViewMode("grid")}
+            className={`p-1.5 transition-colors ${viewMode === "grid" ? "text-[#1a1a1a]" : "text-[#1a1a1a]/30 hover:text-[#1a1a1a]/50"}`}
+            title="Grid view"
+          >
+            <LayoutGrid size={14} />
+          </button>
+          <button
+            onClick={() => setViewMode("list")}
+            className={`p-1.5 transition-colors ${viewMode === "list" ? "text-[#1a1a1a]" : "text-[#1a1a1a]/30 hover:text-[#1a1a1a]/50"}`}
+            title="List view"
+          >
+            <List size={14} />
+          </button>
+        </div>
         <Link href="/leaderboard" className="text-xs font-mono text-[#1a1a1a]/40 hover:text-[#1a1a1a] flex items-center gap-1 transition-colors">
           Full Rankings <ChevronRight size={12} />
         </Link>
@@ -275,9 +318,22 @@ function TrendingSkills({ skills, loading }: { skills: any[]; loading: boolean }
         <div className="py-8 text-center">
           <p className="font-mono text-xs text-[#1a1a1a]/40 animate-pulse">Loading skills...</p>
         </div>
+      ) : viewMode === "grid" ? (
+        /* Card Grid View */
+        <div className="grid grid-cols-2 gap-3">
+          {cardSkills.map((skill) => (
+            <SkillCard
+              key={skill.id}
+              skill={skill}
+              size="sm"
+              href={`/skill/${skill.id}`}
+            />
+          ))}
+        </div>
       ) : (
+        /* List View (original) */
         <div>
-          {list.map((skill: any, i: number) => (
+          {list.map((skill, i: number) => (
             <Link
               key={skill.id}
               href={`/skill/${skill.id}`}
@@ -463,7 +519,7 @@ export default function DojoPage() {
   const [activeCategory, setActiveCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [skills, setSkills] = useState<any[]>([]);
+  const [skills, setSkills] = useState<SkillListItem[]>([]);
   const [loading, setLoading] = useState(false);
 
   // Debounce search query (300ms)
