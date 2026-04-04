@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import ReviewForm from "@/components/ReviewForm";
 import BuySkillButton from "@/components/BuySkillButton";
+import BuyWithX402Button from "@/components/BuyWithX402Button";
+import DownloadSkillButton from "@/components/DownloadSkillButton";
 import { ArrowLeft } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -387,12 +389,35 @@ export default async function SkillPage({ params }: { params: { id: string } }) 
                 </li>
               </ul>
 
-              {/* Buy Button */}
+              {/* Buy Button - Original on-chain method */}
               <BuySkillButton
                 skillId={skill.onChainId?.toString() ?? ""}
                 price={skill.price}
                 skillName={skill.name}
               />
+
+              {/* x402 Micropayment Option */}
+              <div className="mt-3 pt-3 border-t border-dotted border-[#1a1a1a]/15">
+                <p className="font-mono text-[10px] text-[#1a1a1a]/50 text-center mb-2">
+                  or pay with x402 micropayment
+                </p>
+                <BuyWithX402Button
+                  skillId={skill.id}
+                  price={skill.price}
+                  skillName={skill.name}
+                  creatorAddress={(skill.creator.walletAddress as `0x${string}`) ?? "0x0000000000000000000000000000000000000000"}
+                />
+              </div>
+
+              {/* Download Button - shows after purchase */}
+              {skill.fileContent && (
+                <div className="mt-3">
+                  <DownloadSkillButton
+                    skillId={skill.id}
+                    skillName={skill.name}
+                  />
+                </div>
+              )}
 
               {/* Try Demo Button */}
               <button className="w-full mt-2 bg-[#c9a84c] text-[#1a1a1a] font-mono text-xs uppercase tracking-wider py-3 hover:bg-[#b8962a] transition-colors">
@@ -401,7 +426,7 @@ export default async function SkillPage({ params }: { params: { id: string } }) 
 
               {/* On-chain badge */}
               <div className="text-xs font-mono text-green-800 bg-green-800/10 border-l-2 border-green-800 px-2 py-1 mt-3">
-                ✓ Purchase recorded on Base Mainnet · ERC-8183
+                ✓ Purchase recorded on X Layer · x402
               </div>
             </div>
 

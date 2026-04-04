@@ -19,6 +19,8 @@ export const dynamic = "force-dynamic";
  *   icon?: string;          // emoji (defaults to ⚡)
  *   price: number;          // USD
  *   tags?: string;          // comma-separated
+ *   fileContent?: string;   // actual skill content
+ *   fileType?: string;      // "markdown" | "json" | "text"
  * }
  */
 export async function POST(req: NextRequest) {
@@ -36,6 +38,8 @@ export async function POST(req: NextRequest) {
       icon,
       price,
       tags,
+      fileContent,
+      fileType,
     } = body;
 
     // Validate required fields
@@ -87,6 +91,15 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // Validate fileType if provided
+    const validFileTypes = ["markdown", "json", "text"];
+    if (fileType && !validFileTypes.includes(fileType)) {
+      return NextResponse.json(
+        { error: `Invalid fileType. Must be one of: ${validFileTypes.join(", ")}` },
+        { status: 400 }
+      );
+    }
+
     // Create the skill
     const skill = await prisma.skill.create({
       data: {
@@ -98,6 +111,9 @@ export async function POST(req: NextRequest) {
         price: parsedPrice,
         currency: "USD",
         tags: tags ?? "",
+        fileContent: fileContent ?? null,
+        fileType: fileType ?? null,
+        isGated: parsedPrice > 0, // Free skills are not gated
         creatorId: user.id,
       },
       include: {

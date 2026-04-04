@@ -41,7 +41,7 @@ contract SkillNFT is ERC1155, IERC2981, Ownable, ReentrancyGuard, ISkillNFT {
     struct Skill {
         uint256 price;       // USDC price (6 decimals)
         address creator;     // Skill creator address
-        uint16  royaltyBps;  // ERC-2981 secondary market royalty only; Agent Services uses SkillRoyaltySplitter global split
+        uint16  royaltyBps;  // Royalty in basis points (for Agent Services, see SkillRoyaltySplitter)
         string  uri;         // Metadata URI
         uint256 totalSold;   // Total units sold
         bool    active;      // Can be purchased
@@ -115,7 +115,8 @@ contract SkillNFT is ERC1155, IERC2981, Ownable, ReentrancyGuard, ISkillNFT {
     error SkillInactive(uint256 skillId);
     error InvalidAddress();
     error InvalidBps();
-    error PriceTooLow(uint256 price, uint256 minPrice); // kept for ABI compatibility
+    error PriceTooLow(uint256 price, uint256 minPrice);
+    error InsufficientBalance();
 
     // ─────────────────────────────────────────────
     //  Constructor
@@ -195,6 +196,9 @@ contract SkillNFT is ERC1155, IERC2981, Ownable, ReentrancyGuard, ISkillNFT {
         Skill storage skill = skills[skillId];
         if (!skill.active) revert SkillInactive(skillId); // M-05: custom error
         uint256 price = skill.price;
+
+        // Check buyer has enough balance
+        if (usdc.balanceOf(msg.sender) < price) revert InsufficientBalance();
 
         // Calculate splits
         uint256 platformShare    = (price * platformFeeBps) / 10000;
