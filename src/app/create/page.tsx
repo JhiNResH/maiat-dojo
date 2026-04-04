@@ -24,6 +24,8 @@ export default function CreateSkillPage() {
     icon: "⚡",
     price: "",
     tags: "",
+    fileContent: "",
+    fileType: "markdown",
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -69,6 +71,8 @@ export default function CreateSkillPage() {
           icon: formData.icon,
           price: parseFloat(formData.price) || 0,
           tags: formData.tags.trim(),
+          fileContent: formData.fileContent.trim() || undefined,
+          fileType: formData.fileType,
         }),
       });
 
@@ -289,6 +293,60 @@ export default function CreateSkillPage() {
             <p className="text-xs font-mono text-[#1a1a1a]/35 mt-1">
               Comma-separated keywords to help agents find your skill
             </p>
+          </div>
+
+          {/* Skill Content Section */}
+          <div className="border-t-2 border-double border-[#1a1a1a]/20 pt-6">
+            <div className="rule-ornament mb-4">✦ SKILL INSTRUCTIONS ✦</div>
+
+            {/* File Type */}
+            <div className="mb-4">
+              <label className="block text-xs font-mono uppercase tracking-wider text-[#1a1a1a]/50 mb-2">
+                Content Type
+              </label>
+              <select
+                name="fileType"
+                value={formData.fileType}
+                onChange={handleChange}
+                className="w-full bg-transparent border-2 border-[#1a1a1a]/20 px-4 py-3 font-mono focus:border-[#1a1a1a] focus:outline-none transition-colors cursor-pointer"
+              >
+                <option value="markdown">Markdown (.md)</option>
+                <option value="json">JSON</option>
+                <option value="text">Plain Text</option>
+              </select>
+            </div>
+
+            {/* File Content */}
+            <div>
+              <label className="block text-xs font-mono uppercase tracking-wider text-[#1a1a1a]/50 mb-2">
+                Skill Instructions
+              </label>
+              <textarea
+                name="fileContent"
+                value={formData.fileContent}
+                onChange={handleChange}
+                placeholder={`# ${formData.name || "Skill Name"}
+
+## Overview
+Describe what this skill does and how an agent should use it.
+
+## Instructions
+Step-by-step instructions for the AI agent to follow.
+
+## Examples
+\`\`\`
+Example input/output pairs
+\`\`\`
+
+## Configuration
+Any required API keys or settings.`}
+                rows={12}
+                className="w-full bg-transparent border-2 border-[#1a1a1a]/20 px-4 py-3 font-mono text-sm focus:border-[#1a1a1a] focus:outline-none transition-colors placeholder:text-[#1a1a1a]/20 resize-none"
+              />
+              <p className="text-xs font-mono text-[#1a1a1a]/35 mt-1">
+                The actual instructions buyers will receive. This is delivered after purchase.
+              </p>
+            </div>
           </div>
 
           {/* Divider */}
