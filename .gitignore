@@ -12,3 +12,4 @@ tsconfig.tsbuildinfo
 # Foundry artifacts
 contracts/broadcast/
 contracts/cache/
+.gstack/
