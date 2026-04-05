@@ -5,6 +5,9 @@ node_modules
 *.patch
 *.diff
 
+# Private specs (strategic/architecture docs — keep local)
+specs/
+
 /src/generated/prisma
 dev.db
 prisma/dev.db

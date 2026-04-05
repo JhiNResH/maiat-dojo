@@ -18,6 +18,16 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  // --- KYA (Know Your Agent) — 2026-04-05 ---
+  erc8004TokenId      BigInt?   @unique      // KYA-0 eager mint
+  kyaLevel            Int       @default(0)  // 0, 1, 2 (3 deferred to Phase 2+)
+  socialHandleType    String?                // 'twitter' | 'github'
+  socialHandle        String?   @unique
+  socialVerifiedAt    DateTime?
+  veteranWallet       String?   @unique
+  veteranVerifiedAt   DateTime?
+  pendingMint         Boolean   @default(false)
+
   // Relations
   reviews       Review[]
   purchases     Purchase[]
@@ -49,6 +59,14 @@ model Skill {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  // --- Active skill / Gateway fields — 2026-04-05 ---
+  skillType               String   @default("passive")  // passive | active
+  endpointUrl             String?                        // creator's raw endpoint (active only)
+  gatewaySlug             String?  @unique               // dojo.maiat.io/skills/{slug}
+  creatorHmacSecret       String?                        // gateway→creator auth
+  pricePerCall            Float?                         // active skill per-call price (USDC)
+  expectedCallsPerSession Int?                           // rate-limit cap basis
+
   // Creator
   creatorId   String
   creator     User     @relation("SkillCreator", fields: [creatorId], references: [id])
@@ -57,6 +75,7 @@ model Skill {
   reviews     Review[]
   purchases   Purchase[]
   equippedBy  AgentSkill[]
+  sessions    Session[]
 }
 
 // --- Agents ---
@@ -85,6 +104,7 @@ model Agent {
   skills         AgentSkill[]
   reviews        Review[]
   jobs           Job[]
+  sessions       Session[]
 }
 
 // --- Agent <-> Skill (equipped) ---
@@ -150,4 +170,52 @@ model Job {
 
   agentId     String
   agent       Agent    @relation(fields: [agentId], references: [id])
+}
+
+// --- Sessions (8183 job with pre-funded escrow) — 2026-04-05 ---
+// Agent opens a session to pre-fund escrow, then makes per-call skill invocations
+// against it via Gateway. Settled via MicroEvaluator when escrow used/expires.
+model Session {
+  id               String   @id @default(cuid())
+  onchainJobId     String?  @unique             // ERC-8183 jobId on Base
+  budgetTotal      Float                        // initial escrow (USDC)
+  budgetRemaining  Float                        // decrements per call
+  pricePerCall     Float                        // snapshot at open time
+  callCount        Int      @default(0)
+  status           String   @default("funded")  // funded | active | autocompleting | settled | refunded
+  openedAt         DateTime @default(now())
+  expiresAt        DateTime                     // default now + 24h
+  settledAt        DateTime?
+
+  // payer = agent (has wallet, is 8183 payer)
+  payerAgentId     String
+  agent            Agent    @relation(fields: [payerAgentId], references: [id])
+
+  // target skill
+  skillId          String
+  skill            Skill    @relation(fields: [skillId], references: [id])
+
+  // Relations
+  calls            SkillCall[]
+
+  @@index([status, expiresAt])
+  @@index([payerAgentId])
+}
+
+// --- SkillCall (per-call log, Gateway writes) — 2026-04-05 ---
+model SkillCall {
+  id           String   @id @default(cuid())
+  sessionId    String
+  nonce        Int                    // monotonic per (agent, session)
+  requestHash  String                 // X-Dojo-RequestHash
+  status       String                 // success | creator_error | gateway_error
+  httpStatus   Int
+  latencyMs    Int?
+  costUsdc     Float                  // = session.pricePerCall at time of call
+  createdAt    DateTime @default(now())
+
+  session      Session  @relation(fields: [sessionId], references: [id])
+
+  @@index([sessionId, nonce])
+  @@unique([sessionId, nonce])
 }
