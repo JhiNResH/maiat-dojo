@@ -314,8 +314,8 @@ export async function POST(
         });
       } else {
         // Creator returned something (2xx or error) — charge the call atomically
-        await prisma.$transaction([
-          prisma.skillCall.create({
+        await prisma.$transaction(async (tx) => {
+          await tx.skillCall.create({
             data: {
               sessionId: session.id,
               nonce,
@@ -325,18 +325,35 @@ export async function POST(
               latencyMs,
               costUsdc: session.pricePerCall,
             },
-          }),
-          prisma.session.update({
-            where: { id: session.id },
+          });
+
+          const updateResult = await tx.session.updateMany({
+            where: {
+              id: session.id,
+              status: { in: ['funded', 'active'] },
+              budgetRemaining: { gte: session.pricePerCall },
+            },
             data: {
               budgetRemaining: { decrement: session.pricePerCall },
               callCount: { increment: 1 },
               status: 'active',
             },
-          }),
-        ]);
+          });
+
+          if (updateResult.count === 0) {
+            // Session was closed or exhausted between our read and write — abort.
+            throw new Error('SESSION_CLOSED_OR_EXHAUSTED');
+          }
+        });
       }
     } catch (txErr: unknown) {
+      if (txErr instanceof Error && txErr.message === 'SESSION_CLOSED_OR_EXHAUSTED') {
+        return errorJson(
+          'session-closed',
+          'Session was closed or budget exhausted during request processing',
+          409
+        );
+      }
       if (isPrismaP2002(txErr)) {
         return errorJson(
           'replay',
