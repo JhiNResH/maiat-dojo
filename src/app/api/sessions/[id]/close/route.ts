@@ -116,13 +116,34 @@ export async function POST(
     const refundedAmount = session.budgetRemaining;
     const now = new Date();
 
-    const updated = await prisma.session.update({
-      where: { id: session.id },
+    // Atomic close with status guard — prevents race with concurrent gateway calls
+    const closeResult = await prisma.session.updateMany({
+      where: {
+        id: session.id,
+        status: { in: ['funded', 'active'] },
+      },
       data: {
         status: 'refunded',
         settledAt: now,
         // budgetRemaining intentionally preserved — records the refund amount
       },
+    });
+
+    if (closeResult.count === 0) {
+      // Another request won the race — re-read current state and return idempotently
+      const current = await prisma.session.findUnique({
+        where: { id: session.id },
+        include: { agent: true, skill: true },
+      });
+      if (!current) {
+        return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+      }
+      return NextResponse.json({ session: buildResponse(current) });
+    }
+
+    // Re-read with includes for response shape
+    const updated = await prisma.session.findUniqueOrThrow({
+      where: { id: session.id },
       include: {
         agent: true,
         skill: true,
