@@ -10,7 +10,9 @@
 import { createBscPublicClient } from './erc8004';
 import { privateKeyToAccount } from 'viem/accounts';
 
-// Refuse mints if relayer balance drops below this threshold
+// Refuse mints if relayer balance drops below this threshold.
+// 0.001 BNB ≈ $0.60 at current prices — covers ~6000 BSC mints (gas ~$0.0001/tx).
+// Spec B originally said 0.002 ETH (Base); on BSC 0.001 BNB provides equivalent safety margin.
 const MIN_BNB_BALANCE = 1_000_000_000_000_000n; // 0.001 BNB in wei
 
 export interface RelayerBalanceResult {

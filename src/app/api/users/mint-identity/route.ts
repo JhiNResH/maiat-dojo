@@ -6,6 +6,10 @@ import { checkRelayerBalance } from '@/lib/relayer';
 
 export const dynamic = 'force-dynamic';
 
+// Safety flag — set to 'true' in env to enable mints.
+// Keeps mints dead until relayer is funded and ABI confirmed on target chain.
+const KYA_MINT_ENABLED = process.env.ENABLE_KYA_MINT === 'true';
+
 /**
  * POST /api/users/mint-identity
  * Mint an ERC-8004 agent identity for the authenticated user.
@@ -63,6 +67,14 @@ export async function POST(req: NextRequest) {
   }
 
   const wallet = user.walletAddress as `0x${string}`;
+
+  // Feature flag — disabled until relayer funded + chain ABI confirmed (Spec B §12)
+  if (!KYA_MINT_ENABLED) {
+    return NextResponse.json(
+      { status: 'disabled', error: 'KYA mint not yet enabled on this environment' },
+      { status: 503 }
+    );
+  }
 
   // Case 1: already minted in DB
   if (user.erc8004TokenId != null) {
