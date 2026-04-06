@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyPrivyAuth } from '@/lib/privy-server';
-import { createJobOnChain } from '@/lib/xlayer';
+import { createSessionOnChain } from '@/lib/bsc-acp';
 
 export const dynamic = 'force-dynamic';
 
@@ -151,18 +151,16 @@ export async function POST(req: NextRequest) {
       expiresAt: expiresAt.toISOString(),
     });
 
-    // Fire-and-forget: bind session to on-chain 8183 job.
-    // Failures are logged; session remains "funded" in DB and can still be
-    // used via gateway once on-chain binding resolves (Phase 2 will gate this).
+    // Fire-and-forget: create job on BSC AgenticCommerceHooked.
+    // Failures are logged; session remains "funded" and usable via gateway.
+    // Phase 1: relayer is client on-chain, hook=address(0) (no trust gate).
     const creatorAddress = skill.creator.walletAddress as `0x${string}` | null;
-    if (creatorAddress && skill.onChainId !== null) {
-      // USDC has 6 decimals
-      const amountUsdcUnits = BigInt(Math.floor(budgetTotal * 1e6));
-      createJobOnChain({
-        skillId: BigInt(skill.onChainId),
-        buyerAddr: agent.walletAddress as `0x${string}`,
-        sellerAddr: creatorAddress,
-        amount: amountUsdcUnits,
+    if (creatorAddress) {
+      const expiredAt = BigInt(Math.floor(expiresAt.getTime() / 1000));
+      createSessionOnChain({
+        providerAddr: creatorAddress,
+        description: skill.name,
+        expiredAt,
       })
         .then(async (result) => {
           if (result.success && result.jobId) {
@@ -170,26 +168,23 @@ export async function POST(req: NextRequest) {
               where: { id: session.id },
               data: { onchainJobId: result.jobId },
             });
-            console.log('[sessions/open] on-chain job bound:', {
+            console.log('[sessions/open] BSC job bound:', {
               sessionId: session.id,
               onchainJobId: result.jobId,
               txHash: result.txHash,
             });
           } else {
-            console.warn('[sessions/open] on-chain binding failed:', {
+            console.warn('[sessions/open] BSC binding failed:', {
               sessionId: session.id,
               error: result.error,
             });
           }
         })
         .catch((err) => {
-          console.error('[sessions/open] on-chain binding exception:', err);
+          console.error('[sessions/open] BSC binding exception:', err);
         });
     } else {
-      console.warn('[sessions/open] skipping on-chain binding:', {
-        sessionId: session.id,
-        reason: !creatorAddress ? 'no creator wallet' : 'skill has no onChainId',
-      });
+      console.warn('[sessions/open] skipping BSC binding — no creator wallet:', session.id);
     }
 
     return NextResponse.json(
