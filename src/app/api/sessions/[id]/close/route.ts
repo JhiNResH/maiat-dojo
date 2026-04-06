@@ -165,7 +165,7 @@ export async function POST(
       const agentWallet = (session.agent.walletAddress ?? '0x0000000000000000000000000000000000000000') as `0x${string}`;
       const agentId = session.agent.owner.erc8004TokenId ?? 0n;
       const budgetUsedUsdc = BigInt(
-        Math.round((updated.budgetTotal - updated.budgetRemaining) * 1e6)
+        Math.max(0, Math.round((updated.budgetTotal - updated.budgetRemaining) * 1e6))
       );
 
       const result = await attestSessionClose({

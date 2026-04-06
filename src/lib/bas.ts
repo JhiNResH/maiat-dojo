@@ -12,7 +12,7 @@
  * budgetUsedUsdc: (budgetTotal - budgetRemaining) in USDC micro units (× 1e6)
  */
 
-import { encodeAbiParameters, parseAbiParameters } from 'viem';
+import { encodeAbiParameters, parseAbiParameters, parseEventLogs } from 'viem';
 import { createBscPublicClient, createBscWalletClient } from './erc8004';
 
 // ─── Contract Addresses ─────────────────────────────────────────────────────
@@ -62,6 +62,17 @@ export const BAS_ABI = [
     outputs: [{ name: '', type: 'bytes32' }],
     stateMutability: 'payable',
     type: 'function',
+  },
+  {
+    type: 'event',
+    name: 'Attested',
+    inputs: [
+      { name: 'recipient', type: 'address', indexed: true, internalType: 'address' },
+      { name: 'attester', type: 'address', indexed: true, internalType: 'address' },
+      { name: 'uid', type: 'bytes32', indexed: false, internalType: 'bytes32' },
+      { name: 'schemaUID', type: 'bytes32', indexed: true, internalType: 'bytes32' },
+    ],
+    anonymous: false,
   },
 ] as const;
 
@@ -177,12 +188,19 @@ export async function attestSessionClose(data: SessionEvaluationData): Promise<A
       return { success: false, txHash, error: 'attest tx reverted' };
     }
 
-    // The attestation UID is the return value of attest() — read from logs
-    // BAS emits Attested(bytes32 indexed uid, ...) but easiest is to re-call
-    // We use txHash as UID fallback if we can't parse — safe for our purposes
-    console.log('[bas] attestation confirmed:', { txHash, skillId: data.skillId });
+    // Parse true attestation UID from Attested event log.
+    // BAS (EAS-compatible) emits: Attested(recipient indexed, attester indexed, uid, schemaUID indexed)
+    // uid is non-indexed — lives in log.data as 32 bytes.
+    const attestedLogs = parseEventLogs({
+      abi: BAS_ABI,
+      eventName: 'Attested',
+      logs: receipt.logs,
+    });
+    const uid = attestedLogs[0]?.args.uid;
 
-    return { success: true, txHash, uid: txHash }; // uid = txHash as proxy until log parsing added
+    console.log('[bas] attestation confirmed:', { txHash, uid, skillId: data.skillId });
+
+    return { success: true, txHash, uid };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[bas] attestSessionClose failed:', message);

@@ -106,6 +106,18 @@ export async function POST(req: NextRequest) {
   }
 
   // Case 4: fresh mint
+  // Atomic claim — prevents duplicate mints from concurrent requests (e.g. two tabs).
+  // Uses the same updateMany test-and-set pattern as sessions/close race guard.
+  const claimResult = await prisma.user.updateMany({
+    where: { id: user.id, pendingMint: false, erc8004TokenId: null },
+    data: { pendingMint: true },
+  });
+  if (claimResult.count === 0) {
+    // Race lost — another request is already processing this mint.
+    const retryAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+    return NextResponse.json({ status: 'pending', retryAt }, { status: 202 });
+  }
+
   // 4a. Relayer balance guard
   const balance = await checkRelayerBalance();
   if (!balance.ok) {
