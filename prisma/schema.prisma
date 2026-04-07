@@ -50,8 +50,8 @@ model Skill {
   installs    Int      @default(0)
   tags        String   @default("") // comma-separated
   imageUrl    String?
-  fileUrl     String?  // the actual skill file (.md, etc.)
-  fileContent String?  // actual skill content (.md or instruction)
+  skillUrl    String?  // hosted SKILL.md URL (GitHub raw, IPFS, etc.)
+  fileContent String?  // inline SKILL.md content (v1 seed fallback)
   fileType    String?  // "markdown" | "json" | "text"
   isGated     Boolean  @default(true)  // require purchase to access content
   evaluationScore  Float?    // micro evaluator score (0-100)
