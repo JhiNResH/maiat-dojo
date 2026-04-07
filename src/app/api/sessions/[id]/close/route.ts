@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyPrivyAuth } from '@/lib/privy-server';
 import { attestSessionClose } from '@/lib/bas';
+import { settleSessionOnChain } from '@/lib/bsc-acp';
 
 export const dynamic = 'force-dynamic';
 
@@ -111,9 +112,29 @@ export async function POST(
       });
     }
 
-    // 8. Update session — mark refunded, stamp settledAt, preserve budgetRemaining for audit
-    // TODO(Phase 2): call MicroEvaluator.settle(onchainJobId) here to release
-    //   actual USDC escrow back to agent wallet on-chain before updating DB.
+    // 8. Fire-and-forget: submit + evaluate on-chain via TrustBasedEvaluator.
+    //    Runs concurrently with DB update — failures are logged, never block response.
+    if (session.onchainJobId) {
+      settleSessionOnChain({
+        jobId: session.onchainJobId,
+        sessionId: session.id,
+        callCount: session.callCount,
+      })
+        .then((result) => {
+          console.log('[sessions/close] BSC settle:', {
+            sessionId: session.id,
+            onchainJobId: session.onchainJobId,
+            success: result.success,
+            txHash: result.txHash,
+            error: result.error,
+          });
+        })
+        .catch((err) => {
+          console.error('[sessions/close] BSC settle exception:', err);
+        });
+    }
+
+    // Update session — mark refunded, stamp settledAt, preserve budgetRemaining for audit
     const refundedAmount = session.budgetRemaining;
     const now = new Date();
 

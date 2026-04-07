@@ -23,9 +23,9 @@ describe('createSessionOnChain guard paths', () => {
   const originalEnv = process.env;
 
   const dummyParams = {
-    providerAddr: '0x0000000000000000000000000000000000000001' as `0x${string}`,
     description: 'test session',
     expiredAt: BigInt(Math.floor(Date.now() / 1000) + 86400),
+    budgetUsdc: BigInt(1e18),
   };
 
   beforeEach(() => {
