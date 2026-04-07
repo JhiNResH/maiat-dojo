@@ -12,9 +12,8 @@
  *   BSC_EVALUATOR_ADDRESS — TrustBasedEvaluator proxy
  */
 
-import { createPublicClient, createWalletClient, http, type Hash } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
-import { getBscConfig } from './erc8004';
+import { parseEventLogs, type Hash } from 'viem';
+import { createBscPublicClient, createBscWalletClient, getBscConfig, withRelayerLock } from './erc8004';
 
 // ─── ABI (minimal — createJob only) ─────────────────────────────────────────
 
@@ -96,55 +95,52 @@ export async function createSessionOnChain(
     return { success: false, error: 'BSC_EVALUATOR_ADDRESS not configured' };
   }
 
-  try {
-    const walletClient = createWalletClient({
-      account: privateKeyToAccount(config.privateKey),
-      chain: config.chain,
-      transport: http(config.rpcUrl),
-    });
-    const publicClient = createPublicClient({
-      chain: config.chain,
-      transport: http(config.rpcUrl),
-    });
+  const acpAddress = config.acpAddress;
 
-    const txHash = await walletClient.writeContract({
-      address: config.acpAddress,
-      abi: AgenticCommerceHookedABI,
-      functionName: 'createJob',
-      args: [
-        params.providerAddr,
-        config.evaluatorAddress,
-        params.expiredAt,
-        params.description,
-        '0x0000000000000000000000000000000000000000', // no hook Phase 1
-      ],
-    });
+  return withRelayerLock(async () => {
+    try {
+      const walletClient = createBscWalletClient();
+      const publicClient = createBscPublicClient();
 
-    console.log('[bsc-acp] createJob tx sent:', txHash);
+      const txHash = await walletClient.writeContract({
+        address: acpAddress,
+        abi: AgenticCommerceHookedABI,
+        functionName: 'createJob',
+        args: [
+          params.providerAddr,
+          config.evaluatorAddress,
+          params.expiredAt,
+          params.description,
+          '0x0000000000000000000000000000000000000000', // no hook Phase 1
+        ],
+      });
 
-    const receipt = await publicClient.waitForTransactionReceipt({
-      hash: txHash,
-      confirmations: 1,
-      timeout: 15_000,
-    });
+      console.log('[bsc-acp] createJob tx sent:', txHash);
 
-    if (receipt.status !== 'success') {
-      return { success: false, txHash, error: 'createJob reverted' };
+      const receipt = await publicClient.waitForTransactionReceipt({
+        hash: txHash,
+        confirmations: 1,
+        timeout: 15_000,
+      });
+
+      if (receipt.status !== 'success') {
+        return { success: false, txHash, error: 'createJob reverted' };
+      }
+
+      // Extract jobId from JobCreated event
+      const jobLogs = parseEventLogs({
+        abi: AgenticCommerceHookedABI,
+        eventName: 'JobCreated',
+        logs: receipt.logs,
+      });
+      const jobId = jobLogs[0]?.args.jobId?.toString();
+
+      console.log('[bsc-acp] job created:', { jobId, txHash });
+      return { success: true, jobId, txHash };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      console.error('[bsc-acp] createSessionOnChain failed:', message);
+      return { success: false, error: message };
     }
-
-    // Extract jobId from JobCreated event topics[1]
-    const log = receipt.logs.find(
-      (l) =>
-        l.address.toLowerCase() === config.acpAddress!.toLowerCase() &&
-        l.topics.length >= 2
-    );
-    const jobId = log?.topics[1] ? BigInt(log.topics[1]).toString() : undefined;
-
-    console.log('[bsc-acp] job created:', { jobId, txHash });
-    return { success: true, jobId, txHash };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    console.error('[bsc-acp] createSessionOnChain failed:', message);
-    return { success: false, error: message };
-  }
+  });
 }

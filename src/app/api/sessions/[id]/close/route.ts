@@ -162,27 +162,31 @@ export async function POST(
 
     // 9. BAS attestation — fire-and-forget, never blocks response
     void (async () => {
-      const agentWallet = (session.agent.walletAddress ?? '0x0000000000000000000000000000000000000000') as `0x${string}`;
-      const agentId = session.agent.owner.erc8004TokenId ?? 0n;
-      const budgetUsedUsdc = BigInt(
-        Math.max(0, Math.round((updated.budgetTotal - updated.budgetRemaining) * 1e6))
-      );
+      try {
+        const agentWallet = (session.agent.walletAddress ?? '0x0000000000000000000000000000000000000000') as `0x${string}`;
+        const agentId = session.agent.owner.erc8004TokenId ?? 0n;
+        const budgetUsedUsdc = BigInt(
+          Math.max(0, Math.round((updated.budgetTotal - updated.budgetRemaining) * 1e6))
+        );
 
-      const result = await attestSessionClose({
-        agentWallet,
-        agentId,
-        skillId: updated.skillId,
-        callCount: BigInt(updated.callCount),
-        budgetUsedUsdc,
-        outcome: 0, // refunded (manual close)
-      });
-
-      if (result.success && result.uid) {
-        await prisma.session.update({
-          where: { id: updated.id },
-          data: { basAttestationUid: result.uid },
+        const result = await attestSessionClose({
+          agentWallet,
+          agentId,
+          skillId: updated.skillId,
+          callCount: BigInt(updated.callCount),
+          budgetUsedUsdc,
+          outcome: 0, // refunded (manual close)
         });
-        console.log('[bas] attestation stored:', { sessionId: updated.id, uid: result.uid });
+
+        if (result.success && result.uid) {
+          await prisma.session.update({
+            where: { id: updated.id },
+            data: { basAttestationUid: result.uid },
+          });
+          console.log('[bas] attestation stored:', { sessionId: updated.id, uid: result.uid });
+        }
+      } catch (err) {
+        console.error('[bas] fire-and-forget attestation failed:', err);
       }
     })();
 

@@ -13,7 +13,7 @@
  */
 
 import { encodeAbiParameters, parseAbiParameters, parseEventLogs } from 'viem';
-import { createBscPublicClient, createBscWalletClient } from './erc8004';
+import { createBscPublicClient, createBscWalletClient, withRelayerLock } from './erc8004';
 
 // ─── Contract Addresses ─────────────────────────────────────────────────────
 
@@ -151,59 +151,61 @@ export async function attestSessionClose(data: SessionEvaluationData): Promise<A
     return { success: false, error: 'DOJO_RELAYER_PRIVATE_KEY not set' };
   }
 
-  try {
-    const walletClient = createBscWalletClient();
-    const publicClient = createBscPublicClient();
+  return withRelayerLock(async () => {
+    try {
+      const walletClient = createBscWalletClient();
+      const publicClient = createBscPublicClient();
 
-    const encoded = encodeSessionEvaluation(data);
+      const encoded = encodeSessionEvaluation(data);
 
-    const txHash = await walletClient.writeContract({
-      address: BAS_ADDRESS,
-      abi: BAS_ABI,
-      functionName: 'attest',
-      args: [
-        {
-          schema: schemaUid,
-          data: {
-            recipient: data.agentWallet,
-            expirationTime: 0n,
-            revocable: false,
-            refUID: '0x0000000000000000000000000000000000000000000000000000000000000000',
-            data: encoded,
-            value: 0n,
+      const txHash = await walletClient.writeContract({
+        address: BAS_ADDRESS,
+        abi: BAS_ABI,
+        functionName: 'attest',
+        args: [
+          {
+            schema: schemaUid,
+            data: {
+              recipient: data.agentWallet,
+              expirationTime: 0n,
+              revocable: false,
+              refUID: '0x0000000000000000000000000000000000000000000000000000000000000000',
+              data: encoded,
+              value: 0n,
+            },
           },
-        },
-      ],
-    });
+        ],
+      });
 
-    console.log('[bas] attest tx sent:', txHash);
+      console.log('[bas] attest tx sent:', txHash);
 
-    const receipt = await publicClient.waitForTransactionReceipt({
-      hash: txHash,
-      confirmations: 1,
-      timeout: 20_000,
-    });
+      const receipt = await publicClient.waitForTransactionReceipt({
+        hash: txHash,
+        confirmations: 1,
+        timeout: 20_000,
+      });
 
-    if (receipt.status !== 'success') {
-      return { success: false, txHash, error: 'attest tx reverted' };
+      if (receipt.status !== 'success') {
+        return { success: false, txHash, error: 'attest tx reverted' };
+      }
+
+      // Parse true attestation UID from Attested event log.
+      // BAS (EAS-compatible) emits: Attested(recipient indexed, attester indexed, uid, schemaUID indexed)
+      // uid is non-indexed — lives in log.data as 32 bytes.
+      const attestedLogs = parseEventLogs({
+        abi: BAS_ABI,
+        eventName: 'Attested',
+        logs: receipt.logs,
+      });
+      const uid = attestedLogs[0]?.args.uid;
+
+      console.log('[bas] attestation confirmed:', { txHash, uid, skillId: data.skillId });
+
+      return { success: true, txHash, uid };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      console.error('[bas] attestSessionClose failed:', message);
+      return { success: false, error: message };
     }
-
-    // Parse true attestation UID from Attested event log.
-    // BAS (EAS-compatible) emits: Attested(recipient indexed, attester indexed, uid, schemaUID indexed)
-    // uid is non-indexed — lives in log.data as 32 bytes.
-    const attestedLogs = parseEventLogs({
-      abi: BAS_ABI,
-      eventName: 'Attested',
-      logs: receipt.logs,
-    });
-    const uid = attestedLogs[0]?.args.uid;
-
-    console.log('[bas] attestation confirmed:', { txHash, uid, skillId: data.skillId });
-
-    return { success: true, txHash, uid };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    console.error('[bas] attestSessionClose failed:', message);
-    return { success: false, error: message };
-  }
+  });
 }

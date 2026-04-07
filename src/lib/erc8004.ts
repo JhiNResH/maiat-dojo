@@ -93,7 +93,7 @@ export function getBscConfig() {
   return { rpcUrl, contractAddress, privateKey, chain, isTestnet };
 }
 
-// ─── Client Factories ───────────────────────────────────────────────────────
+// ─── Client Factories (shared across erc8004, bsc-acp, bas) ─────────────────
 
 export function createBscPublicClient() {
   const config = getBscConfig();
@@ -115,6 +115,20 @@ export function createBscWalletClient() {
   });
 }
 
+// ─── Relayer Tx Lock ────────────────────────────────────────────────────────
+// Ensures sequential nonce usage across all fire-and-forget relayer paths
+// (erc8004 mint, bsc-acp createJob, bas attest). Without this, concurrent
+// requests fetch the same nonce from the RPC and one tx fails.
+
+let _relayerQueue: Promise<void> = Promise.resolve();
+
+export function withRelayerLock<T>(fn: () => Promise<T>): Promise<T> {
+  const prev = _relayerQueue;
+  let release: () => void;
+  _relayerQueue = new Promise<void>(r => { release = r; });
+  return prev.then(() => fn()).finally(() => release!());
+}
+
 // ─── Contract Functions ─────────────────────────────────────────────────────
 
 export interface MintIdentityResult {
@@ -127,6 +141,7 @@ export interface MintIdentityResult {
 /**
  * Mint an ERC-8004 agent identity for a wallet address.
  * Relayer submits the tx — user pays no gas.
+ * Wrapped in relayer lock to prevent nonce collisions with concurrent txs.
  */
 export async function mintIdentityFor(walletAddress: `0x${string}`): Promise<MintIdentityResult> {
   const config = getBscConfig();
@@ -135,64 +150,63 @@ export async function mintIdentityFor(walletAddress: `0x${string}`): Promise<Min
     return { success: false, error: 'DOJO_RELAYER_PRIVATE_KEY not configured' };
   }
 
-  try {
-    const walletClient = createBscWalletClient();
-    const publicClient = createBscPublicClient();
+  return withRelayerLock(async () => {
+    try {
+      const walletClient = createBscWalletClient();
+      const publicClient = createBscPublicClient();
 
-    const txHash = await walletClient.writeContract({
-      address: config.contractAddress,
-      abi: AgentIdentityABI,
-      functionName: 'registerFor',
-      args: [walletAddress, ''],
-    });
+      const txHash = await walletClient.writeContract({
+        address: config.contractAddress,
+        abi: AgentIdentityABI,
+        functionName: 'registerFor',
+        args: [walletAddress, ''],
+      });
 
-    console.log('[erc8004] registerFor tx sent:', txHash, 'wallet:', walletAddress);
+      console.log('[erc8004] registerFor tx sent:', txHash, 'wallet:', walletAddress);
 
-    const receipt = await publicClient.waitForTransactionReceipt({
-      hash: txHash,
-      confirmations: 1,
-      timeout: 15_000,
-    });
+      const receipt = await publicClient.waitForTransactionReceipt({
+        hash: txHash,
+        confirmations: 1,
+        timeout: 15_000,
+      });
 
-    if (receipt.status !== 'success') {
-      return { success: false, txHash, error: 'Transaction reverted' };
+      if (receipt.status !== 'success') {
+        return { success: false, txHash, error: 'Transaction reverted' };
+      }
+
+      // Read agentId from on-chain state (simpler than parsing Registered event)
+      const agentId = await publicClient.readContract({
+        address: config.contractAddress,
+        abi: AgentIdentityABI,
+        functionName: 'agentIdOf',
+        args: [walletAddress],
+      });
+
+      console.log('[erc8004] registered:', { walletAddress, agentId: agentId.toString(), txHash });
+
+      return { success: true, agentId, txHash };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      console.error('[erc8004] mintIdentityFor failed:', message);
+      return { success: false, error: message };
     }
-
-    // Read agentId from on-chain state (simpler than parsing Registered event)
-    const agentId = await publicClient.readContract({
-      address: config.contractAddress,
-      abi: AgentIdentityABI,
-      functionName: 'agentIdOf',
-      args: [walletAddress],
-    });
-
-    console.log('[erc8004] registered:', { walletAddress, agentId: agentId.toString(), txHash });
-
-    return { success: true, agentId, txHash };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    console.error('[erc8004] mintIdentityFor failed:', message);
-    return { success: false, error: message };
-  }
+  });
 }
 
 /**
  * Read the on-chain agentId for a wallet.
- * Returns 0n if not registered.
+ * Returns 0n if not registered. Throws on RPC/network errors so callers
+ * can distinguish "not registered" from "node unreachable".
  */
 export async function getAgentIdOf(walletAddress: `0x${string}`): Promise<bigint> {
   const config = getBscConfig();
   const publicClient = createBscPublicClient();
-  try {
-    return await publicClient.readContract({
-      address: config.contractAddress,
-      abi: AgentIdentityABI,
-      functionName: 'agentIdOf',
-      args: [walletAddress],
-    });
-  } catch {
-    return 0n;
-  }
+  return await publicClient.readContract({
+    address: config.contractAddress,
+    abi: AgentIdentityABI,
+    functionName: 'agentIdOf',
+    args: [walletAddress],
+  });
 }
 
 /**

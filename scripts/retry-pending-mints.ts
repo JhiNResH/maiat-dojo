@@ -36,7 +36,13 @@ async function main() {
     const wallet = user.walletAddress as `0x${string}`;
 
     // First: check if tx already landed on-chain
-    const onChainId = await getAgentIdOf(wallet);
+    let onChainId: bigint;
+    try {
+      onChainId = await getAgentIdOf(wallet);
+    } catch (rpcErr) {
+      console.warn(`[retry-pending-mints] ${wallet} — RPC error checking on-chain, skipping:`, rpcErr);
+      continue;
+    }
     if (onChainId > 0n) {
       await prisma.user.update({
         where: { id: user.id },
