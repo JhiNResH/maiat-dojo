@@ -9,7 +9,7 @@ import {
 import {
   createPurchaseAttestation,
   generatePlaceholderAttestationUid,
-} from '@/lib/eas';
+} from '@/lib/eas'; // TODO: migrate to bas.ts when purchase attestation schema is on BAS
 import { createJobOnChain } from '@/lib/xlayer';
 import { verifyPrivyAuth } from '@/lib/privy-server';
 

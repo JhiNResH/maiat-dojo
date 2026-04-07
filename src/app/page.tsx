@@ -135,7 +135,7 @@ function Masthead({ searchQuery, onSearchChange }: { searchQuery: string; onSear
     <header className="mb-8">
       {/* Top info bar */}
       <div className="flex items-center justify-between text-xs font-mono text-[#1a1a1a]/40 mb-2">
-        <span className="dateline">BASE NETWORK EDITION</span>
+        <span className="dateline">BNB CHAIN EDITION</span>
         <span className="dateline">{today.toUpperCase()}</span>
         <div className="flex items-center gap-4">
           <span className="flex items-center gap-1.5 dateline">
@@ -488,7 +488,7 @@ function ClassifiedAd() {
           Register your agent's on-chain identity
         </p>
         <div className="h-[1px] bg-[#1a1a1a]/15 my-3" />
-        <p className="text-xs font-mono text-[#1a1a1a]/40 mb-3">ERC-8004 · SOULBOUND · BASE MAINNET</p>
+        <p className="text-xs font-mono text-[#1a1a1a]/40 mb-3">ERC-8004 · SOULBOUND · BSC MAINNET</p>
         <button className="bg-[#1a1a1a] text-[#f0ece2] font-mono text-xs px-5 py-2 hover:bg-[#1a1a1a]/80 transition-colors tracking-wider">
           REGISTER →
         </button>
@@ -617,7 +617,7 @@ export default function DojoPage() {
           <div className="masthead-rule mb-2" />
           <div className="flex justify-between items-center py-2">
             <span className="text-xs font-mono text-[#1a1a1a]/25 tracking-wider">
-              THE DOJO © 2026 · MAIAT PROTOCOL · BUILT ON BASE · ERC-8004
+              THE DOJO © 2026 · MAIAT PROTOCOL · BUILT ON BSC · ERC-8004
             </span>
             <span className="text-xs font-serif italic text-[#1a1a1a]/25">
               dojo.maiat.io — All rights reserved

@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import ReviewForm from "@/components/ReviewForm";
-import BuySkillButton from "@/components/BuySkillButton";
 import BuyWithX402Button from "@/components/BuyWithX402Button";
 import DownloadSkillButton from "@/components/DownloadSkillButton";
 import { ArrowLeft } from "lucide-react";
@@ -77,8 +76,8 @@ export default async function SkillPage({ params }: { params: { id: string } }) 
   const defaultFeatures = [
     { icon: "🔍", title: "Core Functionality", desc: "Full feature set included" },
     { icon: "📋", title: "Structured Output", desc: "Clean, formatted responses" },
-    { icon: "⛓️", title: "On-chain Attestation", desc: "Verifiable on Base network" },
-    { icon: "🔌", title: "Universal Compatibility", desc: "Works with any ERC-1155 runtime" },
+    { icon: "⛓️", title: "On-chain Attestation", desc: "Verifiable on BSC via BAS" },
+    { icon: "🔌", title: "Universal Compatibility", desc: "Works with any agent runtime" },
   ];
 
   const features =
@@ -389,25 +388,13 @@ export default async function SkillPage({ params }: { params: { id: string } }) 
                 </li>
               </ul>
 
-              {/* Buy Button - Original on-chain method */}
-              <BuySkillButton
-                skillId={skill.onChainId?.toString() ?? ""}
+              {/* x402 Micropayment — primary payment flow */}
+              <BuyWithX402Button
+                skillId={skill.id}
                 price={skill.price}
                 skillName={skill.name}
+                creatorAddress={(skill.creator.walletAddress as `0x${string}`) ?? "0x0000000000000000000000000000000000000000"}
               />
-
-              {/* x402 Micropayment Option */}
-              <div className="mt-3 pt-3 border-t border-dotted border-[#1a1a1a]/15">
-                <p className="font-mono text-[10px] text-[#1a1a1a]/50 text-center mb-2">
-                  or pay with x402 micropayment
-                </p>
-                <BuyWithX402Button
-                  skillId={skill.id}
-                  price={skill.price}
-                  skillName={skill.name}
-                  creatorAddress={(skill.creator.walletAddress as `0x${string}`) ?? "0x0000000000000000000000000000000000000000"}
-                />
-              </div>
 
               {/* Download Button - shows after purchase */}
               {skill.fileContent && (
@@ -470,8 +457,8 @@ export default async function SkillPage({ params }: { params: { id: string } }) 
             <div className="classified" data-label="Specification">
               <div className="space-y-0">
                 {[
-                  { label: "Standard", value: "ERC-1155" },
-                  { label: "Network", value: "Base Mainnet" },
+                  { label: "Standard", value: "x402 + ERC-8183" },
+                  { label: "Network", value: "BNB Smart Chain" },
                   { label: "License", value: "Lifetime · 1 Agent" },
                   { label: "Runtimes", value: "OpenClaw, Eliza, GAME" },
                   { label: "Category", value: skill.category },
@@ -556,7 +543,7 @@ export default async function SkillPage({ params }: { params: { id: string } }) 
           <div className="masthead-rule mb-2" />
           <div className="flex justify-between items-center py-2">
             <span className="font-mono text-xs text-[#1a1a1a]/25 tracking-wider">
-              THE DOJO © 2026 · MAIAT PROTOCOL · BUILT ON BASE · ERC-8004
+              THE DOJO © 2026 · MAIAT PROTOCOL · BUILT ON BSC · ERC-8004
             </span>
             <span className="font-serif italic text-xs text-[#1a1a1a]/25">
               dojo.maiat.io — All rights reserved

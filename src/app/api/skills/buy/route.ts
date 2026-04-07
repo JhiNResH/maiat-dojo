@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import {
   createPurchaseAttestation,
   generatePlaceholderAttestationUid,
-} from "@/lib/eas";
+} from "@/lib/eas"; // TODO: migrate to bas.ts when purchase attestation schema is on BAS
 
 export const dynamic = "force-dynamic";
 

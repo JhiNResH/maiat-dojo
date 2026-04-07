@@ -148,8 +148,8 @@ export async function POST(
     // 5. EIP-712 signature verify — STUBBED Phase 1
     //
     // TODO (Phase 2): Recover signer from EIP-712 typed data and verify it
-    //   matches ownerOf(agentTokenId) on ERC-8004 contract on Base mainnet.
-    //   Domain: { name: "DojoGateway", version: "1", chainId: 8453, verifyingContract: "<addr>" }
+    //   matches ownerOf(agentTokenId) on ERC-8004 contract on BSC mainnet.
+    //   Domain: { name: "DojoGateway", version: "1", chainId: 56, verifyingContract: "<addr>" }
     //   Types:  GatewayAuth { agentTokenId, jobId, skillSlug, requestHash, nonce, expiresAt }
     //   Use viem's recoverTypedDataAddress + publicClient.readContract("ownerOf", [tokenId])
     // -------------------------------------------------------------------------
