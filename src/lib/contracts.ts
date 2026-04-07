@@ -20,8 +20,8 @@ export const CONTRACTS = {
     agentIdentity: "0xbb1d304179bdd577d5ef15fec91a5ba9756a6e41" as `0x${string}`,
     bas: "0x0000000000000000000000000000000000000000" as `0x${string}`, // no BAS on testnet
     basSchemaRegistry: "0x0000000000000000000000000000000000000000" as `0x${string}`,
-    usdc: "0x2F808cc071D7B54d23a7647d79d7EF6E2C830d31" as `0x${string}`,
-    agenticCommerceHooked: "0x1C86C5cAC643325534Ac2198f55B32A7A613f9F8" as `0x${string}`,
+    usdc: "0x64544969ed7EBf5f083679233325356EbE738930" as `0x${string}`,
+    agenticCommerceHooked: "0x298F5976a4DD623bBBCd09b0d4EC789D777507cF" as `0x${string}`,
     trustGateACPHook: "0xaB6bd9F9b670b93a5586Ba027EC6f1E18a3534C9" as `0x${string}`,
     trustBasedEvaluator: "0x5C74AB851Cfb223aD29F6D794a1727fB881FE893" as `0x${string}`,
     evaluatorRegistry: "0x71D0CD6a6B9eC454A309825a08b4E2b3f8b3D210" as `0x${string}`,
