@@ -557,6 +557,170 @@ MAX_SETTLEMENT_TIME: 90 days
         creatorId: community1.id,
       },
     }),
+
+    // 9. Token Price Oracle (active, FREE)
+    prisma.skill.create({
+      data: {
+        name: "Token Price Oracle",
+        description:
+          "Real-time price feeds for any ERC-20 token. Aggregates spot price, TWAP, and 24h change from multiple DEX and CEX sources. Plug-and-play for any agent needing price context.",
+        category: "Analytics",
+        icon: "💰",
+        price: 0.0,
+        rating: 4.8,
+        installs: 0,
+        tags: "price,oracle,token,defi,analytics",
+        skillType: "active",
+        endpointUrl: "https://price.dojo.maiat.io/v1/quote",
+        pricePerCall: 0,
+        fileType: "markdown",
+        fileContent: `# Token Price Oracle
+
+## What it does
+Returns real-time price data for any ERC-20 token. Aggregates spot price, TWAP, and 24h change from multiple DEX and CEX sources.
+
+## Usage
+\`\`\`
+POST /v1/quote
+{
+  "token": "0x...",    // token address
+  "chain": "bsc",      // bsc | eth | base
+  "currency": "usd"    // output currency
+}
+\`\`\`
+
+## Response
+\`\`\`json
+{
+  "token": "0x...",
+  "price_usd": 1.0023,
+  "twap_1h": 1.0018,
+  "change_24h": 0.0031,
+  "source": "pancakeswap+binance"
+}
+\`\`\`
+
+## Use cases
+- Agents checking if a trade is profitable
+- Portfolio valuation
+- Alert triggers on price movement
+`,
+        isGated: false,
+        creatorId: platform.id,
+      },
+    }),
+
+    // 10. Echo Test (active, FREE)
+    prisma.skill.create({
+      data: {
+        name: "Echo Test",
+        description:
+          "Minimal active skill for testing agent connectivity and the x402 payment flow. Accepts any payload and echoes it back with a latency timestamp. Use this to verify your agent is correctly calling Dojo skills before integrating real ones.",
+        category: "Infra",
+        icon: "🔁",
+        price: 0.0,
+        rating: 5.0,
+        installs: 0,
+        tags: "test,echo,debug,infra,x402",
+        skillType: "active",
+        endpointUrl: "https://echo.dojo.maiat.io/v1/echo",
+        pricePerCall: 0,
+        fileType: "markdown",
+        fileContent: `# Echo Test
+
+## What it does
+Echoes any payload back with a server-side latency timestamp. Use it to verify agent-to-Dojo connectivity and confirm x402 payment headers are being sent correctly.
+
+## Usage
+\`\`\`
+POST /v1/echo
+{
+  "message": "hello",
+  "data": { "any": "payload" }
+}
+\`\`\`
+
+## Response
+\`\`\`json
+{
+  "echo": {
+    "message": "hello",
+    "data": { "any": "payload" }
+  },
+  "latency_ms": 12,
+  "server_ts": "2026-04-07T00:00:00Z"
+}
+\`\`\`
+
+## Use this to
+- Verify your agent can hit a Dojo skill endpoint
+- Test x402 payment headers end-to-end
+- Measure round-trip latency from your agent to Dojo
+`,
+        isGated: false,
+        creatorId: platform.id,
+      },
+    }),
+
+    // 11. Knowledge Wiki Generator (passive, FREE)
+    prisma.skill.create({
+      data: {
+        name: "Knowledge Wiki Generator",
+        description:
+          "Transforms raw notes, documents, and conversations into a structured personal wiki. Theme-driven atomic entries with [[wikilinks]] so knowledge compounds over time. Writer-not-filer philosophy: you capture, the wiki connects.",
+        category: "Productivity",
+        icon: "📚",
+        price: 0.0,
+        rating: 4.9,
+        installs: 0,
+        tags: "wiki,knowledge,notes,productivity,writing",
+        fileType: "markdown",
+        fileContent: `# Knowledge Wiki Generator
+
+A skill for building a compounding personal knowledge base. Theme-driven, atomic-entry format with [[wikilinks]].
+
+**Philosophy:** Writer-not-filer. Capture raw, the wiki connects structure.
+
+## Commands
+
+### /wiki ingest <source>
+Absorbs a document, conversation, or URL into the pipeline. Extracts key concepts, generates atomic entries, links to existing nodes.
+
+### /wiki absorb
+Processes the ingest queue. Converts raw captures into structured wiki entries with themes and [[wikilinks]].
+
+### /wiki query <question>
+Semantic search across the wiki. Returns matching entries with their connections and the reasoning path.
+
+### /wiki cleanup
+Audits for orphaned entries, duplicate concepts, and stale nodes. Suggests merges and pruning.
+
+### /wiki breakdown <topic>
+Decomposes a broad topic into atomic sub-entries. One entry = one concept, no more.
+
+### /wiki rebuild-index
+Regenerates the master index of all themes, entry titles, and the [[wikilink]] graph.
+
+## Entry format
+\`\`\`markdown
+## <Concept Title>
+<One clear sentence defining the concept.>
+
+**Why it matters:** <connection to practice>
+**Related:** [[linked-concept-1]] [[linked-concept-2]]
+**Source:** <origin document or date>
+\`\`\`
+
+## Principles
+- Atomic: one entry = one concept
+- Linked: every entry connects to at least one other
+- Themed: cluster by concept, not by date
+- Compounding: the wiki gets more useful with every capture
+`,
+        isGated: false,
+        creatorId: platform.id,
+      },
+    }),
   ]);
 
   // --- Agents ---
@@ -731,15 +895,18 @@ MAX_SETTLEMENT_TIME: 90 days
 
   console.log("✅ Seed complete — SKILL.md + endpoint format");
   console.log("   - 3 users (platform + community + buyer)");
-  console.log("   - 8 skills (SKILL.md as fileContent):");
-  console.log("     1. DeFi Yield Optimizer  (passive, $2.00)");
-  console.log("     2. Smart Contract Auditor (passive, $5.00)");
-  console.log("     3. Twitter Alpha Scanner  (passive, $1.50)");
-  console.log("     4. On-Chain Forensics     (passive, $3.00)");
-  console.log("     5. Gas Fee Predictor      (active,  FREE)");
-  console.log("     6. MEV Shield             (passive, $2.50)");
-  console.log("     7. Sentiment Analyzer     (active,  $1.00)");
-  console.log("     8. Polymarket Arbitrage   (passive, $3.50)");
+  console.log("   - 11 skills (SKILL.md as fileContent):");
+  console.log("     1.  DeFi Yield Optimizer      (passive, $2.00)");
+  console.log("     2.  Smart Contract Auditor    (passive, $5.00)");
+  console.log("     3.  Twitter Alpha Scanner     (passive, $1.50)");
+  console.log("     4.  On-Chain Forensics        (passive, $3.00)");
+  console.log("     5.  Gas Fee Predictor         (active,  FREE)");
+  console.log("     6.  MEV Shield                (passive, $2.50)");
+  console.log("     7.  Sentiment Analyzer        (active,  $1.00)");
+  console.log("     8.  Polymarket Arbitrage      (passive, $3.50)");
+  console.log("     9.  Token Price Oracle        (active,  FREE)");
+  console.log("    10.  Echo Test                 (active,  FREE)");
+  console.log("    11.  Knowledge Wiki Generator  (passive, FREE)");
   console.log("   - 3 agents + skills equipped");
   console.log("   - 6 reviews + 4 jobs");
 }
