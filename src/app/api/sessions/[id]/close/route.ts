@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { verifyPrivyAuth } from '@/lib/privy-server';
 import { attestSessionClose } from '@/lib/bas';
 import { settleSessionOnChain } from '@/lib/bsc-acp';
+import { updateCreatorTrustScore } from '@/lib/trust-oracle';
 
 export const dynamic = 'force-dynamic';
 
@@ -66,12 +67,12 @@ export async function POST(
       );
     }
 
-    // 4. Resolve session with agent (+ owner for erc8004TokenId) + skill
+    // 4. Resolve session with agent (+ owner for erc8004TokenId) + skill (+ creator for trust update)
     const session = await prisma.session.findUnique({
       where: { id: sessionId },
       include: {
         agent: { include: { owner: true } },
-        skill: true,
+        skill: { include: { creator: true } },
       },
     });
     if (!session) {
@@ -112,9 +113,30 @@ export async function POST(
       });
     }
 
-    // 8. Fire-and-forget: submit + evaluate on-chain via TrustBasedEvaluator.
+    // 8. Aggregate SkillCall scores → PASS/FAIL decision
+    const calls = await prisma.skillCall.findMany({
+      where: { sessionId: session.id },
+      select: { score: true },
+    });
+
+    const totalCalls = calls.length;
+    const passedCalls = calls.filter((c) => c.score >= 1.0).length;
+    const passRate = totalCalls > 0 ? Math.round((passedCalls / totalCalls) * 100) : 0;
+    const finalScore = passRate; // 0–100; same as passRate for binary Phase 1 scoring
+    const PASS_THRESHOLD = 80;  // ≥80% of calls must pass
+    const isPASS = totalCalls > 0 && passRate >= PASS_THRESHOLD;
+
+    console.log('[sessions/close] evaluation:', {
+      sessionId: session.id,
+      totalCalls,
+      passedCalls,
+      passRate,
+      isPASS,
+    });
+
+    // 9. Fire-and-forget: on-chain settle (PASS only) via TrustBasedEvaluator.
     //    Runs concurrently with DB update — failures are logged, never block response.
-    if (session.onchainJobId) {
+    if (isPASS && session.onchainJobId) {
       settleSessionOnChain({
         jobId: session.onchainJobId,
         sessionId: session.id,
@@ -134,20 +156,19 @@ export async function POST(
         });
     }
 
-    // Update session — mark refunded, stamp settledAt, preserve budgetRemaining for audit
-    const refundedAmount = session.budgetRemaining;
+    // 10. Atomic close with status guard — PASS→settled, FAIL→refunded
     const now = new Date();
+    const newStatus = isPASS ? 'settled' : 'refunded';
 
-    // Atomic close with status guard — prevents race with concurrent gateway calls
     const closeResult = await prisma.session.updateMany({
       where: {
         id: session.id,
         status: { in: ['funded', 'active'] },
       },
       data: {
-        status: 'refunded',
+        status: newStatus,
         settledAt: now,
-        // budgetRemaining intentionally preserved — records the refund amount
+        // budgetRemaining intentionally preserved — records remaining amount for audit
       },
     });
 
@@ -176,27 +197,25 @@ export async function POST(
       sessionId: updated.id,
       previousStatus: session.status,
       newStatus: updated.status,
-      refundedAmount,
+      isPASS,
+      passRate,
       callCount: updated.callCount,
       settledAt: now.toISOString(),
     });
 
-    // 9. BAS attestation — fire-and-forget, never blocks response
+    // 11. BAS attestation + TrustScoreOracle update — fire-and-forget, never blocks response
     void (async () => {
       try {
-        const agentWallet = (session.agent.walletAddress ?? '0x0000000000000000000000000000000000000000') as `0x${string}`;
-        const agentId = session.agent.owner.erc8004TokenId ?? 0n;
-        const budgetUsedUsdc = BigInt(
-          Math.max(0, Math.round((updated.budgetTotal - updated.budgetRemaining) * 1e6))
-        );
+        const agentAddress = (session.agent.walletAddress ?? '0x0000000000000000000000000000000000000000') as `0x${string}`;
+        const creatorAddress = (session.skill.creator.walletAddress ?? '0x0000000000000000000000000000000000000000') as `0x${string}`;
 
         const result = await attestSessionClose({
-          agentWallet,
-          agentId,
-          skillId: updated.skillId,
-          callCount: BigInt(updated.callCount),
-          budgetUsedUsdc,
-          outcome: 0, // refunded (manual close)
+          sessionId: updated.id,
+          finalScore,
+          callCount: updated.callCount,
+          passRate,
+          creatorAddress,
+          agentAddress,
         });
 
         if (result.success && result.uid) {
@@ -208,6 +227,30 @@ export async function POST(
         }
       } catch (err) {
         console.error('[bas] fire-and-forget attestation failed:', err);
+      }
+    })();
+
+    // 12. Trust oracle update — fire-and-forget, after attestation queued
+    void (async () => {
+      try {
+        const creatorWallet = session.skill.creator.walletAddress;
+        if (!creatorWallet) {
+          console.warn('[trust] creator has no wallet — skipping trust update for session:', updated.id);
+          return;
+        }
+        const sessionCount = await prisma.session.count({
+          where: {
+            skillId: session.skillId,
+            status: { in: ['settled', 'refunded'] },
+          },
+        });
+        await updateCreatorTrustScore({
+          creatorAddress: creatorWallet,
+          passRate,
+          sessionCount,
+        });
+      } catch (err) {
+        console.error('[trust] fire-and-forget trust update failed:', err);
       }
     })();
 

@@ -5,14 +5,14 @@
  * Mainnet only — no BAS on BSC testnet (skip attestation if testnet RPC).
  *
  * Schema: SessionEvaluation
- *   address agentWallet, uint256 agentId, string skillId,
- *   uint256 callCount, uint256 budgetUsedUsdc, uint8 outcome
+ *   bytes32 sessionId, uint8 finalScore, uint16 callCount, uint8 passRate,
+ *   address creatorAddress, address agentAddress, bytes32 merkleRoot
  *
- * outcome: 0 = refunded (early close), 1 = settled (completed)
- * budgetUsedUsdc: (budgetTotal - budgetRemaining) in USDC micro units (× 1e6)
+ * merkleRoot: 0x000...000 in Phase 1 (no on-chain dispute).
+ *             Populated in Phase 2 (Merkle tree of all SkillCall hashes).
  */
 
-import { encodeAbiParameters, parseAbiParameters, parseEventLogs } from 'viem';
+import { encodeAbiParameters, parseAbiParameters, parseEventLogs, padHex, toHex } from 'viem';
 import { createBscPublicClient, createBscWalletClient, withRelayerLock } from './erc8004';
 
 // ─── Contract Addresses ─────────────────────────────────────────────────────
@@ -23,7 +23,7 @@ export const BAS_SCHEMA_REGISTRY = '0x5e905F77f59491F03eBB78c204986aaDEB0C6bDa' 
 // ─── Schema ─────────────────────────────────────────────────────────────────
 
 export const SESSION_EVALUATION_SCHEMA =
-  'address agentWallet, uint256 agentId, string skillId, uint256 callCount, uint256 budgetUsedUsdc, uint8 outcome';
+  'bytes32 sessionId, uint8 finalScore, uint16 callCount, uint8 passRate, address creatorAddress, address agentAddress, bytes32 merkleRoot';
 
 // Set via env after registering schema on BSC BAS:
 //   npx tsx scripts/register-bas-schema.ts
@@ -92,25 +92,35 @@ export const BAS_SCHEMA_REGISTRY_ABI = [
 
 // ─── Encoding ────────────────────────────────────────────────────────────────
 
+const ZERO_BYTES32 =
+  '0x0000000000000000000000000000000000000000000000000000000000000000' as const;
+
+/** Encode a string (e.g. cuid session ID) as a right-padded bytes32. */
+function sessionIdToBytes32(id: string): `0x${string}` {
+  // Truncate to 31 chars to stay within 32 bytes (cuid ≤ 25 chars in practice)
+  return padHex(toHex(id.slice(0, 31)), { size: 32 });
+}
+
 export interface SessionEvaluationData {
-  agentWallet: `0x${string}`;
-  agentId: bigint;           // ERC-8004 agentId (0n if not minted yet)
-  skillId: string;           // DB skillId (off-chain string)
-  callCount: bigint;
-  budgetUsedUsdc: bigint;    // (budgetTotal - budgetRemaining) × 1e6
-  outcome: 0 | 1;            // 0 = refunded, 1 = settled
+  sessionId: string;           // DB session ID (cuid)
+  finalScore: number;          // 0–100 aggregate pass rate
+  callCount: number;
+  passRate: number;            // 0–100
+  creatorAddress: `0x${string}`;
+  agentAddress: `0x${string}`;
 }
 
 export function encodeSessionEvaluation(data: SessionEvaluationData): `0x${string}` {
   return encodeAbiParameters(
     parseAbiParameters(SESSION_EVALUATION_SCHEMA),
     [
-      data.agentWallet,
-      data.agentId,
-      data.skillId,
+      sessionIdToBytes32(data.sessionId),
+      data.finalScore,
       data.callCount,
-      data.budgetUsedUsdc,
-      data.outcome,
+      data.passRate,
+      data.creatorAddress,
+      data.agentAddress,
+      ZERO_BYTES32,  // merkleRoot — Phase 2
     ]
   );
 }
@@ -132,6 +142,10 @@ export interface AttestResult {
  *   - BSC RPC is testnet (no BAS deployed)
  *   - BAS_SESSION_SCHEMA_UID env not set (schema not registered yet)
  *   - DOJO_RELAYER_PRIVATE_KEY not set
+ *
+ * Schema (registered via scripts/register-bas-schema.ts):
+ *   bytes32 sessionId, uint8 finalScore, uint16 callCount, uint8 passRate,
+ *   address creatorAddress, address agentAddress, bytes32 merkleRoot
  */
 export async function attestSessionClose(data: SessionEvaluationData): Promise<AttestResult> {
   // Skip on testnet
@@ -166,7 +180,7 @@ export async function attestSessionClose(data: SessionEvaluationData): Promise<A
           {
             schema: schemaUid,
             data: {
-              recipient: data.agentWallet,
+              recipient: data.agentAddress,
               expirationTime: 0n,
               revocable: false,
               refUID: '0x0000000000000000000000000000000000000000000000000000000000000000',
@@ -199,7 +213,7 @@ export async function attestSessionClose(data: SessionEvaluationData): Promise<A
       });
       const uid = attestedLogs[0]?.args.uid;
 
-      console.log('[bas] attestation confirmed:', { txHash, uid, skillId: data.skillId });
+      console.log('[bas] attestation confirmed:', { txHash, uid, sessionId: data.sessionId, finalScore: data.finalScore });
 
       return { success: true, txHash, uid };
     } catch (error) {

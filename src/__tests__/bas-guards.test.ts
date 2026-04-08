@@ -56,12 +56,12 @@ describe('attestSessionClose guard paths', () => {
   const originalEnv = process.env;
 
   const dummyData = {
-    agentWallet: '0x0000000000000000000000000000000000000001' as `0x${string}`,
-    agentId: 1n,
-    skillId: 'test',
-    callCount: 1n,
-    budgetUsedUsdc: 100n,
-    outcome: 1 as const,
+    sessionId: 'cltest',
+    finalScore: 100,
+    callCount: 1,
+    passRate: 100,
+    creatorAddress: '0x0000000000000000000000000000000000000001' as `0x${string}`,
+    agentAddress: '0x0000000000000000000000000000000000000002' as `0x${string}`,
   };
 
   beforeEach(() => {

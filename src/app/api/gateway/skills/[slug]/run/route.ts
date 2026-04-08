@@ -26,6 +26,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { keccak256, toHex } from 'viem';
 import { createHmac } from 'node:crypto';
 import { prisma } from '@/lib/prisma';
+import { evaluateCall } from '@/lib/session-evaluator';
 
 export const dynamic = 'force-dynamic';
 
@@ -271,6 +272,23 @@ export async function POST(
     }
 
     // -------------------------------------------------------------------------
+    // 8.5. Read response body + run sanity-check evaluation
+    //      Must read body here (before SkillCall write) — streams are single-use.
+    // -------------------------------------------------------------------------
+    const timedOut =
+      forwardError instanceof Error && (forwardError as Error).name === 'AbortError';
+    let creatorBodyText = '';
+    if (creatorRes !== null) {
+      creatorBodyText = await creatorRes.text().catch(() => '');
+    }
+    const evalResult = evaluateCall(
+      creatorRes?.status ?? 0,
+      creatorBodyText,
+      latencyMs,
+      timedOut || creatorRes === null
+    );
+
+    // -------------------------------------------------------------------------
     // 9. Write SkillCall + (conditionally) decrement budget — atomic transaction
     //
     // Budget decrement policy:
@@ -310,6 +328,11 @@ export async function POST(
             httpStatus,
             latencyMs,
             costUsdc: 0, // no charge on gateway error
+            responseHash: evalResult.responseHash,
+            delivered: evalResult.delivered,
+            validFormat: evalResult.validFormat,
+            withinSla: evalResult.withinSla,
+            score: evalResult.score,
           },
         });
       } else {
@@ -324,6 +347,11 @@ export async function POST(
               httpStatus,
               latencyMs,
               costUsdc: session.pricePerCall,
+              responseHash: evalResult.responseHash,
+              delivered: evalResult.delivered,
+              validFormat: evalResult.validFormat,
+              withinSla: evalResult.withinSla,
+              score: evalResult.score,
             },
           });
 
@@ -394,7 +422,7 @@ export async function POST(
         '[POST /api/gateway/skills/[slug]/run] Creator returned non-2xx:',
         { slug: gatewaySlug, httpStatus: creatorRes!.status }
       );
-      const creatorBody = await creatorRes!.text().catch(() => '');
+      const creatorBody = creatorBodyText;
       return new NextResponse(creatorBody, {
         status: 502,
         headers: {
@@ -412,7 +440,7 @@ export async function POST(
     // -------------------------------------------------------------------------
     // 10. Return creator response — pass through status + body + add X-Dojo-* headers
     // -------------------------------------------------------------------------
-    const creatorBody = await creatorRes!.text().catch(() => '');
+    const creatorBody = creatorBodyText;
     const budgetAfter = Math.max(0, session.budgetRemaining - session.pricePerCall);
     const callCountAfter = session.callCount + 1;
 
@@ -424,6 +452,9 @@ export async function POST(
       latencyMs,
       budgetAfter,
       callCountAfter,
+      score: evalResult.score,
+      delivered: evalResult.delivered,
+      withinSla: evalResult.withinSla,
     });
 
     return new NextResponse(creatorBody, {

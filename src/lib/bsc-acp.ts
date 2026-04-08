@@ -1,145 +1,251 @@
 /**
- * BSC AgenticCommerceHooked Integration
+ * ERC-8183 AgenticCommerceHooked Integration
  *
- * Creates on-chain job records on BSC when a Dojo session opens.
- * The relayer submits the tx — job.client = relayer address (not agent wallet).
- * hook = address(0) for Phase 1: trust gate skipped because relayer has no
- * trust score. On-chain binding is fire-and-forget; the DB session is the
- * source of truth for budget and metering.
+ * Chain-agnostic: reads addresses from contracts.ts (ACTIVE_CHAIN).
+ * Relayer is job.client AND job.provider for Phase 1 — no creator wallet needed.
  *
- * Deployed addresses come from env:
- *   BSC_ACP_ADDRESS      — AgenticCommerceHooked proxy
- *   BSC_EVALUATOR_ADDRESS — TrustBasedEvaluator proxy
+ * Full lifecycle:
+ *   createJob  → session open  (job = Open)
+ *   fundJob    → session open  (job = Funded, USDC locked in escrow)
+ *   submitJob  → session close (job = Submitted, relayer delivers result hash)
+ *   evaluateJob → session close (TrustBasedEvaluator → complete/reject → USDC released)
+ *
+ * Env overrides (local dev / CI):
+ *   BSC_ACP_ADDRESS       — AgenticCommerceHooked
+ *   BSC_EVALUATOR_ADDRESS — TrustBasedEvaluator
  */
 
-import { parseEventLogs, type Hash } from 'viem';
+import { parseEventLogs, keccak256, toBytes, type Hash } from 'viem';
 import { createBscPublicClient, createBscWalletClient, getBscConfig, withRelayerLock } from './erc8004';
+import { getContracts } from './contracts';
 
-// ─── ABI (minimal — createJob only) ─────────────────────────────────────────
+const ZERO = '0x0000000000000000000000000000000000000000' as const;
 
-const AgenticCommerceHookedABI = [
+// ─── ABIs ─────────────────────────────────────────────────────────────────────
+
+const ACP_ABI = [
   {
-    type: 'function',
-    name: 'createJob',
+    type: 'function', name: 'createJob',
     inputs: [
-      { name: 'provider', type: 'address', internalType: 'address' },
-      { name: 'evaluator', type: 'address', internalType: 'address' },
-      { name: 'expiredAt', type: 'uint256', internalType: 'uint256' },
-      { name: 'description', type: 'string', internalType: 'string' },
-      { name: 'hook', type: 'address', internalType: 'address' },
+      { name: 'provider',   type: 'address' },
+      { name: 'evaluator',  type: 'address' },
+      { name: 'expiredAt',  type: 'uint256' },
+      { name: 'description', type: 'string' },
+      { name: 'hook',       type: 'address' },
     ],
-    outputs: [{ name: 'jobId', type: 'uint256', internalType: 'uint256' }],
+    outputs: [{ name: 'jobId', type: 'uint256' }],
     stateMutability: 'nonpayable',
   },
   {
-    type: 'event',
-    name: 'JobCreated',
+    type: 'function', name: 'fund',
     inputs: [
-      { name: 'jobId', type: 'uint256', indexed: true, internalType: 'uint256' },
-      { name: 'client', type: 'address', indexed: true, internalType: 'address' },
-      { name: 'provider', type: 'address', indexed: true, internalType: 'address' },
-      { name: 'evaluator', type: 'address', indexed: false, internalType: 'address' },
-      { name: 'expiredAt', type: 'uint256', indexed: false, internalType: 'uint256' },
-      { name: 'hook', type: 'address', indexed: false, internalType: 'address' },
+      { name: 'jobId',          type: 'uint256' },
+      { name: 'expectedBudget', type: 'uint256' },
+      { name: 'optParams',      type: 'bytes' },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function', name: 'submit',
+    inputs: [
+      { name: 'jobId',       type: 'uint256' },
+      { name: 'deliverable', type: 'bytes32' },
+      { name: 'optParams',   type: 'bytes' },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'event', name: 'JobCreated',
+    inputs: [
+      { name: 'jobId',     type: 'uint256', indexed: true },
+      { name: 'client',    type: 'address', indexed: true },
+      { name: 'provider',  type: 'address', indexed: true },
+      { name: 'evaluator', type: 'address', indexed: false },
+      { name: 'expiredAt', type: 'uint256', indexed: false },
+      { name: 'hook',      type: 'address', indexed: false },
     ],
     anonymous: false,
   },
 ] as const;
 
-// ─── Config ──────────────────────────────────────────────────────────────────
+const EVALUATOR_ABI = [
+  {
+    type: 'function', name: 'evaluate',
+    inputs: [{ name: 'jobId', type: 'uint256' }],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+] as const;
 
-function getBscAcpConfig() {
-  const bsc = getBscConfig();
-  const acpAddress = process.env.BSC_ACP_ADDRESS as `0x${string}` | undefined;
-  const evaluatorAddress = (process.env.BSC_EVALUATOR_ADDRESS ?? '0x0000000000000000000000000000000000000000') as `0x${string}`;
-  return { ...bsc, acpAddress, evaluatorAddress };
+const ERC20_ABI = [
+  {
+    type: 'function', name: 'approve',
+    inputs: [{ name: 'spender', type: 'address' }, { name: 'amount', type: 'uint256' }],
+    outputs: [{ name: '', type: 'bool' }],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function', name: 'allowance',
+    inputs: [{ name: 'owner', type: 'address' }, { name: 'spender', type: 'address' }],
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+] as const;
+
+// ─── Config ───────────────────────────────────────────────────────────────────
+
+function getAcpConfig() {
+  const chain = getBscConfig();
+  const contracts = getContracts();
+  return {
+    ...chain,
+    acpAddress:       (process.env.BSC_ACP_ADDRESS       ?? contracts.agenticCommerceHooked) as `0x${string}`,
+    evaluatorAddress: (process.env.BSC_EVALUATOR_ADDRESS ?? contracts.trustBasedEvaluator)   as `0x${string}`,
+    hookAddress:      contracts.compositeRouterHook,
+    usdcAddress:      contracts.usdc,
+  };
 }
 
-// ─── createSessionOnChain ────────────────────────────────────────────────────
-
-export interface CreateBscSessionParams {
-  providerAddr: `0x${string}`;
-  description: string;
-  expiredAt: bigint; // unix timestamp
+function isConfigured(config: ReturnType<typeof getAcpConfig>): boolean {
+  if (!config.privateKey)                          { console.warn('[acp] DOJO_RELAYER_PRIVATE_KEY not set');      return false; }
+  if (config.acpAddress       === ZERO)            { console.warn('[acp] agenticCommerceHooked not configured');  return false; }
+  if (config.evaluatorAddress === ZERO)            { console.warn('[acp] trustBasedEvaluator not configured');    return false; }
+  return true;
 }
 
-export interface CreateBscSessionResult {
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+export interface AcpResult {
   success: boolean;
-  jobId?: string;
   txHash?: Hash;
+  jobId?: string;
   error?: string;
 }
 
+// ─── createJob ────────────────────────────────────────────────────────────────
+
+export interface CreateJobParams {
+  description: string;
+  expiredAt: bigint;       // unix timestamp
+  budgetUsdc: bigint;      // USDC amount (18 dec on BSC)
+}
+
 /**
- * Record a session opening as a job on BSC AgenticCommerceHooked.
- * hook = address(0): trust gate skipped (relayer is client, not the agent).
+ * createJob + fund in one atomic call sequence.
+ * Relayer is both client and provider (Phase 1).
+ * Returns jobId for DB binding.
  */
-export async function createSessionOnChain(
-  params: CreateBscSessionParams
-): Promise<CreateBscSessionResult> {
-  const config = getBscAcpConfig();
+export async function createSessionOnChain(params: CreateJobParams): Promise<AcpResult> {
+  const config = getAcpConfig();
+  if (!isConfigured(config)) return { success: false, error: 'acp not configured' };
 
-  if (!config.acpAddress) {
-    console.warn('[bsc-acp] BSC_ACP_ADDRESS not set — skipping on-chain binding');
-    return { success: false, error: 'BSC_ACP_ADDRESS not configured' };
+  if (config.usdcAddress === ZERO) {
+    console.warn('[acp] usdc not configured — skipping on-chain binding');
+    return { success: false, error: 'usdc not configured' };
   }
-
-  if (!config.privateKey) {
-    console.warn('[bsc-acp] DOJO_RELAYER_PRIVATE_KEY not set — skipping on-chain binding');
-    return { success: false, error: 'DOJO_RELAYER_PRIVATE_KEY not configured' };
-  }
-
-  // evaluator must be non-zero (AgenticCommerceHooked reverts on ZeroAddress)
-  if (config.evaluatorAddress === '0x0000000000000000000000000000000000000000') {
-    console.warn('[bsc-acp] BSC_EVALUATOR_ADDRESS not set — skipping on-chain binding');
-    return { success: false, error: 'BSC_EVALUATOR_ADDRESS not configured' };
-  }
-
-  const acpAddress = config.acpAddress;
 
   return withRelayerLock(async () => {
     try {
-      const walletClient = createBscWalletClient();
-      const publicClient = createBscPublicClient();
+      const wallet = createBscWalletClient();
+      const client = createBscPublicClient();
+      const relayer = wallet.account.address;
 
-      const txHash = await walletClient.writeContract({
-        address: acpAddress,
-        abi: AgenticCommerceHookedABI,
+      // 1. createJob (relayer = client = provider)
+      const createHash = await wallet.writeContract({
+        address: config.acpAddress,
+        abi: ACP_ABI,
         functionName: 'createJob',
-        args: [
-          params.providerAddr,
-          config.evaluatorAddress,
-          params.expiredAt,
-          params.description,
-          '0x0000000000000000000000000000000000000000', // no hook Phase 1
-        ],
+        args: [relayer, config.evaluatorAddress, params.expiredAt, params.description, config.hookAddress],
       });
+      const createReceipt = await client.waitForTransactionReceipt({ hash: createHash, confirmations: 1, timeout: 15_000 });
+      if (createReceipt.status !== 'success') return { success: false, txHash: createHash, error: 'createJob reverted' };
 
-      console.log('[bsc-acp] createJob tx sent:', txHash);
+      const jobLogs = parseEventLogs({ abi: ACP_ABI, eventName: 'JobCreated', logs: createReceipt.logs });
+      const jobId = jobLogs[0]?.args.jobId;
+      if (!jobId) return { success: false, txHash: createHash, error: 'JobCreated event not found' };
 
-      const receipt = await publicClient.waitForTransactionReceipt({
-        hash: txHash,
-        confirmations: 1,
-        timeout: 15_000,
+      console.log('[acp] createJob:', { jobId: jobId.toString(), txHash: createHash });
+
+      // 2. approve USDC if needed
+      const allowance = await client.readContract({
+        address: config.usdcAddress, abi: ERC20_ABI, functionName: 'allowance',
+        args: [relayer, config.acpAddress],
       });
-
-      if (receipt.status !== 'success') {
-        return { success: false, txHash, error: 'createJob reverted' };
+      if (allowance < params.budgetUsdc) {
+        const approveHash = await wallet.writeContract({
+          address: config.usdcAddress, abi: ERC20_ABI, functionName: 'approve',
+          args: [config.acpAddress, params.budgetUsdc],
+        });
+        await client.waitForTransactionReceipt({ hash: approveHash, confirmations: 1, timeout: 15_000 });
+        console.log('[acp] USDC approved:', approveHash);
       }
 
-      // Extract jobId from JobCreated event
-      const jobLogs = parseEventLogs({
-        abi: AgenticCommerceHookedABI,
-        eventName: 'JobCreated',
-        logs: receipt.logs,
+      // 3. fund
+      const fundHash = await wallet.writeContract({
+        address: config.acpAddress, abi: ACP_ABI, functionName: 'fund',
+        args: [jobId, params.budgetUsdc, '0x'],
       });
-      const jobId = jobLogs[0]?.args.jobId?.toString();
+      const fundReceipt = await client.waitForTransactionReceipt({ hash: fundHash, confirmations: 1, timeout: 15_000 });
+      if (fundReceipt.status !== 'success') return { success: false, txHash: fundHash, error: 'fund reverted' };
 
-      console.log('[bsc-acp] job created:', { jobId, txHash });
-      return { success: true, jobId, txHash };
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      console.error('[bsc-acp] createSessionOnChain failed:', message);
+      console.log('[acp] funded:', { jobId: jobId.toString(), budget: params.budgetUsdc.toString(), txHash: fundHash });
+      return { success: true, jobId: jobId.toString(), txHash: fundHash };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      console.error('[acp] createSessionOnChain failed:', message);
+      return { success: false, error: message };
+    }
+  });
+}
+
+// ─── settleSessionOnChain ─────────────────────────────────────────────────────
+
+export interface SettleJobParams {
+  jobId: string;
+  sessionId: string;    // used to derive deterministic deliverable hash
+  callCount: number;
+}
+
+/**
+ * submit + evaluate in sequence.
+ * Relayer submits deliverable hash, then TrustBasedEvaluator decides complete/reject.
+ */
+export async function settleSessionOnChain(params: SettleJobParams): Promise<AcpResult> {
+  const config = getAcpConfig();
+  if (!isConfigured(config)) return { success: false, error: 'acp not configured' };
+
+  return withRelayerLock(async () => {
+    try {
+      const wallet = createBscWalletClient();
+      const client = createBscPublicClient();
+      const jobId = BigInt(params.jobId);
+
+      // 1. submit (deterministic hash from sessionId + callCount)
+      const deliverable = keccak256(toBytes(`${params.sessionId}:${params.callCount}`)) as `0x${string}`;
+      const submitHash = await wallet.writeContract({
+        address: config.acpAddress, abi: ACP_ABI, functionName: 'submit',
+        args: [jobId, deliverable, '0x'],
+      });
+      const submitReceipt = await client.waitForTransactionReceipt({ hash: submitHash, confirmations: 1, timeout: 15_000 });
+      if (submitReceipt.status !== 'success') return { success: false, txHash: submitHash, error: 'submit reverted' };
+
+      console.log('[acp] submitted:', { jobId: params.jobId, deliverable, txHash: submitHash });
+
+      // 2. evaluate (TrustBasedEvaluator → complete or reject)
+      const evalHash = await wallet.writeContract({
+        address: config.evaluatorAddress, abi: EVALUATOR_ABI, functionName: 'evaluate',
+        args: [jobId],
+      });
+      const evalReceipt = await client.waitForTransactionReceipt({ hash: evalHash, confirmations: 1, timeout: 20_000 });
+      if (evalReceipt.status !== 'success') return { success: false, txHash: evalHash, error: 'evaluate reverted' };
+
+      console.log('[acp] evaluated:', { jobId: params.jobId, txHash: evalHash });
+      return { success: true, jobId: params.jobId, txHash: evalHash };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      console.error('[acp] settleSessionOnChain failed:', message);
       return { success: false, error: message };
     }
   });
