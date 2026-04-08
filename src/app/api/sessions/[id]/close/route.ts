@@ -203,7 +203,10 @@ export async function POST(
       settledAt: now.toISOString(),
     });
 
-    // 11. BAS attestation + TrustScoreOracle update — fire-and-forget, never blocks response
+    // 11. BAS attestation → TrustScoreOracle update — fire-and-forget, chained sequentially.
+    //     Trust update runs AFTER attestation (Attest[8] → Trust[10] ordering).
+    //     Trust oracle receives cumulative passRate across all skill sessions (not per-session)
+    //     because DojoTrustScore.updateScore() does direct assignment, not EMA.
     void (async () => {
       try {
         const agentAddress = (session.agent.walletAddress ?? '0x0000000000000000000000000000000000000000') as `0x${string}`;
@@ -225,36 +228,51 @@ export async function POST(
           });
           console.log('[bas] attestation stored:', { sessionId: updated.id, uid: result.uid });
         }
-      } catch (err) {
-        console.error('[bas] fire-and-forget attestation failed:', err);
-      }
-    })();
 
-    // 12. Trust oracle update — fire-and-forget, after attestation queued
-    void (async () => {
-      try {
+        // Trust oracle update — runs after attestation is queued
         const creatorWallet = session.skill.creator.walletAddress;
         if (!creatorWallet) {
           console.warn('[trust] creator has no wallet — skipping trust update for session:', updated.id);
           return;
         }
-        const sessionCount = await prisma.session.count({
-          where: {
-            skillId: session.skillId,
-            status: { in: ['settled', 'refunded'] },
-          },
-        });
+
+        // Compute cumulative passRate across all terminal sessions for this skill.
+        // DojoTrustScore.updateScore() is a direct assignment (not EMA), so we must
+        // pass the all-time passRate, not just this session's.
+        const [allCalls, sessionCount] = await Promise.all([
+          prisma.skillCall.findMany({
+            where: {
+              session: {
+                skillId: session.skillId,
+                status: { in: ['settled', 'refunded'] },
+              },
+            },
+            select: { score: true },
+          }),
+          prisma.session.count({
+            where: {
+              skillId: session.skillId,
+              status: { in: ['settled', 'refunded'] },
+            },
+          }),
+        ]);
+
+        const totalCumCalls = allCalls.length;
+        const passedCumCalls = allCalls.filter((c) => c.score >= 1.0).length;
+        const cumulativePassRate =
+          totalCumCalls > 0 ? Math.round((passedCumCalls / totalCumCalls) * 100) : passRate;
+
         await updateCreatorTrustScore({
           creatorAddress: creatorWallet,
-          passRate,
+          passRate: cumulativePassRate,
           sessionCount,
         });
       } catch (err) {
-        console.error('[trust] fire-and-forget trust update failed:', err);
+        console.error('[bas+trust] fire-and-forget failed:', err);
       }
     })();
 
-    // 10. Return updated session
+    // 13. Return updated session
     return NextResponse.json({
       session: buildResponse(updated),
     });

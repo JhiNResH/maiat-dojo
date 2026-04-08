@@ -154,7 +154,11 @@ export async function POST(
     //   Types:  GatewayAuth { agentTokenId, jobId, skillSlug, requestHash, nonce, expiresAt }
     //   Use viem's recoverTypedDataAddress + publicClient.readContract("ownerOf", [tokenId])
     // -------------------------------------------------------------------------
-    if (process.env.DOJO_GATEWAY_SKIP_SIG_CHECK !== 'true') {
+    const skipSigCheck =
+      process.env.DOJO_GATEWAY_SKIP_SIG_CHECK === 'true' &&
+      process.env.NODE_ENV !== 'production';
+
+    if (!skipSigCheck) {
       console.log(
         '[POST /api/gateway/skills/[slug]/run] EIP-712 sig verify would happen here (Phase 2). ' +
           'Set DOJO_GATEWAY_SKIP_SIG_CHECK=true to bypass in dev.'

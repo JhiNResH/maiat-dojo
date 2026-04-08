@@ -35,6 +35,8 @@ export function evaluateCall(
 ): EvalResult {
   const delivered = !failed && httpStatus >= 200 && httpStatus < 300;
 
+  // Note: empty 2xx body → validFormat = false → score = 0.0.
+  // Skill creators must return a non-empty JSON object on success.
   let validFormat = false;
   if (delivered && responseBody.length > 0) {
     try {

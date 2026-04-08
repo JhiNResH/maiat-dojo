@@ -97,8 +97,11 @@ const ZERO_BYTES32 =
 
 /** Encode a string (e.g. cuid session ID) as a right-padded bytes32. */
 function sessionIdToBytes32(id: string): `0x${string}` {
-  // Truncate to 31 chars to stay within 32 bytes (cuid ≤ 25 chars in practice)
-  return padHex(toHex(id.slice(0, 31)), { size: 32 });
+  // cuid ≤ 25 chars; assert here so a schema change never silently truncates + collides.
+  if (id.length > 31) {
+    throw new Error(`sessionIdToBytes32: id too long (${id.length} chars, max 31): ${id}`);
+  }
+  return padHex(toHex(id), { size: 32 });
 }
 
 export interface SessionEvaluationData {

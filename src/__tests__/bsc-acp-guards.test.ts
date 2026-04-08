@@ -37,8 +37,8 @@ describe('createSessionOnChain guard paths', () => {
     process.env = originalEnv;
   });
 
-  it('skips when BSC_ACP_ADDRESS not set', async () => {
-    delete process.env.BSC_ACP_ADDRESS;
+  it('skips when BSC_ACP_ADDRESS is zero address', async () => {
+    process.env.BSC_ACP_ADDRESS = '0x0000000000000000000000000000000000000000';
     process.env.DOJO_RELAYER_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
     const { createSessionOnChain } = await import('@/lib/bsc-acp');
     const result = await createSessionOnChain(dummyParams);

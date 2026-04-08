@@ -108,11 +108,14 @@ function getAcpConfig() {
   };
 }
 
-function isConfigured(config: ReturnType<typeof getAcpConfig>): boolean {
-  if (!config.privateKey)                          { console.warn('[acp] DOJO_RELAYER_PRIVATE_KEY not set');      return false; }
-  if (config.acpAddress       === ZERO)            { console.warn('[acp] agenticCommerceHooked not configured');  return false; }
-  if (config.evaluatorAddress === ZERO)            { console.warn('[acp] trustBasedEvaluator not configured');    return false; }
-  return true;
+/** Returns null if configured, or an error string naming the missing config. */
+function getMissingConfig(config: ReturnType<typeof getAcpConfig>): string | null {
+  if (!config.privateKey)                            return 'DOJO_RELAYER_PRIVATE_KEY not set';
+  if (!config.acpAddress || config.acpAddress === ZERO)
+                                                     return 'BSC_ACP_ADDRESS not configured';
+  if (!config.evaluatorAddress || config.evaluatorAddress === ZERO)
+                                                     return 'BSC_EVALUATOR_ADDRESS not configured';
+  return null;
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -139,7 +142,8 @@ export interface CreateJobParams {
  */
 export async function createSessionOnChain(params: CreateJobParams): Promise<AcpResult> {
   const config = getAcpConfig();
-  if (!isConfigured(config)) return { success: false, error: 'acp not configured' };
+  const missingConfig = getMissingConfig(config);
+  if (missingConfig) return { success: false, error: missingConfig };
 
   if (config.usdcAddress === ZERO) {
     console.warn('[acp] usdc not configured — skipping on-chain binding');
@@ -178,7 +182,8 @@ export async function createSessionOnChain(params: CreateJobParams): Promise<Acp
           address: config.usdcAddress, abi: ERC20_ABI, functionName: 'approve',
           args: [config.acpAddress, params.budgetUsdc],
         });
-        await client.waitForTransactionReceipt({ hash: approveHash, confirmations: 1, timeout: 15_000 });
+        const approveReceipt = await client.waitForTransactionReceipt({ hash: approveHash, confirmations: 1, timeout: 15_000 });
+        if (approveReceipt.status !== 'success') return { success: false, txHash: approveHash, error: 'approve reverted' };
         console.log('[acp] USDC approved:', approveHash);
       }
 
@@ -214,7 +219,8 @@ export interface SettleJobParams {
  */
 export async function settleSessionOnChain(params: SettleJobParams): Promise<AcpResult> {
   const config = getAcpConfig();
-  if (!isConfigured(config)) return { success: false, error: 'acp not configured' };
+  const missingConfig = getMissingConfig(config);
+  if (missingConfig) return { success: false, error: missingConfig };
 
   return withRelayerLock(async () => {
     try {
