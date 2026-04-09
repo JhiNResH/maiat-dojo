@@ -40,6 +40,10 @@ export async function POST(req: NextRequest) {
       tags,
       fileContent,
       fileType,
+      skillType,
+      gatewaySlug,
+      pricePerCall,
+      endpointUrl,
     } = body;
 
     // Validate required fields
@@ -100,6 +104,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Validate active skill requirements
+    if (skillType === 'active') {
+      if (!gatewaySlug) {
+        return NextResponse.json(
+          { error: "gatewaySlug is required for active skills" },
+          { status: 400 }
+        );
+      }
+      if (!pricePerCall || Number(pricePerCall) <= 0) {
+        return NextResponse.json(
+          { error: "pricePerCall must be > 0 for active skills" },
+          { status: 400 }
+        );
+      }
+    }
+
     // Create the skill
     const skill = await prisma.skill.create({
       data: {
@@ -113,8 +133,12 @@ export async function POST(req: NextRequest) {
         tags: tags ?? "",
         fileContent: fileContent ?? null,
         fileType: fileType ?? null,
-        isGated: parsedPrice > 0, // Free skills are not gated
+        isGated: parsedPrice > 0,
         creatorId: user.id,
+        skillType: skillType ?? 'passive',
+        gatewaySlug: gatewaySlug ?? null,
+        pricePerCall: pricePerCall ? Number(pricePerCall) : null,
+        endpointUrl: endpointUrl ?? null,
       },
       include: {
         creator: true,
