@@ -126,7 +126,8 @@ export async function POST(req: NextRequest) {
           { status: 400 }
         );
       }
-      if (!pricePerCall || Number(pricePerCall) <= 0) {
+      const parsedPricePerCall = Number(pricePerCall);
+      if (!pricePerCall || isNaN(parsedPricePerCall) || parsedPricePerCall <= 0) {
         return NextResponse.json(
           { error: "pricePerCall must be > 0 for active skills" },
           { status: 400 }
