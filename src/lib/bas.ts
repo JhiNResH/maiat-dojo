@@ -12,7 +12,7 @@
  *             Populated in Phase 2 (Merkle tree of all SkillCall hashes).
  */
 
-import { encodeAbiParameters, parseAbiParameters, parseEventLogs, padHex, toHex } from 'viem';
+import { encodeAbiParameters, keccak256, parseAbiParameters, parseEventLogs, padHex, toHex } from 'viem';
 import { createBscPublicClient, createBscWalletClient, withRelayerLock } from './erc8004';
 
 // ─── Contract Addresses ─────────────────────────────────────────────────────
@@ -150,12 +150,26 @@ export interface AttestResult {
  *   bytes32 sessionId, uint8 finalScore, uint16 callCount, uint8 passRate,
  *   address creatorAddress, address agentAddress, bytes32 merkleRoot
  */
-export async function attestSessionClose(data: SessionEvaluationData): Promise<AttestResult> {
-  // Skip on testnet
+function isTestnetRpc(): boolean {
   const rpcUrl = process.env.BSC_RPC_URL ?? '';
-  if (rpcUrl.includes('prebsc') || rpcUrl.includes('testnet') || rpcUrl.includes('97')) {
-    console.log('[bas] testnet RPC — skipping attestation');
-    return { success: false, error: 'testnet — no BAS' };
+  return rpcUrl.includes('prebsc') || rpcUrl.includes('testnet') || rpcUrl.includes('97');
+}
+
+/**
+ * Generate a deterministic pseudo-UID from session data for testnet mock attestation.
+ * keccak256(sessionId + finalScore + callCount) → bytes32
+ */
+function generateMockUid(data: SessionEvaluationData): `0x${string}` {
+  const payload = `${data.sessionId}:${data.finalScore}:${data.callCount}:${data.passRate}`;
+  return keccak256(toHex(payload));
+}
+
+export async function attestSessionClose(data: SessionEvaluationData): Promise<AttestResult> {
+  // Testnet mock — generate deterministic pseudo-UID, skip on-chain call
+  if (isTestnetRpc()) {
+    const uid = generateMockUid(data);
+    console.log('[bas] testnet mock attestation:', { sessionId: data.sessionId, uid });
+    return { success: true, uid, txHash: undefined };
   }
 
   const schemaUid = getSessionEvaluationSchemaUid();

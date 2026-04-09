@@ -300,7 +300,10 @@ Known databases: Binance/Coinbase/Kraken wallets, protocol treasuries, bridge co
         installs: 1540,
         tags: "gas,optimization,mempool,eip1559,free",
         skillType: "active",
-        endpointUrl: "https://gas.dojo.maiat.io/v1/predict",
+        endpointUrl: process.env.NEXT_PUBLIC_APP_URL
+          ? `${process.env.NEXT_PUBLIC_APP_URL}/api/skills-internal/price`
+          : "http://localhost:3000/api/skills-internal/price",
+        gatewaySlug: "gas-predictor",
         pricePerCall: 0,
         fileType: "markdown",
         fileContent: `# Gas Fee Predictor
@@ -429,7 +432,10 @@ Before submitting: simulate with eth_call, check output matches expectation, sim
         installs: 1203,
         tags: "sentiment,analytics,social,market,signals",
         skillType: "active",
-        endpointUrl: "https://sentiment.dojo.maiat.io/v1/analyze",
+        endpointUrl: process.env.NEXT_PUBLIC_APP_URL
+          ? `${process.env.NEXT_PUBLIC_APP_URL}/api/skills-internal/echo`
+          : "http://localhost:3000/api/skills-internal/echo",
+        gatewaySlug: "sentiment-analyzer",
         pricePerCall: 0.01,
         fileType: "markdown",
         fileContent: `# Sentiment Analyzer
@@ -571,7 +577,10 @@ MAX_SETTLEMENT_TIME: 90 days
         installs: 0,
         tags: "price,oracle,token,defi,analytics",
         skillType: "active",
-        endpointUrl: "https://price.dojo.maiat.io/v1/quote",
+        endpointUrl: process.env.NEXT_PUBLIC_APP_URL
+          ? `${process.env.NEXT_PUBLIC_APP_URL}/api/skills-internal/price`
+          : "http://localhost:3000/api/skills-internal/price",
+        gatewaySlug: "token-price-oracle",
         pricePerCall: 0,
         fileType: "markdown",
         fileContent: `# Token Price Oracle
@@ -623,7 +632,10 @@ POST /v1/quote
         installs: 0,
         tags: "test,echo,debug,infra,x402",
         skillType: "active",
-        endpointUrl: "https://echo.dojo.maiat.io/v1/echo",
+        endpointUrl: process.env.NEXT_PUBLIC_APP_URL
+          ? `${process.env.NEXT_PUBLIC_APP_URL}/api/skills-internal/echo`
+          : "http://localhost:3000/api/skills-internal/echo",
+        gatewaySlug: "echo-test",
         pricePerCall: 0,
         fileType: "markdown",
         fileContent: `# Echo Test

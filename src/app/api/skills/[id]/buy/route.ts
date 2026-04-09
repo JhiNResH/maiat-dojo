@@ -32,7 +32,7 @@ export const dynamic = 'force-dynamic';
  *   success: boolean;
  *   purchaseId: string;
  *   contentUnlocked: boolean;
- *   split: { creator, platform, reputation };
+ *   split: { creator, platform };
  * }
  */
 export async function POST(
@@ -238,7 +238,6 @@ export async function POST(
       split: {
         creator: Number(split.creator) / 1e6,
         platform: Number(split.platform) / 1e6,
-        reputation: Number(split.reputation) / 1e6,
       },
     });
 
@@ -250,7 +249,6 @@ export async function POST(
         split: {
           creator: Number(split.creator) / 1e6,
           platform: Number(split.platform) / 1e6,
-          reputation: Number(split.reputation) / 1e6,
         },
         attestation: attestationUid ? { uid: attestationUid, status: 'pending' } : null,
       },

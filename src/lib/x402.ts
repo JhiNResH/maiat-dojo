@@ -11,15 +11,25 @@ import { verifyTypedData } from 'viem';
 // ─── Chain Configuration ─────────────────────────────────────────────────────
 
 export const X402_CHAINS = {
+  bsc: {
+    network: 'eip155:56' as const, // BSC Mainnet
+    asset: 'USDC',
+    usdcAddress: '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d' as `0x${string}`, // USDC on BSC (18 dec)
+  },
+  bscTestnet: {
+    network: 'eip155:97' as const, // BSC Testnet
+    asset: 'USDC',
+    usdcAddress: '0x2F808cc071D7B54d23a7647d79d7EF6E2C830d31' as `0x${string}`,
+  },
   xlayer: {
     network: 'eip155:196' as const, // X Layer Mainnet
     asset: 'USDC',
-    usdcAddress: '0x74b7F16337b8972027F6196A17a631aC6dE26d22' as `0x${string}`, // USDC on X Layer
+    usdcAddress: '0x74b7F16337b8972027F6196A17a631aC6dE26d22' as `0x${string}`,
   },
   xlayerTestnet: {
     network: 'eip155:195' as const, // X Layer Testnet
     asset: 'USDC',
-    usdcAddress: '0x0000000000000000000000000000000000000000' as `0x${string}`, // TBD
+    usdcAddress: '0x0000000000000000000000000000000000000000' as `0x${string}`,
   },
 } as const;
 
@@ -28,17 +38,21 @@ export type X402Chain = keyof typeof X402_CHAINS;
 // ─── Payment Split Configuration ─────────────────────────────────────────────
 
 export const PAYMENT_SPLIT = {
-  creator: 85,   // 85% to skill creator
-  platform: 10,  // 10% to Maiat platform
-  reputation: 5, // 5% to reputation pool
+  creator: 95,   // 95% to skill creator
+  platform: 5,   // 5% to Maiat platform (Dojo take rate)
 } as const;
 
 // ─── Platform Addresses ──────────────────────────────────────────────────────
 
 export const PLATFORM_ADDRESSES = {
-  xlayer: {
+  bsc: {
     platform: '0x0000000000000000000000000000000000000001' as `0x${string}`, // TODO: set real address
-    reputationPool: '0x0000000000000000000000000000000000000002' as `0x${string}`, // TODO: set real address
+  },
+  bscTestnet: {
+    platform: '0x0000000000000000000000000000000000000001' as `0x${string}`, // TODO: set real address
+  },
+  xlayer: {
+    platform: '0x0000000000000000000000000000000000000001' as `0x${string}`,
   },
 } as const;
 
@@ -92,7 +106,6 @@ export interface X402PaymentProof {
 export interface PaymentSplit {
   creator: bigint;
   platform: bigint;
-  reputation: bigint;
   total: bigint;
 }
 
@@ -241,20 +254,17 @@ export async function verifyPaymentProof(
 
 /**
  * Calculate payment split amounts
- * Creator: 85%, Platform: 10%, Reputation Pool: 5%
+ * Creator: 95%, Platform: 5% (Dojo take rate on PASS calls only)
  */
 export function splitPayment(amount: bigint): PaymentSplit {
-  const creatorAmount = (amount * BigInt(PAYMENT_SPLIT.creator)) / 100n;
   const platformAmount = (amount * BigInt(PAYMENT_SPLIT.platform)) / 100n;
-  const reputationAmount = (amount * BigInt(PAYMENT_SPLIT.reputation)) / 100n;
 
-  // Handle rounding: give remainder to creator
-  const remainder = amount - creatorAmount - platformAmount - reputationAmount;
+  // Remainder to creator (handles rounding)
+  const creatorAmount = amount - platformAmount;
 
   return {
-    creator: creatorAmount + remainder,
+    creator: creatorAmount,
     platform: platformAmount,
-    reputation: reputationAmount,
     total: amount,
   };
 }
@@ -304,5 +314,29 @@ export function getX402Domain(chainId: number, verifyingContract: `0x${string}`)
  */
 export function getActiveX402Chain(): X402Chain {
   const chain = process.env.NEXT_PUBLIC_X402_CHAIN as X402Chain | undefined;
-  return chain && chain in X402_CHAINS ? chain : 'xlayer';
+  return chain && chain in X402_CHAINS ? chain : 'bscTestnet';
+}
+
+/**
+ * Generate x402 payment headers for a 402 response.
+ * Agent receives these to discover how to pay for a skill call.
+ */
+export function generateX402Headers(
+  skill: { id: string; name: string; pricePerCall: number | null; gatewaySlug: string | null },
+  creatorAddress: `0x${string}`
+): Record<string, string> {
+  const chain = getActiveX402Chain();
+  const chainConfig = X402_CHAINS[chain];
+  const amount = Math.floor((skill.pricePerCall ?? 0) * 1e6).toString();
+
+  return {
+    'X-Payment-Chain': chainConfig.network,
+    'X-Payment-Token': chainConfig.usdcAddress,
+    'X-Payment-Amount': amount,
+    'X-Payment-Recipient': creatorAddress,
+    'X-Payment-SkillId': skill.id,
+    'X-Payment-SkillSlug': skill.gatewaySlug ?? '',
+    'X-Payment-SkillName': skill.name,
+    'X-Payment-Split': `creator:${PAYMENT_SPLIT.creator},platform:${PAYMENT_SPLIT.platform}`,
+  };
 }

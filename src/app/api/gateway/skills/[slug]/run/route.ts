@@ -27,6 +27,7 @@ import { keccak256, toHex } from 'viem';
 import { createHmac } from 'node:crypto';
 import { prisma } from '@/lib/prisma';
 import { evaluateCall } from '@/lib/session-evaluator';
+import { generateX402Headers } from '@/lib/x402';
 
 export const dynamic = 'force-dynamic';
 
@@ -71,6 +72,32 @@ export async function POST(
     const nonceHeader   = req.headers.get('X-Dojo-Nonce');
     const expiresHeader = req.headers.get('X-Dojo-ExpiresAt');
     const hashHeader    = req.headers.get('X-Dojo-RequestHash');
+
+    // If no Dojo session headers at all → return 402 + x402 payment discovery headers.
+    // This is the x402 flow: agent hits gateway, gets 402 telling it how to pay.
+    const hasAnyHeader = authSig || jobIdHeader || tokenIdHeader || nonceHeader || expiresHeader || hashHeader;
+    if (!hasAnyHeader) {
+      const skill = await prisma.skill.findUnique({
+        where: { gatewaySlug },
+        include: { creator: true },
+      });
+      if (!skill || skill.skillType !== 'active') {
+        return errorJson('skill-not-found', `No active skill found for gateway slug: ${gatewaySlug}`, 404);
+      }
+      const creatorAddress = (skill.creator.walletAddress ?? '0x0000000000000000000000000000000000000000') as `0x${string}`;
+      const x402Headers = generateX402Headers(skill, creatorAddress);
+      return NextResponse.json(
+        {
+          error: 'Payment required — fund an ERC-8183 escrow session to call this skill.',
+          code: 'payment-required',
+          skill: { id: skill.id, name: skill.name, slug: skill.gatewaySlug, pricePerCall: skill.pricePerCall },
+        },
+        {
+          status: 402,
+          headers: x402Headers,
+        }
+      );
+    }
 
     if (
       !authSig ||

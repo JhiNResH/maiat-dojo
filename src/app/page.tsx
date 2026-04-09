@@ -89,7 +89,18 @@ export default function DojoPage() {
             <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-[#1a1a1a]/30">
               {today}
             </span>
-            <AuthButton />
+            <div className="flex items-center gap-4">
+              <Link href="/demo" className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#1a1a1a]/30 hover:text-[#1a1a1a] transition-colors">
+                Demo
+              </Link>
+              <Link href="/dashboard" className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#1a1a1a]/30 hover:text-[#1a1a1a] transition-colors">
+                Dashboard
+              </Link>
+              <Link href="/leaderboard" className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#1a1a1a]/30 hover:text-[#1a1a1a] transition-colors">
+                Leaderboard
+              </Link>
+              <AuthButton />
+            </div>
           </div>
 
           <div className="masthead-rule mb-2" />
