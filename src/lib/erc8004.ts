@@ -222,7 +222,8 @@ export async function isIdentityRegistered(walletAddress: `0x${string}`): Promis
       functionName: 'isRegistered',
       args: [walletAddress],
     });
-  } catch {
-    return false;
+  } catch (err) {
+    console.error('[erc8004] isIdentityRegistered RPC error:', err instanceof Error ? err.message : err);
+    throw err;
   }
 }

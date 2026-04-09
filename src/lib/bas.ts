@@ -13,7 +13,7 @@
  */
 
 import { encodeAbiParameters, keccak256, parseAbiParameters, parseEventLogs, padHex, toHex } from 'viem';
-import { createBscPublicClient, createBscWalletClient, withRelayerLock } from './erc8004';
+import { createBscPublicClient, createBscWalletClient, getBscConfig, withRelayerLock } from './erc8004';
 
 // ─── Contract Addresses ─────────────────────────────────────────────────────
 
@@ -150,9 +150,9 @@ export interface AttestResult {
  *   bytes32 sessionId, uint8 finalScore, uint16 callCount, uint8 passRate,
  *   address creatorAddress, address agentAddress, bytes32 merkleRoot
  */
+// Delegate to getBscConfig() so testnet detection logic is in one place.
 function isTestnetRpc(): boolean {
-  const rpcUrl = process.env.BSC_RPC_URL ?? '';
-  return rpcUrl.includes('prebsc') || rpcUrl.includes('testnet') || rpcUrl.includes('97');
+  return getBscConfig().isTestnet;
 }
 
 /**
@@ -229,6 +229,11 @@ export async function attestSessionClose(data: SessionEvaluationData): Promise<A
         logs: receipt.logs,
       });
       const uid = attestedLogs[0]?.args.uid;
+
+      if (!uid) {
+        console.warn('[bas] Attested event not found in receipt logs — uid undefined:', { txHash, sessionId: data.sessionId });
+        return { success: false, txHash, error: 'Attested event not found in logs' };
+      }
 
       console.log('[bas] attestation confirmed:', { txHash, uid, sessionId: data.sessionId, finalScore: data.finalScore });
 

@@ -205,11 +205,15 @@ export async function POST(
 
     // -------------------------------------------------------------------------
     // 6. Session lookup — bound to (onchainJobId, skillId)
+    //    Fallback: also match by session.id for testnet/dev where onchainJobId
+    //    may not be set yet (BSC binding is fire-and-forget, can lag behind).
     // -------------------------------------------------------------------------
     const session = await prisma.session.findFirst({
       where: {
-        onchainJobId: jobIdHeader,
-        skillId: skill.id,
+        OR: [
+          { onchainJobId: jobIdHeader, skillId: skill.id },
+          { id: jobIdHeader, skillId: skill.id },
+        ],
       },
     });
 
@@ -310,7 +314,10 @@ export async function POST(
       forwardError instanceof Error && (forwardError as Error).name === 'AbortError';
     let creatorBodyText = '';
     if (creatorRes !== null) {
-      creatorBodyText = await creatorRes.text().catch(() => '');
+      creatorBodyText = await creatorRes.text().catch((bodyErr) => {
+        console.warn('[gateway] body read failed — scoring 0.0:', bodyErr instanceof Error ? bodyErr.message : bodyErr);
+        return '';
+      });
     }
     const evalResult = evaluateCall(
       creatorRes?.status ?? 0,

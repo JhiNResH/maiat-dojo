@@ -50,12 +50,19 @@ export async function POST(
     }
 
     // 2. Verify JWT; privyId in body must match token subject
-    const authResult = await verifyPrivyAuth(req.headers.get('Authorization'));
-    if (!authResult.success || authResult.privyId !== privyId) {
-      return NextResponse.json(
-        { error: 'Unauthorized — privyId mismatch' },
-        { status: 403 }
-      );
+    // Dev bypass: DOJO_SKIP_PRIVY_AUTH=true skips JWT check (non-production only)
+    const skipAuth =
+      process.env.DOJO_SKIP_PRIVY_AUTH === 'true' &&
+      process.env.NODE_ENV !== 'production';
+
+    if (!skipAuth) {
+      const authResult = await verifyPrivyAuth(req.headers.get('Authorization'));
+      if (!authResult.success || authResult.privyId !== privyId) {
+        return NextResponse.json(
+          { error: 'Unauthorized — privyId mismatch' },
+          { status: 403 }
+        );
+      }
     }
 
     // 3. Resolve user
@@ -120,7 +127,7 @@ export async function POST(
     });
 
     const totalCalls = calls.length;
-    const passedCalls = calls.filter((c) => c.score >= 1.0).length;
+    const passedCalls = calls.filter((c) => c.score > 0.5).length;
     const passRate = totalCalls > 0 ? Math.round((passedCalls / totalCalls) * 100) : 0;
     const finalScore = passRate; // 0–100; same as passRate for binary Phase 1 scoring
     const PASS_THRESHOLD = 80;  // ≥80% of calls must pass
@@ -185,13 +192,16 @@ export async function POST(
     }
 
     // Re-read with includes for response shape
-    const updated = await prisma.session.findUniqueOrThrow({
+    const updated = await prisma.session.findUnique({
       where: { id: session.id },
       include: {
         agent: true,
         skill: true,
       },
     });
+    if (!updated) {
+      return NextResponse.json({ error: 'Session not found after close' }, { status: 404 });
+    }
 
     console.log('[sessions/close] session closed:', {
       sessionId: updated.id,
@@ -209,24 +219,32 @@ export async function POST(
     //     because DojoTrustScore.updateScore() does direct assignment, not EMA.
     void (async () => {
       try {
-        const agentAddress = (session.agent.walletAddress ?? '0x0000000000000000000000000000000000000000') as `0x${string}`;
-        const creatorAddress = (session.skill.creator.walletAddress ?? '0x0000000000000000000000000000000000000000') as `0x${string}`;
+        const agentAddress = session.agent.walletAddress as `0x${string}` | null;
+        const creatorAddress = session.skill.creator.walletAddress as `0x${string}` | null;
 
-        const result = await attestSessionClose({
-          sessionId: updated.id,
-          finalScore,
-          callCount: updated.callCount,
-          passRate,
-          creatorAddress,
-          agentAddress,
-        });
-
-        if (result.success && result.uid) {
-          await prisma.session.update({
-            where: { id: updated.id },
-            data: { basAttestationUid: result.uid },
+        if (!agentAddress || !creatorAddress) {
+          console.warn('[bas] skipping attestation — missing wallet address:', {
+            sessionId: updated.id,
+            agentHasWallet: !!agentAddress,
+            creatorHasWallet: !!creatorAddress,
           });
-          console.log('[bas] attestation stored:', { sessionId: updated.id, uid: result.uid });
+        } else {
+          const result = await attestSessionClose({
+            sessionId: updated.id,
+            finalScore,
+            callCount: updated.callCount,
+            passRate,
+            creatorAddress,
+            agentAddress,
+          });
+
+          if (result.success && result.uid) {
+            await prisma.session.update({
+              where: { id: updated.id },
+              data: { basAttestationUid: result.uid },
+            });
+            console.log('[bas] attestation stored:', { sessionId: updated.id, uid: result.uid });
+          }
         }
 
         // Trust oracle update — runs after attestation is queued
@@ -258,7 +276,7 @@ export async function POST(
         ]);
 
         const totalCumCalls = allCalls.length;
-        const passedCumCalls = allCalls.filter((c) => c.score >= 1.0).length;
+        const passedCumCalls = allCalls.filter((c) => c.score > 0.5).length;
         const cumulativePassRate =
           totalCumCalls > 0 ? Math.round((passedCumCalls / totalCumCalls) * 100) : passRate;
 

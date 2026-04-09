@@ -15,18 +15,29 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    // Verify Privy JWT from Authorization header
-    const authHeader = req.headers.get("authorization");
-    const authResult = await verifyPrivyAuth(authHeader);
+    const skipAuth =
+      process.env.DOJO_SKIP_PRIVY_AUTH === 'true' &&
+      process.env.NODE_ENV !== 'production';
 
-    if (!authResult.success || !authResult.privyId) {
-      return NextResponse.json(
-        { error: authResult.error || "Authentication required" },
-        { status: 401 }
-      );
+    let privyId: string;
+
+    if (skipAuth) {
+      const qPrivyId = req.nextUrl.searchParams.get('privyId');
+      if (!qPrivyId) {
+        return NextResponse.json({ error: 'Missing privyId query param' }, { status: 400 });
+      }
+      privyId = qPrivyId;
+    } else {
+      const authHeader = req.headers.get("authorization");
+      const authResult = await verifyPrivyAuth(authHeader);
+      if (!authResult.success || !authResult.privyId) {
+        return NextResponse.json(
+          { error: authResult.error || "Authentication required" },
+          { status: 401 }
+        );
+      }
+      privyId = authResult.privyId;
     }
-
-    const privyId = authResult.privyId;
 
     // Find user
     const user = await prisma.user.findUnique({ where: { privyId } });

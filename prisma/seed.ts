@@ -17,24 +17,30 @@ async function main() {
   // --- Platform creator (seeds are official Dojo curated skills) ---
   const platform = await prisma.user.create({
     data: {
+      privyId: "did:privy:seed-platform-001",
       displayName: "Maiat Dojo",
       email: "system@maiat.io",
-      walletAddress: "0x000000000000000000000000000000000000dojo",
+      walletAddress: "0x000000000000000000000000446f6a6f446f6a6f", // "DojoDojoDojoD" — valid 20-byte hex placeholder
     },
   });
 
   // --- Community creator (for variety) ---
   const community1 = await prisma.user.create({
     data: {
+      privyId: "did:privy:seed-sentinel-002",
       displayName: "0xSentinel",
       email: "sentinel@dojo.maiat.io",
-      walletAddress: "0x00000000000000000000000000000000sentinel",
+      walletAddress: "0x0000000000000000000053656e74696e656c3031", // "Sentinel01" — valid 20-byte hex placeholder
     },
   });
 
-  // --- Buyer (for reviews) ---
+  // --- Buyer (for reviews / E2E testing) ---
   const buyer1 = await prisma.user.create({
-    data: { displayName: "Agent_Smith", email: "smith@dojo.maiat.io" },
+    data: {
+      privyId: "did:privy:seed-buyer-003",
+      displayName: "Agent_Smith",
+      email: "smith@dojo.maiat.io",
+    },
   });
 
   // ---------------------------------------------------------------------------
@@ -287,7 +293,7 @@ Known databases: Binance/Coinbase/Kraken wallets, protocol treasuries, bridge co
       },
     }),
 
-    // 5. Gas Fee Predictor (active, FREE)
+    // 5. Gas Fee Predictor (active, $0.002/call)
     prisma.skill.create({
       data: {
         name: "Gas Fee Predictor",
@@ -295,16 +301,16 @@ Known databases: Binance/Coinbase/Kraken wallets, protocol treasuries, bridge co
           "Predicts optimal gas prices using mempool analysis. Reduces transaction costs by up to 40%.",
         category: "Infra",
         icon: "⛽",
-        price: 0,
+        price: 0.002,
         rating: 4.6,
         installs: 1540,
-        tags: "gas,optimization,mempool,eip1559,free",
+        tags: "gas,optimization,mempool,eip1559",
         skillType: "active",
         endpointUrl: process.env.NEXT_PUBLIC_APP_URL
           ? `${process.env.NEXT_PUBLIC_APP_URL}/api/skills-internal/price`
           : "http://localhost:3000/api/skills-internal/price",
         gatewaySlug: "gas-predictor",
-        pricePerCall: 0,
+        pricePerCall: 0.002,
         fileType: "markdown",
         fileContent: `# Gas Fee Predictor
 
@@ -564,7 +570,7 @@ MAX_SETTLEMENT_TIME: 90 days
       },
     }),
 
-    // 9. Token Price Oracle (active, FREE)
+    // 9. Token Price Oracle (active, $0.005/call)
     prisma.skill.create({
       data: {
         name: "Token Price Oracle",
@@ -572,7 +578,7 @@ MAX_SETTLEMENT_TIME: 90 days
           "Real-time price feeds for any ERC-20 token. Aggregates spot price, TWAP, and 24h change from multiple DEX and CEX sources. Plug-and-play for any agent needing price context.",
         category: "Analytics",
         icon: "💰",
-        price: 0.0,
+        price: 0.005,
         rating: 4.8,
         installs: 0,
         tags: "price,oracle,token,defi,analytics",
@@ -581,7 +587,7 @@ MAX_SETTLEMENT_TIME: 90 days
           ? `${process.env.NEXT_PUBLIC_APP_URL}/api/skills-internal/price`
           : "http://localhost:3000/api/skills-internal/price",
         gatewaySlug: "token-price-oracle",
-        pricePerCall: 0,
+        pricePerCall: 0.005,
         fileType: "markdown",
         fileContent: `# Token Price Oracle
 
@@ -619,7 +625,7 @@ POST /v1/quote
       },
     }),
 
-    // 10. Echo Test (active, FREE)
+    // 10. Echo Test (active, $0.001/call — nominal for metering demo)
     prisma.skill.create({
       data: {
         name: "Echo Test",
@@ -627,7 +633,7 @@ POST /v1/quote
           "Minimal active skill for testing agent connectivity and the x402 payment flow. Accepts any payload and echoes it back with a latency timestamp. Use this to verify your agent is correctly calling Dojo skills before integrating real ones.",
         category: "Infra",
         icon: "🔁",
-        price: 0.0,
+        price: 0.001,
         rating: 5.0,
         installs: 0,
         tags: "test,echo,debug,infra,x402",
@@ -636,7 +642,7 @@ POST /v1/quote
           ? `${process.env.NEXT_PUBLIC_APP_URL}/api/skills-internal/echo`
           : "http://localhost:3000/api/skills-internal/echo",
         gatewaySlug: "echo-test",
-        pricePerCall: 0,
+        pricePerCall: 0.001,
         fileType: "markdown",
         fileContent: `# Echo Test
 
@@ -749,6 +755,7 @@ Regenerates the master index of all themes, entry titles, and the [[wikilink]] g
       totalEarnings: 34.2,
       earningsCurrency: "ETH",
       ownerId: platform.id,
+      walletAddress: "0x046aB9D6aC4EA10C42501ad89D9a741115A76Fa9", // relayer wallet (testnet)
     },
   });
   const sentinel = await prisma.agent.create({

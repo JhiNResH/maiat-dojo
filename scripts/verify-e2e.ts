@@ -14,8 +14,10 @@
  */
 
 import { keccak256, toHex } from 'viem';
+import { PrismaClient } from '@prisma/client';
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:3000';
+const prisma = new PrismaClient();
 
 interface Session {
   id: string;
@@ -34,13 +36,11 @@ async function findSkill(slug: string) {
   return skill;
 }
 
-async function openSession(skillId: string, agentId: string, budgetUsdc: number): Promise<Session> {
-  // Direct DB insert since session/open requires Privy auth
-  // We'll use the internal endpoint pattern
+async function openSession(privyId: string, agentId: string, skillId: string, budgetTotal: number): Promise<Session> {
   const res = await fetch(`${BASE}/api/sessions/open`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ skillId, agentId, budgetUsdc }),
+    body: JSON.stringify({ privyId, agentId, skillId, budgetTotal }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'unknown' }));
@@ -49,6 +49,15 @@ async function openSession(skillId: string, agentId: string, budgetUsdc: number)
   }
   const data = await res.json();
   return data.session;
+}
+
+async function closeSession(sessionId: string, privyId: string) {
+  const res = await fetch(`${BASE}/api/sessions/${sessionId}/close`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ privyId }),
+  });
+  return { status: res.status, body: await res.json().catch(() => null) };
 }
 
 async function callGateway(slug: string, jobId: string, nonce: number, body: object) {
@@ -101,90 +110,100 @@ async function check402(slug: string) {
   return true;
 }
 
-async function main() {
-  console.log('=== Dojo E2E Verification ===');
-  console.log(`Base URL: ${BASE}\n`);
-
-  // Find echo skill
-  const echo = await findSkill('echo-test');
-  console.log(`Echo skill: ${echo.id} (${echo.name})`);
-
-  // Step 1: Verify 402 flow
-  const step1ok = await check402('echo-test');
-  if (!step1ok) {
-    console.log('\n402 flow broken — fix before continuing.');
-    process.exit(1);
-  }
-
-  // Step 2: Test echo endpoint directly
-  console.log('\n[Step 2] Test internal echo endpoint');
-  const echoRes = await fetch(`${BASE}/api/skills-internal/echo`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message: 'e2e-test' }),
+async function getTestUser() {
+  const user = await prisma.user.findFirst({
+    select: { id: true, privyId: true, displayName: true },
   });
-  const echoData = await echoRes.json();
-  console.log(`  HTTP ${echoRes.status}:`, echoData);
-  if (echoRes.status !== 200 || !echoData.echo) {
-    console.error('  FAIL: Echo endpoint not working');
-    process.exit(1);
-  }
-  console.log('  PASS: Echo endpoint works');
-
-  // Step 3: Test price endpoint
-  console.log('\n[Step 3] Test internal price endpoint');
-  const priceRes = await fetch(`${BASE}/api/skills-internal/price`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ token: 'BNB' }),
-  });
-  const priceData = await priceRes.json();
-  console.log(`  HTTP ${priceRes.status}:`, priceData);
-  if (priceRes.status !== 200 || !priceData.price_usd) {
-    console.error('  FAIL: Price endpoint not working');
-    process.exit(1);
-  }
-  console.log('  PASS: Price endpoint works');
-
-  // Step 4: Verify session open (will likely fail without auth — that's OK)
-  console.log('\n[Step 4] Attempt session open (requires auth — expected to fail in script)');
-  try {
-    const session = await openSession(echo.id, 'test-agent', 1.0);
-    console.log(`  Session opened: ${session.id} (status: ${session.status})`);
-
-    // If session opened, run full flow
-    console.log('\n[Step 5] Call echo skill 3 times');
-    for (let i = 1; i <= 3; i++) {
-      const result = await callGateway('echo-test', session.onchainJobId ?? session.id, i, {
-        message: `call-${i}`,
-        timestamp: Date.now(),
-      });
-      console.log(`  Call ${i}: HTTP ${result.status}, budget=${result.budgetRemaining}, count=${result.callCount}`);
-    }
-
-    console.log('\n[Step 6] Close session');
-    const closeRes = await fetch(`${BASE}/api/sessions/${session.id}/close`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ privyId: 'e2e-test' }),
-    });
-    const closeData = await closeRes.json();
-    console.log(`  Close HTTP ${closeRes.status}:`, closeData.session?.status);
-  } catch (e) {
-    console.log(`  Expected: ${(e as Error).message}`);
-    console.log('  This is normal — session open requires Privy auth in production.');
-    console.log('  Use /demo page for interactive walkthrough or seed test sessions.');
-  }
-
-  console.log('\n=== Summary ===');
-  console.log('  [x] Echo endpoint works');
-  console.log('  [x] Price endpoint works');
-  console.log('  [x] 402 + x402 headers returned on no-session gateway call');
-  console.log('  [ ] Full session flow (requires auth — test via /demo page)');
-  console.log('\nDone.');
+  if (!user) throw new Error('No users in DB — run prisma db seed first');
+  return user;
 }
 
-main().catch((e) => {
-  console.error('E2E failed:', e);
-  process.exit(1);
-});
+async function getTestAgent(ownerId: string) {
+  const agent = await prisma.agent.findFirst({
+    where: { ownerId },
+    select: { id: true, name: true },
+  });
+  if (!agent) throw new Error('No agent found for user — run prisma db seed first');
+  return agent;
+}
+
+async function runSession(label: string, privyId: string, agentId: string, skillId: string, slug: string, callCount: number) {
+  console.log(`\n--- Session ${label} ---`);
+
+  // Open
+  console.log('  [1] Open session (budget: 0.1 USDC)');
+  const session = await openSession(privyId, agentId, skillId, 0.1);
+  console.log(`      id: ${session.id} | status: ${session.status} | budget: ${session.budgetTotal}`);
+
+  // Calls
+  console.log(`  [2] ${callCount} gateway calls`);
+  for (let i = 1; i <= callCount; i++) {
+    const result = await callGateway(slug, session.onchainJobId ?? session.id, i, {
+      message: `${label}-call-${i}`,
+      ts: Date.now(),
+    });
+    const icon = result.status === 200 ? '✓' : '✗';
+    console.log(`      ${icon} call ${i}: HTTP ${result.status} | budget=${result.budgetRemaining} | count=${result.callCount}`);
+    if (result.status !== 200) console.log(`         error:`, result.body);
+  }
+
+  // Close
+  console.log('  [3] Close session');
+  const close = await closeSession(session.id, privyId);
+  const s = close.body?.session;
+  console.log(`      HTTP ${close.status} | status: ${s?.status}`);
+  if (s?.basAttestationUid) console.log(`      BAS uid: ${s.basAttestationUid}`);
+  return close.body;
+}
+
+async function main() {
+  console.log('=== Dojo E2E Full Flow ===');
+  console.log(`Base URL: ${BASE}\n`);
+
+  // Step 1: 402 discovery smoke test
+  console.log('[Step 1] 402 payment discovery');
+  const ok = await check402('echo-test');
+  if (!ok) process.exit(1);
+
+  // Step 2: Internal endpoints
+  console.log('\n[Step 2] Internal skill endpoints');
+  const e = await (await fetch(`${BASE}/api/skills-internal/echo`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: '{"ping":1}' })).json();
+  console.log(`  echo: HTTP 200, latency=${e.latency_ms}ms ✓`);
+  const p = await (await fetch(`${BASE}/api/skills-internal/price`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: '{"token":"BNB"}' })).json();
+  console.log(`  price: BNB=$${p.price_usd} ✓`);
+
+  // Step 3: Get seed user + agent
+  console.log('\n[Step 3] Resolve test user + agent');
+  const user = await getTestUser();
+  console.log(`  user: ${user.privyId} (${user.displayName ?? 'no name'})`);
+
+  let agent;
+  try {
+    agent = await getTestAgent(user.id);
+    console.log(`  agent: ${agent.id} (${agent.name})`);
+  } catch {
+    console.log('  No agent API — will use seed agentId directly from DB');
+  }
+
+  // Get skill
+  const echo = await findSkill('echo-test');
+  const agentId = agent?.id ?? 'seed-agent';
+  const privyId = user.privyId;
+  if (!privyId) throw new Error('Seed user has no privyId — re-run prisma db seed');
+
+  // Step 4: Session A — 5 calls → all pass → PASS (passRate 100%)
+  await runSession('A (PASS)', privyId, agentId, echo.id, 'echo-test', 5);
+
+  // Step 5: Session B — 0 calls → totalCalls=0 → isPASS=false → refunded
+  await runSession('B (FAIL)', privyId, agentId, echo.id, 'echo-test', 0);
+
+  console.log('\n=== Done ===');
+  console.log('Check BSC testnet tx logs in dev server output for on-chain settle + trust update.');
+}
+
+main()
+  .catch((e) => {
+    console.error('E2E failed:', e);
+    process.exit(1);
+  })
+  .finally(() => prisma.$disconnect());

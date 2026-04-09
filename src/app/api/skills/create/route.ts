@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { verifyPrivyAuth } from "@/lib/privy-server";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +41,10 @@ export async function POST(req: NextRequest) {
       tags,
       fileContent,
       fileType,
+      skillType,
+      gatewaySlug,
+      pricePerCall,
+      endpointUrl,
     } = body;
 
     // Validate required fields
@@ -48,6 +53,18 @@ export async function POST(req: NextRequest) {
         { error: "Missing required field: privyId" },
         { status: 400 }
       );
+    }
+
+    // Auth — verify caller owns the privyId they're creating skills under
+    const skipAuth =
+      process.env.DOJO_SKIP_PRIVY_AUTH === 'true' &&
+      process.env.NODE_ENV !== 'production';
+
+    if (!skipAuth) {
+      const authResult = await verifyPrivyAuth(req.headers.get('Authorization'));
+      if (!authResult.success || authResult.privyId !== privyId) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+      }
     }
 
     if (!name || !description || !category) {
@@ -80,8 +97,9 @@ export async function POST(req: NextRequest) {
       where: { privyId },
       update: {
         ...(email && { email }),
-        ...(walletAddress && { walletAddress }),
         ...(displayName && { displayName }),
+        // walletAddress intentionally excluded — only set at registration,
+        // not overridable via skill create (prevents settlement fund redirect attacks)
       },
       create: {
         privyId,
@@ -100,6 +118,23 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Validate active skill requirements
+    if (skillType === 'active') {
+      if (!gatewaySlug) {
+        return NextResponse.json(
+          { error: "gatewaySlug is required for active skills" },
+          { status: 400 }
+        );
+      }
+      const parsedPricePerCall = Number(pricePerCall);
+      if (!pricePerCall || isNaN(parsedPricePerCall) || parsedPricePerCall <= 0) {
+        return NextResponse.json(
+          { error: "pricePerCall must be > 0 for active skills" },
+          { status: 400 }
+        );
+      }
+    }
+
     // Create the skill
     const skill = await prisma.skill.create({
       data: {
@@ -113,8 +148,12 @@ export async function POST(req: NextRequest) {
         tags: tags ?? "",
         fileContent: fileContent ?? null,
         fileType: fileType ?? null,
-        isGated: parsedPrice > 0, // Free skills are not gated
+        isGated: parsedPrice > 0,
         creatorId: user.id,
+        skillType: skillType ?? 'passive',
+        gatewaySlug: gatewaySlug ?? null,
+        pricePerCall: pricePerCall ? Number(pricePerCall) : null,
+        endpointUrl: endpointUrl ?? null,
       },
       include: {
         creator: true,
