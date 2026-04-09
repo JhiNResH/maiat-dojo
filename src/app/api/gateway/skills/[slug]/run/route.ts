@@ -314,7 +314,10 @@ export async function POST(
       forwardError instanceof Error && (forwardError as Error).name === 'AbortError';
     let creatorBodyText = '';
     if (creatorRes !== null) {
-      creatorBodyText = await creatorRes.text().catch(() => '');
+      creatorBodyText = await creatorRes.text().catch((bodyErr) => {
+        console.warn('[gateway] body read failed — scoring 0.0:', bodyErr instanceof Error ? bodyErr.message : bodyErr);
+        return '';
+      });
     }
     const evalResult = evaluateCall(
       creatorRes?.status ?? 0,

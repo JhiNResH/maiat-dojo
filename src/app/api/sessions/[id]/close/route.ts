@@ -192,13 +192,16 @@ export async function POST(
     }
 
     // Re-read with includes for response shape
-    const updated = await prisma.session.findUniqueOrThrow({
+    const updated = await prisma.session.findUnique({
       where: { id: session.id },
       include: {
         agent: true,
         skill: true,
       },
     });
+    if (!updated) {
+      return NextResponse.json({ error: 'Session not found after close' }, { status: 404 });
+    }
 
     console.log('[sessions/close] session closed:', {
       sessionId: updated.id,
