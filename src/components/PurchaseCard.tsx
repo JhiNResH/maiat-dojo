@@ -284,7 +284,7 @@ export default function PurchaseCard({ skill }: Props) {
           disabled={step === "loading"}
           className="w-full bg-[#1a1a1a] text-[#f0ece2] font-mono text-xs uppercase tracking-wider py-3 hover:bg-[#1a1a1a]/80 transition-colors disabled:opacity-40"
         >
-          {step === "loading" ? "Preparing…" : isFree ? "Download Free" : `Buy · $${skill.price.toFixed(2)}`}
+          {step === "loading" ? "Preparing…" : "Download Free"}
         </button>
       </div>
     );

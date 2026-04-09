@@ -68,9 +68,8 @@ export async function POST(req: NextRequest) {
     // to confirm: (1) tx exists, (2) SkillPurchased event emitted,
     // (3) buyer matches, (4) skillId matches.
     const cryptoStatus = paymentMethod === "crypto" ? "pending_verification" : "completed";
-    if (paymentMethod === "free" && skill.price > 0) {
-      return NextResponse.json({ error: "Skill is not free" }, { status: 400 });
-    }
+    // Phase 1: no Stripe — all passive skills downloadable for free
+    // Phase 2: restore price guard when payment processing is integrated
 
     // Generate EAS attestation data (placeholder until on-chain registration)
     let attestationUid: string | undefined;
