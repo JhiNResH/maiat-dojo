@@ -20,7 +20,7 @@ async function main() {
       privyId: "did:privy:seed-platform-001",
       displayName: "Maiat Dojo",
       email: "system@maiat.io",
-      walletAddress: "0x000000000000000000000000000000000000dojo",
+      walletAddress: "0x000000000000000000000000446f6a6f446f6a6f", // "DojoDojoDojoD" — valid 20-byte hex placeholder
     },
   });
 
@@ -30,7 +30,7 @@ async function main() {
       privyId: "did:privy:seed-sentinel-002",
       displayName: "0xSentinel",
       email: "sentinel@dojo.maiat.io",
-      walletAddress: "0x00000000000000000000000000000000sentinel",
+      walletAddress: "0x0000000000000000000053656e74696e656c3031", // "Sentinel01" — valid 20-byte hex placeholder
     },
   });
 

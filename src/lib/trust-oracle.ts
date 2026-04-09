@@ -71,8 +71,9 @@ export async function updateCreatorTrustScore(params: TrustUpdateParams): Promis
     return;
   }
 
-  // passRate 0–100 → evaluatorSuccess 0–10000 bps
-  const evaluatorSuccessBps = Math.round(params.passRate * 100) as unknown as number;
+  // passRate 0–100 → evaluatorSuccess 0–10000 bps (uint16, max 65535)
+  // Clamp to 10000 to prevent ABI overflow if passRate ever exceeds 100.
+  const evaluatorSuccessBps = Math.min(Math.round(params.passRate * 100), 10000);
 
   await withRelayerLock(async () => {
     try {

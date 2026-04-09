@@ -1,27 +1,50 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { verifyPrivyAuth } from '@/lib/privy-server';
 
 export const dynamic = 'force-dynamic';
 
 /**
- * GET /api/dashboard/stats?walletAddress=0x...
+ * GET /api/dashboard/stats
  *
- * Returns aggregated dashboard stats for a user.
+ * Returns aggregated dashboard stats for the authenticated user.
  * Auto-detects role (creator vs agent) based on data.
+ *
+ * Auth: Bearer token (Privy JWT) — or privyId query param in dev bypass mode.
  */
 export async function GET(req: NextRequest) {
-  const walletAddress = req.nextUrl.searchParams.get('walletAddress');
-  if (!walletAddress) {
-    return NextResponse.json({ error: 'walletAddress query param required' }, { status: 400 });
+  const skipAuth =
+    process.env.DOJO_SKIP_PRIVY_AUTH === 'true' &&
+    process.env.NODE_ENV !== 'production';
+
+  let privyId: string;
+
+  if (skipAuth) {
+    const qPrivyId = req.nextUrl.searchParams.get('privyId');
+    if (!qPrivyId) {
+      return NextResponse.json({ error: 'Missing privyId query param (dev mode)' }, { status: 400 });
+    }
+    privyId = qPrivyId;
+  } else {
+    const authResult = await verifyPrivyAuth(req.headers.get('Authorization'));
+    if (!authResult.success || !authResult.privyId) {
+      return NextResponse.json(
+        { error: authResult.error ?? 'Authentication required' },
+        { status: 401 }
+      );
+    }
+    privyId = authResult.privyId;
   }
 
   const user = await prisma.user.findUnique({
-    where: { walletAddress },
-    select: { id: true, displayName: true, erc8004TokenId: true, kyaLevel: true },
+    where: { privyId },
+    select: { id: true, displayName: true, walletAddress: true, erc8004TokenId: true, kyaLevel: true },
   });
   if (!user) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 });
   }
+
+  const walletAddress = user.walletAddress;
 
   // Creator stats: skills they created + sessions against those skills
   const createdSkills = await prisma.skill.findMany({

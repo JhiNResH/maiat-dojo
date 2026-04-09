@@ -44,25 +44,30 @@ interface DashboardData {
 }
 
 export default function DashboardPage() {
-  const { ready, authenticated, user } = usePrivy();
+  const { ready, authenticated, user, getAccessToken } = usePrivy();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!ready || !authenticated || !user?.wallet?.address) {
+    if (!ready || !authenticated || !user) {
       setLoading(false);
       return;
     }
-    fetch(`/api/dashboard/stats?walletAddress=${user.wallet.address}`)
-      .then((r) => {
-        if (!r.ok) throw new Error(`${r.status}`);
-        return r.json();
+    getAccessToken().then((token) => {
+      if (!token) { setLoading(false); return; }
+      return fetch('/api/dashboard/stats', {
+        headers: { Authorization: `Bearer ${token}` },
       })
-      .then(setData)
-      .catch((e) => setError(e.message))
+        .then((r) => {
+          if (!r.ok) throw new Error(`${r.status}`);
+          return r.json();
+        })
+        .then(setData);
+    })
+      .catch((e) => setError(e instanceof Error ? e.message : String(e)))
       .finally(() => setLoading(false));
-  }, [ready, authenticated, user]);
+  }, [ready, authenticated, user, getAccessToken]);
 
   if (!ready) return null;
 

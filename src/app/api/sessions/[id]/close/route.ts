@@ -127,7 +127,7 @@ export async function POST(
     });
 
     const totalCalls = calls.length;
-    const passedCalls = calls.filter((c) => c.score >= 1.0).length;
+    const passedCalls = calls.filter((c) => c.score > 0.5).length;
     const passRate = totalCalls > 0 ? Math.round((passedCalls / totalCalls) * 100) : 0;
     const finalScore = passRate; // 0–100; same as passRate for binary Phase 1 scoring
     const PASS_THRESHOLD = 80;  // ≥80% of calls must pass
@@ -276,7 +276,7 @@ export async function POST(
         ]);
 
         const totalCumCalls = allCalls.length;
-        const passedCumCalls = allCalls.filter((c) => c.score >= 1.0).length;
+        const passedCumCalls = allCalls.filter((c) => c.score > 0.5).length;
         const cumulativePassRate =
           totalCumCalls > 0 ? Math.round((passedCumCalls / totalCumCalls) * 100) : passRate;
 
