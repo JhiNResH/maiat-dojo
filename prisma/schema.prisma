@@ -50,8 +50,8 @@ model Skill {
   installs    Int      @default(0)
   tags        String   @default("") // comma-separated
   imageUrl    String?
-  fileUrl     String?  // the actual skill file (.md, etc.)
-  fileContent String?  // actual skill content (.md or instruction)
+  skillUrl    String?  // hosted SKILL.md URL (GitHub raw, IPFS, etc.)
+  fileContent String?  // inline SKILL.md content (v1 seed fallback)
   fileType    String?  // "markdown" | "json" | "text"
   isGated     Boolean  @default(true)  // require purchase to access content
   evaluationScore  Float?    // micro evaluator score (0-100)
@@ -195,6 +195,8 @@ model Session {
   skillId          String
   skill            Skill    @relation(fields: [skillId], references: [id])
 
+  basAttestationUid String?  // BAS attestation UID emitted at session close
+
   // Relations
   calls            SkillCall[]
 
@@ -213,6 +215,13 @@ model SkillCall {
   latencyMs    Int?
   costUsdc     Float                  // = session.pricePerCall at time of call
   createdAt    DateTime @default(now())
+
+  // --- Sanity-check evaluator fields — 2026-04-07 ---
+  responseHash String?                // keccak256(responseBody); null on gateway_error
+  delivered    Boolean  @default(false) // httpStatus 2xx AND response received
+  validFormat  Boolean  @default(false) // response body is valid JSON
+  withinSla    Boolean  @default(false) // latencyMs < 5000
+  score        Float    @default(0)    // 0.0 = fail | 1.0 = pass
 
   session      Session  @relation(fields: [sessionId], references: [id])
 

@@ -33,7 +33,7 @@ interface SkillCardProps {
 
 const SIZE_CONFIG = {
   sm: {
-    card: "w-28 p-2",
+    card: "p-2",
     icon: "text-xl",
     name: "text-xs leading-tight",
     categoryBar: "h-1 mt-1.5",

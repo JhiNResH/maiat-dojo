@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyPrivyAuth } from '@/lib/privy-server';
-import { createJobOnChain } from '@/lib/xlayer';
+import { createSessionOnChain } from '@/lib/bsc-acp';
 
 export const dynamic = 'force-dynamic';
 
@@ -151,46 +151,37 @@ export async function POST(req: NextRequest) {
       expiresAt: expiresAt.toISOString(),
     });
 
-    // Fire-and-forget: bind session to on-chain 8183 job.
-    // Failures are logged; session remains "funded" in DB and can still be
-    // used via gateway once on-chain binding resolves (Phase 2 will gate this).
-    const creatorAddress = skill.creator.walletAddress as `0x${string}` | null;
-    if (creatorAddress && skill.onChainId !== null) {
-      // USDC has 6 decimals
-      const amountUsdcUnits = BigInt(Math.floor(budgetTotal * 1e6));
-      createJobOnChain({
-        skillId: BigInt(skill.onChainId),
-        buyerAddr: agent.walletAddress as `0x${string}`,
-        sellerAddr: creatorAddress,
-        amount: amountUsdcUnits,
+    // Fire-and-forget: create + fund job on BSC AgenticCommerceHooked.
+    // Phase 1: relayer is both client and provider — no creator wallet needed.
+    const expiredAt = BigInt(Math.floor(expiresAt.getTime() / 1000));
+    // USDC has 18 decimals on BSC; budgetTotal is plain USDC (1.0 = 1 USDC)
+    const budgetUsdc = BigInt(Math.round(budgetTotal * 1e18));
+    createSessionOnChain({
+      description: skill.name,
+      expiredAt,
+      budgetUsdc,
+    })
+      .then(async (result) => {
+        if (result.success && result.jobId) {
+          await prisma.session.update({
+            where: { id: session.id },
+            data: { onchainJobId: result.jobId },
+          });
+          console.log('[sessions/open] BSC job bound:', {
+            sessionId: session.id,
+            onchainJobId: result.jobId,
+            txHash: result.txHash,
+          });
+        } else {
+          console.warn('[sessions/open] BSC binding failed:', {
+            sessionId: session.id,
+            error: result.error,
+          });
+        }
       })
-        .then(async (result) => {
-          if (result.success && result.jobId) {
-            await prisma.session.update({
-              where: { id: session.id },
-              data: { onchainJobId: result.jobId },
-            });
-            console.log('[sessions/open] on-chain job bound:', {
-              sessionId: session.id,
-              onchainJobId: result.jobId,
-              txHash: result.txHash,
-            });
-          } else {
-            console.warn('[sessions/open] on-chain binding failed:', {
-              sessionId: session.id,
-              error: result.error,
-            });
-          }
-        })
-        .catch((err) => {
-          console.error('[sessions/open] on-chain binding exception:', err);
-        });
-    } else {
-      console.warn('[sessions/open] skipping on-chain binding:', {
-        sessionId: session.id,
-        reason: !creatorAddress ? 'no creator wallet' : 'skill has no onChainId',
+      .catch((err) => {
+        console.error('[sessions/open] BSC binding exception:', err);
       });
-    }
 
     return NextResponse.json(
       {

@@ -262,7 +262,7 @@ export default function DeckPage() {
           <div className="masthead-rule mb-2" />
           <div className="flex justify-between items-center py-2">
             <span className="font-mono text-xs text-[#1a1a1a]/25 tracking-wider">
-              THE DOJO © 2026 · MAIAT PROTOCOL · BUILT ON BASE
+              THE DOJO © 2026 · MAIAT PROTOCOL · BUILT ON BSC
             </span>
             <span className="font-serif italic text-xs text-[#1a1a1a]/25">
               dojo.maiat.io

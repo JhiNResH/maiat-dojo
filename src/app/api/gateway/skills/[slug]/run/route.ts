@@ -26,6 +26,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { keccak256, toHex } from 'viem';
 import { createHmac } from 'node:crypto';
 import { prisma } from '@/lib/prisma';
+import { evaluateCall } from '@/lib/session-evaluator';
+import { generateX402Headers } from '@/lib/x402';
 
 export const dynamic = 'force-dynamic';
 
@@ -70,6 +72,32 @@ export async function POST(
     const nonceHeader   = req.headers.get('X-Dojo-Nonce');
     const expiresHeader = req.headers.get('X-Dojo-ExpiresAt');
     const hashHeader    = req.headers.get('X-Dojo-RequestHash');
+
+    // If no Dojo session headers at all → return 402 + x402 payment discovery headers.
+    // This is the x402 flow: agent hits gateway, gets 402 telling it how to pay.
+    const hasAnyHeader = authSig || jobIdHeader || tokenIdHeader || nonceHeader || expiresHeader || hashHeader;
+    if (!hasAnyHeader) {
+      const skill = await prisma.skill.findUnique({
+        where: { gatewaySlug },
+        include: { creator: true },
+      });
+      if (!skill || skill.skillType !== 'active') {
+        return errorJson('skill-not-found', `No active skill found for gateway slug: ${gatewaySlug}`, 404);
+      }
+      const creatorAddress = (skill.creator.walletAddress ?? '0x0000000000000000000000000000000000000000') as `0x${string}`;
+      const x402Headers = generateX402Headers(skill, creatorAddress);
+      return NextResponse.json(
+        {
+          error: 'Payment required — fund an ERC-8183 escrow session to call this skill.',
+          code: 'payment-required',
+          skill: { id: skill.id, name: skill.name, slug: skill.gatewaySlug, pricePerCall: skill.pricePerCall },
+        },
+        {
+          status: 402,
+          headers: x402Headers,
+        }
+      );
+    }
 
     if (
       !authSig ||
@@ -148,12 +176,16 @@ export async function POST(
     // 5. EIP-712 signature verify — STUBBED Phase 1
     //
     // TODO (Phase 2): Recover signer from EIP-712 typed data and verify it
-    //   matches ownerOf(agentTokenId) on ERC-8004 contract on Base mainnet.
-    //   Domain: { name: "DojoGateway", version: "1", chainId: 8453, verifyingContract: "<addr>" }
+    //   matches ownerOf(agentTokenId) on ERC-8004 contract on BSC mainnet.
+    //   Domain: { name: "DojoGateway", version: "1", chainId: 56, verifyingContract: "<addr>" }
     //   Types:  GatewayAuth { agentTokenId, jobId, skillSlug, requestHash, nonce, expiresAt }
     //   Use viem's recoverTypedDataAddress + publicClient.readContract("ownerOf", [tokenId])
     // -------------------------------------------------------------------------
-    if (process.env.DOJO_GATEWAY_SKIP_SIG_CHECK !== 'true') {
+    const skipSigCheck =
+      process.env.DOJO_GATEWAY_SKIP_SIG_CHECK === 'true' &&
+      process.env.NODE_ENV !== 'production';
+
+    if (!skipSigCheck) {
       console.log(
         '[POST /api/gateway/skills/[slug]/run] EIP-712 sig verify would happen here (Phase 2). ' +
           'Set DOJO_GATEWAY_SKIP_SIG_CHECK=true to bypass in dev.'
@@ -271,6 +303,23 @@ export async function POST(
     }
 
     // -------------------------------------------------------------------------
+    // 8.5. Read response body + run sanity-check evaluation
+    //      Must read body here (before SkillCall write) — streams are single-use.
+    // -------------------------------------------------------------------------
+    const timedOut =
+      forwardError instanceof Error && (forwardError as Error).name === 'AbortError';
+    let creatorBodyText = '';
+    if (creatorRes !== null) {
+      creatorBodyText = await creatorRes.text().catch(() => '');
+    }
+    const evalResult = evaluateCall(
+      creatorRes?.status ?? 0,
+      creatorBodyText,
+      latencyMs,
+      timedOut || creatorRes === null
+    );
+
+    // -------------------------------------------------------------------------
     // 9. Write SkillCall + (conditionally) decrement budget — atomic transaction
     //
     // Budget decrement policy:
@@ -310,6 +359,11 @@ export async function POST(
             httpStatus,
             latencyMs,
             costUsdc: 0, // no charge on gateway error
+            responseHash: evalResult.responseHash,
+            delivered: evalResult.delivered,
+            validFormat: evalResult.validFormat,
+            withinSla: evalResult.withinSla,
+            score: evalResult.score,
           },
         });
       } else {
@@ -324,6 +378,11 @@ export async function POST(
               httpStatus,
               latencyMs,
               costUsdc: session.pricePerCall,
+              responseHash: evalResult.responseHash,
+              delivered: evalResult.delivered,
+              validFormat: evalResult.validFormat,
+              withinSla: evalResult.withinSla,
+              score: evalResult.score,
             },
           });
 
@@ -394,7 +453,7 @@ export async function POST(
         '[POST /api/gateway/skills/[slug]/run] Creator returned non-2xx:',
         { slug: gatewaySlug, httpStatus: creatorRes!.status }
       );
-      const creatorBody = await creatorRes!.text().catch(() => '');
+      const creatorBody = creatorBodyText;
       return new NextResponse(creatorBody, {
         status: 502,
         headers: {
@@ -412,7 +471,7 @@ export async function POST(
     // -------------------------------------------------------------------------
     // 10. Return creator response — pass through status + body + add X-Dojo-* headers
     // -------------------------------------------------------------------------
-    const creatorBody = await creatorRes!.text().catch(() => '');
+    const creatorBody = creatorBodyText;
     const budgetAfter = Math.max(0, session.budgetRemaining - session.pricePerCall);
     const callCountAfter = session.callCount + 1;
 
@@ -424,6 +483,9 @@ export async function POST(
       latencyMs,
       budgetAfter,
       callCountAfter,
+      score: evalResult.score,
+      delivered: evalResult.delivered,
+      withinSla: evalResult.withinSla,
     });
 
     return new NextResponse(creatorBody, {

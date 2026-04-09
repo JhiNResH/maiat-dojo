@@ -60,11 +60,17 @@ export async function GET(req: NextRequest) {
       take: limit,
       include: {
         creator: { select: { id: true, displayName: true, avatarUrl: true } },
-        _count: { select: { reviews: true, purchases: true } },
+        _count: { select: { reviews: true, purchases: true, sessions: true } },
       },
     }),
     prisma.skill.count({ where }),
   ]);
 
-  return NextResponse.json({ total, skills });
+  const mapped = skills.map((s) => ({
+    ...s,
+    callCount: s._count.sessions,
+    trustScore: s.evaluationScore ?? 0,
+  }));
+
+  return NextResponse.json({ total, skills: mapped });
 }

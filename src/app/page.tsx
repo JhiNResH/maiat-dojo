@@ -1,102 +1,23 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { TrendingUp, Zap, BarChart2, Search, ChevronRight, Layers, Bot, LogIn, User, LayoutGrid, List } from "lucide-react";
+import { LogIn, User } from "lucide-react";
 import { usePrivy } from "@privy-io/react-auth";
-import TrustBadge from "@/components/TrustBadge";
-import { SkillCard, type SkillCardData } from "@/components/SkillCard";
 
-// --- Mock Data ---
-
-const TRENDING_SKILLS = [
-  { id: "1", name: "DeFi Yield Optimizer", category: "Trading", installs: 4821, price: 0.05, rating: 4.9, icon: "⚡", delta: "+384 today", hot: true },
-  { id: "2", name: "On-Chain Forensics", category: "Security", installs: 2310, price: 0.08, rating: 4.8, icon: "🔍", delta: "+127 today", hot: true },
-  { id: "3", name: "Twitter Alpha Scanner", category: "Content", installs: 3890, price: 0.03, rating: 4.7, icon: "🐦", delta: "+98 today", hot: false },
-  { id: "4", name: "Gas Fee Predictor", category: "Infra", installs: 1540, price: 0.02, rating: 4.6, icon: "⛽", delta: "+76 today", hot: false },
-  { id: "5", name: "Smart Contract Auditor", category: "Security", installs: 980, price: 0.12, rating: 4.9, icon: "🛡️", delta: "+54 today", hot: false },
-  { id: "6", name: "MEV Shield", category: "DeFi", installs: 762, price: 0.06, rating: 4.5, icon: "🔒", delta: "+41 today", hot: false },
-  { id: "7", name: "Sentiment Analyzer", category: "Analytics", installs: 1203, price: 0.04, rating: 4.4, icon: "📊", delta: "+33 today", hot: false },
-  { id: "8", name: "Polymarket Arbitrage", category: "Trading", installs: 445, price: 0.07, rating: 4.3, icon: "🎯", delta: "+29 today", hot: false },
-];
-
-const FEATURED_AGENTS = [
-  {
-    id: "a1", name: "Ronin", rank: "Tatsujin 達人", avatar: "🥷", creator: "0xYield",
-    rating: 4.9, jobsCompleted: 1247, earnings: "34.2 ETH",
-    skills: [
-      { name: "DeFi Yield Optimizer", icon: "⚡" },
-      { name: "Gas Fee Predictor", icon: "⛽" },
-      { name: "MEV Shield", icon: "🔒" },
-      { name: "On-Chain Forensics", icon: "🔍" },
-    ],
-    description: "Autonomous DeFi strategist. Scans 12 protocols, optimizes yield, shields from MEV. 1,247 jobs completed with 99.2% success rate.",
-  },
-  {
-    id: "a2", name: "Sentinel", rank: "Senpai 先輩", avatar: "🦅", creator: "0xGuard",
-    rating: 4.8, jobsCompleted: 634, earnings: "18.7 ETH",
-    skills: [
-      { name: "Smart Contract Auditor", icon: "🛡️" },
-      { name: "On-Chain Forensics", icon: "🔍" },
-      { name: "Sentiment Analyzer", icon: "📊" },
-    ],
-    description: "Security-focused agent. Audits contracts, traces suspicious transactions.",
-  },
-  {
-    id: "a3", name: "Oracle", rank: "Senpai 先輩", avatar: "🔮", creator: "0xAlpha",
-    rating: 4.7, jobsCompleted: 892, earnings: "21.4 ETH",
-    skills: [
-      { name: "Twitter Alpha Scanner", icon: "🐦" },
-      { name: "Sentiment Analyzer", icon: "📊" },
-      { name: "Polymarket Arbitrage", icon: "🎯" },
-      { name: "DeFi Yield Optimizer", icon: "⚡" },
-      { name: "Gas Fee Predictor", icon: "⛽" },
-    ],
-    description: "Market intelligence agent. Finds alpha from Twitter, executes on prediction markets.",
-  },
-];
-
-const BREAKING_SKILLS = [
-  { id: "b1", name: "Polymarket Arbitrage", time: "2h ago", creator: "0xArb", price: "0.07 ETH" },
-  { id: "b2", name: "ENS Sniper Pro", time: "5h ago", creator: "0xDomain", price: "0.04 ETH" },
-  { id: "b3", name: "NFT Floor Watcher", time: "8h ago", creator: "0xFloor", price: "FREE" },
-  { id: "b4", name: "Liquidation Guard", time: "12h ago", creator: "0xSafe", price: "0.09 ETH" },
-];
-
-const CATEGORIES = ["All", "Trading", "Security", "Content", "DeFi", "Analytics", "Infra", "Social"];
-
-// --- Types ---
-interface SkillListItem {
-  id: string;
-  name: string;
-  category: string;
-  installs: number;
-  price: number;
-  rating: number;
-  icon: string;
-  delta?: string;
-  hot?: boolean;
-}
-
-const RANK_COLORS: Record<string, string> = {
-  "Kozo 小僧": "text-[#1a1a1a]/50",
-  "Senpai 先輩": "text-blue-800",
-  "Tatsujin 達人": "text-purple-800",
-  "Sensei 師範": "text-amber-800",
-};
-
-// --- Components ---
+// --- Auth ---
 
 function AuthButton() {
   const { ready, authenticated, login, logout, user } = usePrivy();
-
   if (!ready) return null;
 
   if (authenticated && user) {
-    const displayName = user.email?.address?.split("@")[0]
-      || user.google?.name
-      || user.wallet?.address?.slice(0, 6) + "..." + user.wallet?.address?.slice(-4)
-      || "Agent";
+    const displayName =
+      user.email?.address?.split("@")[0] ||
+      user.google?.name ||
+      (user.wallet?.address
+        ? user.wallet.address.slice(0, 6) + "..." + user.wallet.address.slice(-4)
+        : "Agent");
 
     return (
       <div className="flex items-center gap-3">
@@ -120,511 +41,235 @@ function AuthButton() {
       className="flex items-center gap-2 bg-[#1a1a1a] text-[#f0ece2] font-mono text-xs px-4 py-2 hover:bg-[#1a1a1a]/80 transition-colors tracking-wider"
     >
       <LogIn size={12} />
-      SIGN IN
+      CONNECT WALLET
     </button>
   );
 }
 
-function Masthead({ searchQuery, onSearchChange }: { searchQuery: string; onSearchChange: (q: string) => void }) {
-  const today = new Date().toLocaleDateString("en-US", {
-    weekday: "long", year: "numeric", month: "long", day: "numeric",
-  });
-  const edition = Math.floor(Date.now() / 86400000) - 19900;
+// --- Types ---
 
-  return (
-    <header className="mb-8">
-      {/* Top info bar */}
-      <div className="flex items-center justify-between text-xs font-mono text-[#1a1a1a]/40 mb-2">
-        <span className="dateline">BASE NETWORK EDITION</span>
-        <span className="dateline">{today.toUpperCase()}</span>
-        <div className="flex items-center gap-4">
-          <span className="flex items-center gap-1.5 dateline">
-            <span className="w-2 h-2 rounded-full bg-green-700 animate-pulse inline-block" />
-            LIVE MARKET
-          </span>
-          <AuthButton />
-        </div>
-      </div>
-
-      {/* Masthead rule */}
-      <div className="masthead-rule mb-1" />
-      <div className="h-[1px] bg-[#1a1a1a]/20 mb-1" />
-      <div className="masthead-rule" />
-
-      {/* Title */}
-      <div className="text-center py-8">
-        <p className="text-xs font-mono text-[#1a1a1a]/30 tracking-[0.4em] mb-3">
-          — EST. 2026 · VOL. I · NO. {edition} —
-        </p>
-        <h1 className="text-[6.5rem] font-serif font-black tracking-tight text-[#1a1a1a] leading-none">
-          THE DOJO
-        </h1>
-        <p className="text-lg font-serif italic text-[#1a1a1a]/40 mt-2">
-          The Daily Dispatch of AI Agent Skills
-        </p>
-      </div>
-
-      {/* Bottom masthead rules */}
-      <div className="masthead-rule mb-1" />
-      <div className="h-[1px] bg-[#1a1a1a]/20" />
-
-      {/* Ticker bar */}
-      <div className="flex items-center justify-between py-3 border-b border-[#1a1a1a]/20">
-        <div className="flex gap-8 text-sm font-mono text-[#1a1a1a]/50">
-          <span>SKILLS <strong className="text-[#1a1a1a] text-lg">2,841</strong></span>
-          <span className="text-[#1a1a1a]/20">│</span>
-          <span>AGENTS <strong className="text-[#1a1a1a] text-lg">847</strong></span>
-          <span className="text-[#1a1a1a]/20">│</span>
-          <span>VOLUME <strong className="text-[#1a1a1a] text-lg">134 ETH</strong></span>
-          <span className="text-[#1a1a1a]/20">│</span>
-          <span>24H <strong className="text-green-800 text-lg">↑8.1%</strong></span>
-        </div>
-        <div className="flex items-center gap-2 border border-[#1a1a1a]/20 px-4 py-2 text-sm font-mono">
-          <Search size={14} className="text-[#1a1a1a]/30" />
-          <input
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search the Dojo..."
-            className="bg-transparent outline-none w-48 placeholder:text-[#1a1a1a]/25"
-          />
-        </div>
-      </div>
-    </header>
-  );
+interface Skill {
+  id: string;
+  name: string;
+  description: string | null;
+  pricePerCall: number | null;
+  category: string | null;
+  gatewaySlug: string | null;
+  callCount?: number;
+  trustScore?: number;
 }
 
-function HeadlineSection() {
-  const agent = FEATURED_AGENTS[0];
-  const skill = TRENDING_SKILLS[0];
+// --- Main Page ---
 
-  return (
-    <section className="mb-8">
-      {/* Section label */}
-      <div className="rule-ornament mb-4">✦ HEADLINE ✦</div>
+export default function DojoPage() {
+  const [skills, setSkills] = useState<Skill[]>([]);
+  const [loading, setLoading] = useState(true);
 
-      {/* Headline skill */}
-      <div className="mb-6 pb-6 border-b-2 border-double border-[#1a1a1a]/30">
-        <span className="inline-block text-xs font-mono font-bold bg-[#8b0000] text-[#f0ece2] px-3 py-1 mb-4 tracking-wider">
-          SKILL OF THE DAY
-        </span>
-        <h2 className="text-7xl font-serif font-black leading-[0.9] text-[#1a1a1a] mb-4">
-          {skill.name}
-        </h2>
-        <p className="drop-cap font-serif text-lg text-[#1a1a1a]/70 mb-5 max-w-2xl leading-relaxed">
-          Scans 12 protocols across Ethereum, Base, and Arbitrum to find the highest risk-adjusted APY in under 3 seconds. Already equipped by {skill.installs.toLocaleString()} agents worldwide, this skill has become the de facto standard for autonomous yield farming.
-        </p>
-        <div className="flex items-center gap-5">
-          <button className="bg-[#1a1a1a] text-[#f0ece2] font-mono text-sm px-7 py-3 hover:bg-[#1a1a1a]/80 transition-colors tracking-wider">
-            EQUIP — {skill.price} ETH
-          </button>
-          <span className="text-sm font-mono text-green-800 font-bold">{skill.delta}</span>
-          <span className="text-sm font-mono text-[#1a1a1a]/40">★ {skill.rating}</span>
-          <span className="text-sm font-mono text-[#1a1a1a]/30">|</span>
-          <span className="text-sm font-serif italic text-[#1a1a1a]/40">Filed under: {skill.category}</span>
-        </div>
-      </div>
-
-      {/* Featured agent — newspaper profile style */}
-      <div>
-        <div className="section-header">
-          <Bot size={16} />
-          <span className="text-sm font-mono font-bold uppercase tracking-[0.2em]">Agent Profile — Skill Collection</span>
-        </div>
-
-        <div className="grid grid-cols-5 gap-0">
-          <div className="col-span-3 pr-6">
-            <div className="flex items-center gap-4 mb-4">
-              <span className="text-5xl">{agent.avatar}</span>
-              <div>
-                <h3 className="font-serif font-black text-4xl leading-none">{agent.name}</h3>
-                <span className={`text-sm font-serif italic ${RANK_COLORS[agent.rank] || "text-[#1a1a1a]/50"}`}>
-                  {agent.rank}
-                </span>
-              </div>
-            </div>
-            <p className="font-serif text-base text-[#1a1a1a]/65 leading-relaxed mb-4">
-              {agent.description}
-            </p>
-            <div className="flex gap-5 text-sm font-mono text-[#1a1a1a]/50 border-t border-[#1a1a1a]/15 pt-3">
-              <span><strong className="text-[#1a1a1a]">{agent.jobsCompleted.toLocaleString()}</strong> jobs</span>
-              <span><strong className="text-[#1a1a1a]">{agent.earnings}</strong> earned</span>
-              <span>★ {agent.rating}</span>
-              <span className="font-serif italic">by {agent.creator}</span>
-            </div>
-          </div>
-
-          <div className="col-span-2 column-rule">
-            <p className="text-xs font-mono text-[#1a1a1a]/35 uppercase tracking-[0.2em] mb-3">
-              <Layers size={12} className="inline mr-1.5" />Equipped Skills ({agent.skills.length})
-            </p>
-            <div className="space-y-0">
-              {agent.skills.map((s, i) => (
-                <div key={i} className="flex items-center gap-3 py-3 border-b border-dotted border-[#1a1a1a]/15 last:border-b-0">
-                  <span className="text-xl">{s.icon}</span>
-                  <span className="text-sm font-mono font-bold">{s.name}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function TrendingSkills({ skills, loading }: { skills: SkillListItem[]; loading: boolean }) {
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const list = skills.length > 0 ? skills : TRENDING_SKILLS;
-
-  // Convert to SkillCardData format
-  const cardSkills: SkillCardData[] = list.map((skill) => ({
-    id: skill.id,
-    name: skill.name,
-    icon: skill.icon,
-    category: skill.category,
-    rating: Number(skill.rating),
-    installs: Number(skill.installs),
-    price: Number(skill.price),
-  }));
-
-  return (
-    <section>
-      <div className="section-header">
-        <TrendingUp size={16} />
-        <span className="text-sm font-mono font-bold uppercase tracking-[0.2em]">Trending Skills</span>
-        <span className="flex-1" />
-        {/* View toggle */}
-        <div className="flex items-center gap-1 mr-3">
-          <button
-            onClick={() => setViewMode("grid")}
-            className={`p-1.5 transition-colors ${viewMode === "grid" ? "text-[#1a1a1a]" : "text-[#1a1a1a]/30 hover:text-[#1a1a1a]/50"}`}
-            title="Grid view"
-          >
-            <LayoutGrid size={14} />
-          </button>
-          <button
-            onClick={() => setViewMode("list")}
-            className={`p-1.5 transition-colors ${viewMode === "list" ? "text-[#1a1a1a]" : "text-[#1a1a1a]/30 hover:text-[#1a1a1a]/50"}`}
-            title="List view"
-          >
-            <List size={14} />
-          </button>
-        </div>
-        <Link href="/leaderboard" className="text-xs font-mono text-[#1a1a1a]/40 hover:text-[#1a1a1a] flex items-center gap-1 transition-colors">
-          Full Rankings <ChevronRight size={12} />
-        </Link>
-      </div>
-      {loading ? (
-        <div className="py-8 text-center">
-          <p className="font-mono text-xs text-[#1a1a1a]/40 animate-pulse">Loading skills...</p>
-        </div>
-      ) : viewMode === "grid" ? (
-        /* Card Grid View */
-        <div className="grid grid-cols-2 gap-3">
-          {cardSkills.map((skill) => (
-            <SkillCard
-              key={skill.id}
-              skill={skill}
-              size="sm"
-              href={`/skill/${skill.id}`}
-            />
-          ))}
-        </div>
-      ) : (
-        /* List View (original) */
-        <div>
-          {list.map((skill, i: number) => (
-            <Link
-              key={skill.id}
-              href={`/skill/${skill.id}`}
-              className="flex items-center gap-4 py-3.5 border-b border-dotted border-[#1a1a1a]/15 last:border-b-0 hover:bg-[#1a1a1a]/[0.02] px-2 transition-colors group"
-            >
-              <span className="text-lg font-serif font-black text-[#1a1a1a]/20 w-6 text-right">{i + 1}</span>
-              <span className="text-xl">{skill.icon}</span>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="text-base font-serif font-bold truncate group-hover:underline decoration-1 underline-offset-2">{skill.name}</p>
-                  {(skill.hot || i < 2) && (
-                    <span className="text-[10px] font-mono bg-[#8b0000] text-[#f0ece2] px-2 py-0.5 font-bold tracking-wider">HOT</span>
-                  )}
-                </div>
-                <p className="text-xs font-mono text-[#1a1a1a]/35 mt-0.5">
-                  {skill.category} · ★ {Number(skill.rating).toFixed(1)} · {Number(skill.installs).toLocaleString()} equipped
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm font-mono font-bold">
-                  {Number(skill.price) === 0 ? "FREE" : `$${Number(skill.price).toFixed(2)}`}
-                </p>
-                {skill.delta && <p className="text-xs font-mono text-green-800">{skill.delta}</p>}
-              </div>
-            </Link>
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
-
-function AgentShowcase() {
-  const [agents, setAgents] = useState<any[]>([]);
   useEffect(() => {
-    fetch("/api/agents").then(r => r.json()).then(setAgents).catch(() => {});
+    fetch("/api/skills?limit=20")
+      .then((r) => r.json())
+      .then((data) => setSkills(data.skills || []))
+      .catch(() => setSkills([]))
+      .finally(() => setLoading(false));
   }, []);
 
-  const list = agents.length > 0 ? agents : FEATURED_AGENTS;
+  const today = new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 
   return (
-    <section>
-      <div className="section-header">
-        <Bot size={16} />
-        <span className="text-sm font-mono font-bold uppercase tracking-[0.2em]">Top Agents</span>
-      </div>
-      <p className="text-xs font-serif italic text-[#1a1a1a]/40 -mt-2 mb-4">
-        Each agent is a curated collection of equipped skills
-      </p>
-      <div className="space-y-5">
-        {list.map((agent: any) => (
-          <Link
-            key={agent.id}
-            href={`/agent/${agent.id}`}
-            className="classified hover:border-[#1a1a1a] transition-colors block"
-            data-label={(agent.rank || "").split(" ")[0]}
-          >
-            <div className="flex items-center gap-3 mb-3">
-              <span className="text-2xl">{agent.avatar}</span>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="font-serif font-bold text-lg">{agent.name}</p>
-                  <span className={`text-xs font-serif italic ${RANK_COLORS[agent.rank] || ""}`}>
-                    {agent.rank}
-                  </span>
-                  <TrustBadge
-                    successRate={agent.successRate ?? 95}
-                    rating={agent.rating ?? 4.5}
-                    jobsCompleted={agent.jobsCompleted ?? 0}
-                    size="sm"
-                  />
+    <div className="min-h-screen bg-[#f0ece2]">
+      <div className="max-w-4xl mx-auto px-6 py-8 page-container">
+        {/* ═══ MASTHEAD ═══ */}
+        <header className="mb-10">
+          <div className="flex items-center justify-between mb-3">
+            <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-[#1a1a1a]/30">
+              {today}
+            </span>
+            <div className="flex items-center gap-4">
+              <Link href="/demo" className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#1a1a1a]/30 hover:text-[#1a1a1a] transition-colors">
+                Demo
+              </Link>
+              <Link href="/dashboard" className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#1a1a1a]/30 hover:text-[#1a1a1a] transition-colors">
+                Dashboard
+              </Link>
+              <Link href="/leaderboard" className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#1a1a1a]/30 hover:text-[#1a1a1a] transition-colors">
+                Leaderboard
+              </Link>
+              <AuthButton />
+            </div>
+          </div>
+
+          <div className="masthead-rule mb-2" />
+          <div className="text-center py-3">
+            <h1 className="font-serif font-black text-6xl md:text-7xl tracking-tight text-[#1a1a1a] leading-none">
+              THE DOJO
+            </h1>
+            <p className="font-mono text-[10px] uppercase tracking-[0.4em] text-[#1a1a1a]/40 mt-2">
+              Skill Marketplace for AI Agents &middot; Powered by Maiat Protocol &middot; Built on BSC
+            </p>
+          </div>
+          <div className="masthead-rule mb-1" />
+          <div className="h-[1px] bg-[#1a1a1a]/20 mb-1" />
+          <div className="masthead-rule" />
+        </header>
+
+        {/* ═══ HEADLINE ═══ */}
+        <section className="mb-10 text-center">
+          <h2 className="font-serif font-black text-3xl md:text-4xl text-[#1a1a1a] leading-tight mb-3">
+            Your agent deserves skills it can trust.
+          </h2>
+          <p className="font-serif text-base text-[#1a1a1a]/50 max-w-lg mx-auto leading-relaxed">
+            Every skill on Dojo has an on-chain trust score built from real
+            transactions. Pay per call. No subscriptions. No guessing.
+          </p>
+        </section>
+
+        {/* ═══ SKILLS SECTION ═══ */}
+        <section className="mb-12">
+          <div className="section-header">
+            <span className="font-mono text-xs font-bold uppercase tracking-[0.2em] text-[#1a1a1a]/60">
+              Skills
+            </span>
+            <span className="font-mono text-[10px] text-[#1a1a1a]/30">
+              {skills.length} listed
+            </span>
+          </div>
+
+          {loading ? (
+            <p className="font-mono text-xs text-[#1a1a1a]/40 text-center py-12 animate-pulse">
+              Loading skills...
+            </p>
+          ) : skills.length === 0 ? (
+            <div className="text-center py-16">
+              <p className="font-serif italic text-lg text-[#1a1a1a]/30 mb-2">
+                No skills listed yet.
+              </p>
+              <p className="font-mono text-xs text-[#1a1a1a]/30">
+                Be the first creator to list a skill on the Dojo.
+              </p>
+            </div>
+          ) : (
+            <div>
+              {skills.map((skill, i) => (
+                <Link
+                  key={skill.id}
+                  href={`/skill/${skill.id}`}
+                  className="block py-5 border-b border-dotted border-[#1a1a1a]/15 hover:bg-[#1a1a1a]/[0.02] -mx-3 px-3 transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-6">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline gap-3 mb-1">
+                        <span className="font-serif font-black text-2xl text-[#1a1a1a]/10 leading-none">
+                          {String(i + 1).padStart(2, "0")}
+                        </span>
+                        <h3 className="font-serif font-bold text-xl text-[#1a1a1a]">
+                          {skill.name}
+                        </h3>
+                      </div>
+                      {skill.description && (
+                        <p className="font-serif text-sm text-[#1a1a1a]/50 leading-relaxed mb-2 ml-10">
+                          {skill.description}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-4 text-xs font-mono text-[#1a1a1a]/40 ml-10">
+                        {skill.category && (
+                          <span className="uppercase tracking-wider">{skill.category}</span>
+                        )}
+                        <span>{(skill.callCount ?? 0).toLocaleString()} calls</span>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0 pt-1">
+                      <div className="font-mono text-sm font-bold text-[#1a1a1a] mb-1.5">
+                        {skill.pricePerCall
+                          ? `$${skill.pricePerCall.toFixed(2)}`
+                          : "FREE"}
+                        <span className="text-xs font-normal text-[#1a1a1a]/40 ml-0.5">
+                          /call
+                        </span>
+                      </div>
+                      <TrustBar score={skill.trustScore ?? 0} />
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* ═══ HOW IT WORKS ═══ */}
+        <section className="mb-12">
+          <div className="section-header">
+            <span className="font-mono text-xs font-bold uppercase tracking-[0.2em] text-[#1a1a1a]/60">
+              How It Works
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-x-10 gap-y-6 mt-4">
+            {[
+              { step: "I", title: "Pick a skill", desc: "Browse skills rated by on-chain trust scores from real transactions." },
+              { step: "II", title: "Agent pays USDC", desc: "Funds lock in on-chain escrow via ERC-8183. No middleman." },
+              { step: "III", title: "Get the result", desc: "Dojo forwards your request to the creator, returns the result." },
+              { step: "IV", title: "Trust grows", desc: "Score updates on-chain after every session for everyone to see." },
+            ].map((item) => (
+              <div key={item.step} className="flex gap-4">
+                <span className="font-serif font-black text-3xl text-[#1a1a1a]/10 leading-none shrink-0 w-10 text-right">
+                  {item.step}
+                </span>
+                <div>
+                  <p className="font-serif font-bold text-sm text-[#1a1a1a] mb-0.5">{item.title}</p>
+                  <p className="font-serif text-sm text-[#1a1a1a]/50 leading-relaxed">{item.desc}</p>
                 </div>
-                <p className="text-xs font-mono text-[#1a1a1a]/40">
-                  {Number(agent.jobsCompleted).toLocaleString()} jobs · {agent.totalEarnings ?? agent.earnings} {agent.earningsCurrency ?? "ETH"} · ★ {agent.rating ?? "—"}
-                </p>
               </div>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {(agent.skills || []).map((s: any, i: number) => {
-                const sk = s.skill ?? s;
-                return (
-                  <span key={i} className="text-xs font-mono border border-[#1a1a1a]/15 px-2.5 py-1 flex items-center gap-1.5 bg-[#1a1a1a]/[0.02]">
-                    <span className="text-sm">{sk.icon}</span>
-                    {sk.name}
-                  </span>
-                );
-              })}
-            </div>
-          </Link>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function LatestDispatches() {
-  return (
-    <section>
-      <div className="section-header">
-        <Zap size={14} className="text-[#8b0000]" />
-        <span className="text-sm font-mono font-bold uppercase tracking-[0.2em] text-[#8b0000]">Latest Dispatches</span>
-      </div>
-      <div className="space-y-0">
-        {BREAKING_SKILLS.map((s) => (
-          <div key={s.id} className="flex items-start gap-3 py-3 border-b border-dotted border-[#1a1a1a]/15 last:border-b-0 group cursor-pointer">
-            <span className="text-xs font-mono text-[#1a1a1a]/30 pt-0.5 w-12 shrink-0 dateline">{s.time}</span>
-            <div className="flex-1">
-              <p className="text-sm font-serif font-bold leading-tight group-hover:underline decoration-1 underline-offset-2">{s.name}</p>
-              <p className="text-xs font-mono text-[#1a1a1a]/35 mt-1">by {s.creator} · {s.price}</p>
-            </div>
+            ))}
           </div>
-        ))}
-      </div>
-    </section>
-  );
-}
+        </section>
 
-function MarketPulse() {
-  return (
-    <section>
-      <div className="section-header">
-        <BarChart2 size={14} />
-        <span className="text-sm font-mono font-bold uppercase tracking-[0.2em]">Market Pulse</span>
-      </div>
-      <div className="space-y-0">
-        {[
-          { label: "Skills Listed", value: "2,841", delta: "+12" },
-          { label: "Avg Price", value: "0.047 ETH", delta: "↑3.2%" },
-          { label: "Active Agents", value: "847", delta: "+23" },
-          { label: "24h Volume", value: "18.4 ETH", delta: "↑8.1%" },
-          { label: "Total Revenue", value: "134 ETH", delta: "" },
-        ].map((item) => (
-          <div key={item.label} className="flex justify-between items-baseline py-2.5 border-b border-dotted border-[#1a1a1a]/15 last:border-b-0">
-            <span className="text-xs font-mono text-[#1a1a1a]/40 uppercase tracking-wider">{item.label}</span>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-mono font-bold">{item.value}</span>
-              {item.delta && <span className="text-xs font-mono text-green-800">{item.delta}</span>}
-            </div>
+        {/* ═══ PULL QUOTE ═══ */}
+        <div className="pull-quote mb-12">
+          &ldquo;Trust, not promises.&rdquo;
+        </div>
+
+        {/* ═══ FOOTER ═══ */}
+        <footer>
+          <div className="masthead-rule mb-1" />
+          <div className="h-[1px] bg-[#1a1a1a]/20 mb-1" />
+          <div className="masthead-rule mb-3" />
+          <div className="flex justify-between items-center py-2">
+            <span className="font-mono text-[10px] text-[#1a1a1a]/25 tracking-wider uppercase">
+              The Dojo &copy; 2026 &middot; Maiat Protocol &middot; BSC
+            </span>
+            <span className="font-serif italic text-xs text-[#1a1a1a]/25">
+              dojo.maiat.io
+            </span>
           </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function ClassifiedAd() {
-  return (
-    <div className="classified" data-label="Advertisement">
-      <div className="text-center py-2">
-        <p className="font-serif font-black text-xl mb-1">MAIAT PASSPORT</p>
-        <p className="font-serif italic text-sm text-[#1a1a1a]/50 mb-3">
-          Register your agent's on-chain identity
-        </p>
-        <div className="h-[1px] bg-[#1a1a1a]/15 my-3" />
-        <p className="text-xs font-mono text-[#1a1a1a]/40 mb-3">ERC-8004 · SOULBOUND · BASE MAINNET</p>
-        <button className="bg-[#1a1a1a] text-[#f0ece2] font-mono text-xs px-5 py-2 hover:bg-[#1a1a1a]/80 transition-colors tracking-wider">
-          REGISTER →
-        </button>
+        </footer>
       </div>
     </div>
   );
 }
 
-function SenseiCTA() {
-  return (
-    <section className="border-t-3 border-double border-[#1a1a1a] pt-5 mt-6">
-      <div className="text-center">
-        <p className="font-serif italic text-sm text-[#1a1a1a]/40 mb-1">Have expertise to share?</p>
-        <p className="font-serif font-black text-3xl mb-2">Become a Sensei</p>
-        <p className="font-serif text-sm text-[#1a1a1a]/50 max-w-md mx-auto mb-4 leading-relaxed">
-          Create skills, equip agents, earn 85% of every sale. Join the on-chain knowledge economy.
-        </p>
-        <button className="bg-[#1a1a1a] text-[#f0ece2] font-mono text-sm px-8 py-3 hover:bg-[#1a1a1a]/80 transition-colors tracking-[0.2em]">
-          PUBLISH A SKILL →
-        </button>
-      </div>
-    </section>
-  );
-}
+// --- Trust Score Bar ---
 
-// --- Main Page ---
-export default function DojoPage() {
-  const [activeCategory, setActiveCategory] = useState("All");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [skills, setSkills] = useState<SkillListItem[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  // Debounce search query (300ms)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(searchQuery);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
-
-  // Fetch skills when category or search changes
-  const fetchSkills = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams();
-      if (activeCategory !== "All") {
-        params.set("category", activeCategory);
-      }
-      if (debouncedSearch) {
-        params.set("q", debouncedSearch);
-      }
-      params.set("limit", "20");
-
-      const res = await fetch(`/api/skills?${params.toString()}`);
-      const data = await res.json();
-      setSkills(data.skills || []);
-    } catch (err) {
-      console.error("Failed to fetch skills:", err);
-      setSkills([]);
-    }
-    setLoading(false);
-  }, [activeCategory, debouncedSearch]);
-
-  useEffect(() => {
-    fetchSkills();
-  }, [fetchSkills]);
-
-  const handleCategoryChange = (cat: string) => {
-    setActiveCategory(cat);
-  };
+function TrustBar({ score }: { score: number }) {
+  const clamped = Math.min(100, Math.max(0, score));
+  const filled = Math.round(clamped / 10);
 
   return (
-    <div className="min-h-screen bg-[#f0ece2]">
-      <div className="max-w-7xl mx-auto px-8 py-6 page-container">
-        <Masthead searchQuery={searchQuery} onSearchChange={setSearchQuery} />
-
-        {/* Category nav — newspaper section tabs */}
-        <nav className="flex gap-0 mb-8 border-y-2 border-[#1a1a1a]/30">
-          {CATEGORIES.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => handleCategoryChange(cat)}
-              className={`px-5 py-3 text-sm font-mono uppercase tracking-[0.15em] whitespace-nowrap transition-colors ${
-                activeCategory === cat
-                  ? "bg-[#1a1a1a] text-[#f0ece2] font-bold"
-                  : "text-[#1a1a1a]/35 hover:text-[#1a1a1a] hover:bg-[#1a1a1a]/[0.03]"
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </nav>
-
-        {/* Headline */}
-        <HeadlineSection />
-
-        {/* Ornamental divider */}
-        <div className="rule-ornament mb-8">✦ ✦ ✦</div>
-
-        {/* 3-column body — classic newspaper layout */}
-        <div className="grid grid-cols-12 gap-0">
-          {/* Left column */}
-          <div className="col-span-3 pr-6 space-y-8">
-            <LatestDispatches />
-            <MarketPulse />
-            <ClassifiedAd />
-          </div>
-
-          {/* Center column — with column rules */}
-          <div className="col-span-5 column-rule pr-6">
-            <TrendingSkills skills={skills} loading={loading} />
-          </div>
-
-          {/* Right column */}
-          <div className="col-span-4 column-rule">
-            <AgentShowcase />
-          </div>
-        </div>
-
-        {/* Sensei CTA */}
-        <SenseiCTA />
-
-        {/* Footer — newspaper colophon style */}
-        <footer className="mt-10 pt-4">
-          <div className="masthead-rule mb-2" />
-          <div className="flex justify-between items-center py-2">
-            <span className="text-xs font-mono text-[#1a1a1a]/25 tracking-wider">
-              THE DOJO © 2026 · MAIAT PROTOCOL · BUILT ON BASE · ERC-8004
-            </span>
-            <span className="text-xs font-serif italic text-[#1a1a1a]/25">
-              dojo.maiat.io — All rights reserved
-            </span>
-          </div>
-        </footer>
+    <div className="flex items-center gap-1.5">
+      <div className="flex gap-[2px]">
+        {Array.from({ length: 10 }).map((_, i) => (
+          <div
+            key={i}
+            className={`w-[5px] h-3 ${
+              i < filled ? "bg-[#1a1a1a]" : "bg-[#1a1a1a]/10"
+            }`}
+          />
+        ))}
       </div>
+      <span className="text-[10px] font-mono text-[#1a1a1a]/40">{clamped}</span>
     </div>
   );
 }
