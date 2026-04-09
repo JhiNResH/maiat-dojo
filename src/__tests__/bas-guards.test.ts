@@ -6,14 +6,18 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-vi.mock('viem', () => ({
-  createPublicClient: vi.fn(() => ({ readContract: vi.fn() })),
-  createWalletClient: vi.fn(() => ({ writeContract: vi.fn() })),
-  http: vi.fn(() => 'mock-transport'),
-  encodeAbiParameters: vi.fn(() => '0x00'),
-  parseAbiParameters: vi.fn(() => []),
-  parseEventLogs: vi.fn(() => []),
-}));
+vi.mock('viem', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('viem')>();
+  return {
+    ...actual,
+    createPublicClient: vi.fn(() => ({ readContract: vi.fn() })),
+    createWalletClient: vi.fn(() => ({ writeContract: vi.fn() })),
+    http: vi.fn(() => 'mock-transport'),
+    encodeAbiParameters: vi.fn(() => '0x00'),
+    parseAbiParameters: vi.fn(() => []),
+    parseEventLogs: vi.fn(() => []),
+  };
+});
 
 vi.mock('viem/accounts', () => ({
   privateKeyToAccount: vi.fn(() => ({
@@ -73,20 +77,22 @@ describe('attestSessionClose guard paths', () => {
     process.env = originalEnv;
   });
 
-  it('skips on testnet RPC (prebsc)', async () => {
+  it('returns mock uid on testnet RPC (prebsc)', async () => {
     process.env.BSC_RPC_URL = 'https://data-seed-prebsc-1-s1.binance.org:8545';
     const { attestSessionClose } = await import('@/lib/bas');
     const result = await attestSessionClose(dummyData);
-    expect(result.success).toBe(false);
-    expect(result.error).toContain('testnet');
+    expect(result.success).toBe(true);
+    expect(result.uid).toMatch(/^0x[0-9a-f]{64}$/i);
+    expect(result.txHash).toBeUndefined();
   });
 
-  it('skips on testnet RPC (contains "97")', async () => {
+  it('returns mock uid on testnet RPC (contains "97")', async () => {
     process.env.BSC_RPC_URL = 'https://bsc-testnet-rpc-97.example.com';
     const { attestSessionClose } = await import('@/lib/bas');
     const result = await attestSessionClose(dummyData);
-    expect(result.success).toBe(false);
-    expect(result.error).toContain('testnet');
+    expect(result.success).toBe(true);
+    expect(result.uid).toMatch(/^0x[0-9a-f]{64}$/i);
+    expect(result.txHash).toBeUndefined();
   });
 
   it('skips when BAS_SESSION_SCHEMA_UID not set', async () => {
