@@ -5,8 +5,11 @@
  * Reference: https://github.com/x402-foundation/x402
  */
 
-import { x402Version } from '@x402/core';
 import { verifyTypedData } from 'viem';
+
+// @x402/core bundles a CJS require() shim that breaks webpack client builds.
+// Inline the version constant instead of importing the whole package.
+const x402Version = 2;
 
 // ─── Chain Configuration ─────────────────────────────────────────────────────
 
@@ -132,8 +135,9 @@ export function generatePaymentRequest(
 ): X402PaymentRequest {
   const chainConfig = X402_CHAINS[chain];
 
-  // Convert amount to USDC smallest unit (6 decimals)
-  const amountInUnits = Math.floor(amount * 1e6).toString();
+  // BSC USDC (bridged) uses 18 decimals; most other chains (X Layer, etc.) use 6.
+  const usdcDecimals = (chain === 'bsc' || chain === 'bscTestnet') ? 1e18 : 1e6;
+  const amountInUnits = Math.floor(amount * usdcDecimals).toString();
 
   return {
     x402Version,
@@ -327,7 +331,9 @@ export function generateX402Headers(
 ): Record<string, string> {
   const chain = getActiveX402Chain();
   const chainConfig = X402_CHAINS[chain];
-  const amount = Math.floor((skill.pricePerCall ?? 0) * 1e6).toString();
+  // BSC USDC (bridged) uses 18 decimals; other chains (X Layer, etc.) use 6.
+  const usdcDecimals = (chain === 'bsc' || chain === 'bscTestnet') ? 1e18 : 1e6;
+  const amount = Math.floor((skill.pricePerCall ?? 0) * usdcDecimals).toString();
 
   return {
     'X-Payment-Chain': chainConfig.network,

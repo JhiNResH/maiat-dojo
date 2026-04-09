@@ -230,6 +230,11 @@ export async function attestSessionClose(data: SessionEvaluationData): Promise<A
       });
       const uid = attestedLogs[0]?.args.uid;
 
+      if (!uid) {
+        console.warn('[bas] Attested event not found in receipt logs — uid undefined:', { txHash, sessionId: data.sessionId });
+        return { success: false, txHash, error: 'Attested event not found in logs' };
+      }
+
       console.log('[bas] attestation confirmed:', { txHash, uid, sessionId: data.sessionId, finalScore: data.finalScore });
 
       return { success: true, txHash, uid };

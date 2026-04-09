@@ -30,7 +30,8 @@ export function getRelayerAddress(): `0x${string}` | null {
   if (!key) return null;
   try {
     return privateKeyToAccount(key).address;
-  } catch {
+  } catch (err) {
+    console.error('[relayer] Invalid DOJO_RELAYER_PRIVATE_KEY format:', err instanceof Error ? err.message : err);
     return null;
   }
 }

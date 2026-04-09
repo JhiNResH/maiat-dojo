@@ -216,24 +216,32 @@ export async function POST(
     //     because DojoTrustScore.updateScore() does direct assignment, not EMA.
     void (async () => {
       try {
-        const agentAddress = (session.agent.walletAddress ?? '0x0000000000000000000000000000000000000000') as `0x${string}`;
-        const creatorAddress = (session.skill.creator.walletAddress ?? '0x0000000000000000000000000000000000000000') as `0x${string}`;
+        const agentAddress = session.agent.walletAddress as `0x${string}` | null;
+        const creatorAddress = session.skill.creator.walletAddress as `0x${string}` | null;
 
-        const result = await attestSessionClose({
-          sessionId: updated.id,
-          finalScore,
-          callCount: updated.callCount,
-          passRate,
-          creatorAddress,
-          agentAddress,
-        });
-
-        if (result.success && result.uid) {
-          await prisma.session.update({
-            where: { id: updated.id },
-            data: { basAttestationUid: result.uid },
+        if (!agentAddress || !creatorAddress) {
+          console.warn('[bas] skipping attestation — missing wallet address:', {
+            sessionId: updated.id,
+            agentHasWallet: !!agentAddress,
+            creatorHasWallet: !!creatorAddress,
           });
-          console.log('[bas] attestation stored:', { sessionId: updated.id, uid: result.uid });
+        } else {
+          const result = await attestSessionClose({
+            sessionId: updated.id,
+            finalScore,
+            callCount: updated.callCount,
+            passRate,
+            creatorAddress,
+            agentAddress,
+          });
+
+          if (result.success && result.uid) {
+            await prisma.session.update({
+              where: { id: updated.id },
+              data: { basAttestationUid: result.uid },
+            });
+            console.log('[bas] attestation stored:', { sessionId: updated.id, uid: result.uid });
+          }
         }
 
         // Trust oracle update — runs after attestation is queued
