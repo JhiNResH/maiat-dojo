@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { verifyPrivyAuth } from "@/lib/privy-server";
 
 export const dynamic = "force-dynamic";
 
@@ -54,6 +55,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Auth — verify caller owns the privyId they're creating skills under
+    const skipAuth =
+      process.env.DOJO_SKIP_PRIVY_AUTH === 'true' &&
+      process.env.NODE_ENV !== 'production';
+
+    if (!skipAuth) {
+      const authResult = await verifyPrivyAuth(req.headers.get('Authorization'));
+      if (!authResult.success || authResult.privyId !== privyId) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+      }
+    }
+
     if (!name || !description || !category) {
       return NextResponse.json(
         { error: "Missing required fields: name, description, category" },
@@ -84,8 +97,9 @@ export async function POST(req: NextRequest) {
       where: { privyId },
       update: {
         ...(email && { email }),
-        ...(walletAddress && { walletAddress }),
         ...(displayName && { displayName }),
+        // walletAddress intentionally excluded — only set at registration,
+        // not overridable via skill create (prevents settlement fund redirect attacks)
       },
       create: {
         privyId,
