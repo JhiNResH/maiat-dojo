@@ -205,11 +205,15 @@ export async function POST(
 
     // -------------------------------------------------------------------------
     // 6. Session lookup — bound to (onchainJobId, skillId)
+    //    Fallback: also match by session.id for testnet/dev where onchainJobId
+    //    may not be set yet (BSC binding is fire-and-forget, can lag behind).
     // -------------------------------------------------------------------------
     const session = await prisma.session.findFirst({
       where: {
-        onchainJobId: jobIdHeader,
-        skillId: skill.id,
+        OR: [
+          { onchainJobId: jobIdHeader, skillId: skill.id },
+          { id: jobIdHeader, skillId: skill.id },
+        ],
       },
     });
 

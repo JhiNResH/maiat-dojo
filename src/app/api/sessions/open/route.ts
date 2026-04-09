@@ -52,12 +52,19 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify JWT; privyId in body must match token subject
-    const authResult = await verifyPrivyAuth(req.headers.get('Authorization'));
-    if (!authResult.success || authResult.privyId !== privyId) {
-      return NextResponse.json(
-        { error: 'Unauthorized — privyId mismatch' },
-        { status: 403 }
-      );
+    // Dev bypass: DOJO_SKIP_PRIVY_AUTH=true skips JWT check (non-production only)
+    const skipAuth =
+      process.env.DOJO_SKIP_PRIVY_AUTH === 'true' &&
+      process.env.NODE_ENV !== 'production';
+
+    if (!skipAuth) {
+      const authResult = await verifyPrivyAuth(req.headers.get('Authorization'));
+      if (!authResult.success || authResult.privyId !== privyId) {
+        return NextResponse.json(
+          { error: 'Unauthorized — privyId mismatch' },
+          { status: 403 }
+        );
+      }
     }
 
     // Resolve user
