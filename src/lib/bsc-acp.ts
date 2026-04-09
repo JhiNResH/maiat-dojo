@@ -157,11 +157,14 @@ export async function createSessionOnChain(params: CreateJobParams): Promise<Acp
       const relayer = wallet.account.address;
 
       // 1. createJob (relayer = client = provider)
+      // Phase 1: hook = address(0) — relayer has no trust score, TrustGateACPHook
+      // would revert if wired. Phase 2: switch to config.hookAddress when agents
+      // have registered trust scores.
       const createHash = await wallet.writeContract({
         address: config.acpAddress,
         abi: ACP_ABI,
         functionName: 'createJob',
-        args: [relayer, config.evaluatorAddress, params.expiredAt, params.description, config.hookAddress],
+        args: [relayer, config.evaluatorAddress, params.expiredAt, params.description, ZERO],
       });
       const createReceipt = await client.waitForTransactionReceipt({ hash: createHash, confirmations: 1, timeout: 15_000 });
       if (createReceipt.status !== 'success') return { success: false, txHash: createHash, error: 'createJob reverted' };
