@@ -76,7 +76,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Verify agent ownership + wallet presence (needed as 8183 payer)
+    // Verify agent ownership. Phase 1: relayer is the on-chain payer, agent wallet
+    // is not required yet. Phase 2: restore walletAddress check when agents pay directly.
     const agent = await prisma.agent.findFirst({
       where: { id: agentId, ownerId: user.id },
     });
@@ -84,12 +85,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: 'Agent not found or not owned by user' },
         { status: 404 }
-      );
-    }
-    if (!agent.walletAddress) {
-      return NextResponse.json(
-        { error: 'Agent has no wallet address — cannot be 8183 payer' },
-        { status: 400 }
       );
     }
 

@@ -37,7 +37,8 @@ interface PassiveResult {
 async function getOrCreateAgent(
   privyId: string,
   token: string,
-  displayName: string | undefined
+  displayName: string | undefined,
+  walletAddress: string | undefined
 ): Promise<string> {
   const key = `dojo_agent_${privyId}`;
   const cached = localStorage.getItem(key);
@@ -49,6 +50,7 @@ async function getOrCreateAgent(
     body: JSON.stringify({
       privyId,
       displayName,
+      walletAddress,
       agent: {
         name: `${displayName || "My"} Agent`,
         description: "Default agent created by Dojo",
@@ -146,7 +148,7 @@ export default function PurchaseCard({ skill }: Props) {
         displayName: user.google?.name ?? undefined,
       });
 
-      const agentId = await getOrCreateAgent(user.id, token, user.google?.name ?? undefined);
+      const agentId = await getOrCreateAgent(user.id, token, user.google?.name ?? undefined, user.wallet?.address ?? undefined);
 
       const sessionRes = await fetch("/api/sessions/open", {
         method: "POST",
