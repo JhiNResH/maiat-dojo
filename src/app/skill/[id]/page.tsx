@@ -188,7 +188,7 @@ export default async function SkillPage({ params }: { params: { id: string } }) 
                 {[
                   { label: "Network", value: "BNB Smart Chain" },
                   { label: "Settlement", value: "ERC-8183 Escrow" },
-                  { label: "Payment", value: "USDC per call" },
+                  { label: "Payment", value: "USD per call" },
                   { label: "Category", value: skill.category || "—" },
                   { label: "Listed", value: formatDate(skill.createdAt) },
                   { label: "Updated", value: formatDate(skill.updatedAt) },

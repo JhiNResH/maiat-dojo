@@ -81,8 +81,8 @@ export async function POST(
         where: { gatewaySlug },
         include: { creator: true },
       });
-      if (!skill || skill.skillType !== 'active') {
-        return errorJson('skill-not-found', `No active skill found for gateway slug: ${gatewaySlug}`, 404);
+      if (!skill) {
+        return errorJson('skill-not-found', `No skill found for gateway slug: ${gatewaySlug}`, 404);
       }
       const creatorAddress = (skill.creator.walletAddress ?? '0x0000000000000000000000000000000000000000') as `0x${string}`;
       const x402Headers = generateX402Headers(skill, creatorAddress);
@@ -147,12 +147,20 @@ export async function POST(
     // -------------------------------------------------------------------------
     const skill = await prisma.skill.findUnique({
       where: { gatewaySlug },
+      select: {
+        id: true,
+        name: true,
+        skillType: true,
+        endpointUrl: true,
+        fileContent: true,
+        creatorHmacSecret: true,
+      },
     });
 
-    if (!skill || skill.skillType !== 'active') {
+    if (!skill) {
       return errorJson(
         'skill-not-found',
-        `No active skill found for gateway slug: ${gatewaySlug}`,
+        `No skill found for gateway slug: ${gatewaySlug}`,
         404
       );
     }
@@ -259,7 +267,57 @@ export async function POST(
     }
 
     // -------------------------------------------------------------------------
-    // 8. Forward to creator endpoint
+    // 8. Passive skill — return fileContent directly, skip creator forward
+    // -------------------------------------------------------------------------
+    if (skill.skillType === 'passive') {
+      const content = skill.fileContent ?? '(no content)';
+      const evalResult = evaluateCall(200, content, 0, false);
+
+      await prisma.$transaction(async (tx) => {
+        await tx.skillCall.create({
+          data: {
+            sessionId: session.id,
+            nonce,
+            requestHash: hashHeader,
+            status: 'success',
+            httpStatus: 200,
+            latencyMs: 0,
+            costUsdc: session.pricePerCall,
+            responseHash: evalResult.responseHash,
+            delivered: evalResult.delivered,
+            validFormat: evalResult.validFormat,
+            withinSla: evalResult.withinSla,
+            score: evalResult.score,
+          },
+        });
+        await tx.session.updateMany({
+          where: {
+            id: session.id,
+            status: { in: ['funded', 'active'] },
+            budgetRemaining: { gte: session.pricePerCall },
+          },
+          data: {
+            budgetRemaining: { decrement: session.pricePerCall },
+            callCount: { increment: 1 },
+            status: 'active',
+          },
+        });
+      });
+
+      const budgetAfter = Math.max(0, session.budgetRemaining - session.pricePerCall);
+      return new NextResponse(JSON.stringify({ content }), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Dojo-SessionId': session.id,
+          'X-Dojo-BudgetRemaining': String(budgetAfter),
+          'X-Dojo-CallCount': String(session.callCount + 1),
+        },
+      });
+    }
+
+    // -------------------------------------------------------------------------
+    // 9. Forward to creator endpoint
     //    - Add X-Dojo-HMAC: hmac-sha256(rawBody, creatorHmacSecret)
     //    - Pass original body verbatim
     //    - 30s timeout via AbortController

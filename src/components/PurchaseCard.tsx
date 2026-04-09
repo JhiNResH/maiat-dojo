@@ -230,7 +230,7 @@ export default function PurchaseCard({ skill }: Props) {
     return (
       <div className="classified" data-label="Session Active">
         <div className="text-xs font-mono text-green-800 bg-green-800/10 border-l-2 border-green-800 px-2 py-1 mb-4">
-          ✓ Session open · ${activeResult.budgetTotal} USDC locked
+          ✓ Session open · ${activeResult.budgetTotal} USD locked
         </div>
 
         <div className="space-y-0 mb-4">
@@ -242,7 +242,7 @@ export default function PurchaseCard({ skill }: Props) {
                 month: "short", day: "numeric",
               }),
             },
-            { label: "Budget", value: `$${activeResult.budgetTotal} USDC` },
+            { label: "Budget", value: `$${activeResult.budgetTotal} USD` },
           ].map(({ label, value }) => (
             <div key={label} className="flex justify-between items-center py-1.5 border-b border-dotted border-[#1a1a1a]/15 last:border-b-0">
               <span className="font-mono text-[10px] text-[#1a1a1a]/40 uppercase tracking-wider">{label}</span>
@@ -304,13 +304,13 @@ export default function PurchaseCard({ skill }: Props) {
         <span className="font-mono text-xs text-[#1a1a1a]/40 ml-1">/ call</span>
       </div>
       <p className="font-mono text-[10px] text-[#1a1a1a]/50 mb-4 pb-3 border-b border-dotted border-[#1a1a1a]/15">
-        USDC via ERC-8183 on-chain escrow
+        USD via ERC-8183 on-chain escrow
       </p>
 
       {/* Budget input */}
       <div className="mb-4">
         <label className="font-mono text-[10px] uppercase tracking-wider text-[#1a1a1a]/40 block mb-1.5">
-          Budget (USDC)
+          Budget (USD)
         </label>
         <div className="flex items-center border border-[#1a1a1a]/20 bg-[#1a1a1a]/[0.02]">
           <span className="font-mono text-sm text-[#1a1a1a]/40 px-3">$</span>
@@ -343,7 +343,7 @@ export default function PurchaseCard({ skill }: Props) {
       </button>
 
       <div className="text-[10px] font-mono text-[#1a1a1a]/30 border-l-2 border-[#1a1a1a]/15 pl-2">
-        Session expires in 24h · unused USDC refunded
+        Session expires in 24h · unused USD refunded
       </div>
     </div>
   );

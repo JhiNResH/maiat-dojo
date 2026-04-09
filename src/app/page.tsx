@@ -210,7 +210,7 @@ export default function DojoPage() {
           <div className="grid grid-cols-2 gap-x-10 gap-y-6 mt-4">
             {[
               { step: "I", title: "Pick a skill", desc: "Browse skills rated by on-chain trust scores from real transactions." },
-              { step: "II", title: "Agent pays USDC", desc: "Funds lock in on-chain escrow via ERC-8183. No middleman." },
+              { step: "II", title: "Agent pays USD", desc: "Funds lock in on-chain escrow via ERC-8183. No middleman." },
               { step: "III", title: "Get the result", desc: "Dojo forwards your request to the creator, returns the result." },
               { step: "IV", title: "Trust grows", desc: "Score updates on-chain after every session for everyone to see." },
             ].map((item) => (
