@@ -130,8 +130,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validate active skill requirements
-    const isWizardCreated = body._wizard === true;
+    // Validate active skill requirements.
+    // Wizard-created: endpointUrl provided but gatewaySlug not (slug is auto-generated).
+    // This is detected server-side from payload shape — no client flag trusted.
+    const isWizardCreated = !!endpointUrl && !gatewaySlug;
     const effectiveSkillType = isWizardCreated ? 'active' : (skillType ?? 'passive');
 
     if (effectiveSkillType === 'active') {

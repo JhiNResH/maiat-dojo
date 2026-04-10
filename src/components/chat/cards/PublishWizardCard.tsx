@@ -51,7 +51,7 @@ const OUTPUT_SHAPES = [
 ] as const;
 
 export function PublishWizardCard() {
-  const { authenticated, login, getAccessToken } = usePrivy();
+  const { authenticated, login, getAccessToken, user } = usePrivy();
 
   const [step, setStep] = useState<Step>(1);
   const [loading, setLoading] = useState(false);
@@ -187,7 +187,7 @@ export function PublishWizardCard() {
         method: "POST",
         headers: { "Content-Type": "application/json", ...headers },
         body: JSON.stringify({
-          privyId: "__from_jwt__", // Server extracts from token
+          privyId: user?.id ?? "",
           name,
           description,
           category,
@@ -202,7 +202,6 @@ export function PublishWizardCard() {
           authRequired: !!authHeader,
           inputSchema: parsedInputSchema,
           exampleInput: parsedExampleInput,
-          _wizard: true,
         }),
       });
       const json = await res.json();

@@ -19,11 +19,45 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createHmac } from 'node:crypto';
 import { prisma } from '@/lib/prisma';
+import { verifyPrivyAuth } from '@/lib/privy-server';
 import { parseSkillProfile } from '@/lib/skill-profile';
 
 export const dynamic = 'force-dynamic';
 
 const SANDBOX_TIMEOUT_MS = 8_000;
+
+/** Block private/internal IPs to prevent SSRF (mirrors dry-run guard). */
+function isSsrfBlocked(endpointUrl: string): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(endpointUrl);
+  } catch {
+    return true; // malformed URL — block
+  }
+
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  if (parsed.protocol !== 'https:' && !(parsed.protocol === 'http:' && !isProduction)) {
+    return true;
+  }
+
+  if (isProduction) {
+    const h = parsed.hostname.toLowerCase();
+    const BLOCKED = [
+      /^localhost$/,
+      /^127\./,
+      /^10\./,
+      /^172\.(1[6-9]|2\d|3[01])\./,
+      /^192\.168\./,
+      /^169\.254\./,
+      /^::1$/,
+      /^fc00:/,
+    ];
+    if (BLOCKED.some((rx) => rx.test(h))) return true;
+  }
+
+  return false;
+}
 
 interface SandboxRequestBody {
   input?: unknown;
@@ -33,6 +67,18 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  // Auth gate — require authenticated caller (buyer trying a skill)
+  const skipAuth =
+    process.env.DOJO_SKIP_PRIVY_AUTH === 'true' &&
+    process.env.NODE_ENV !== 'production';
+
+  if (!skipAuth) {
+    const auth = await verifyPrivyAuth(req.headers.get('Authorization'));
+    if (!auth.success) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+  }
+
   const skill = await prisma.skill.findUnique({
     where: { id: params.id },
     select: {
@@ -88,6 +134,14 @@ export async function POST(
   } catch {
     return NextResponse.json(
       { error: 'Invalid JSON body', code: 'BAD_BODY' },
+      { status: 400 }
+    );
+  }
+
+  // SSRF guard — block private/internal IPs stored in endpointUrl
+  if (isSsrfBlocked(skill.endpointUrl)) {
+    return NextResponse.json(
+      { error: 'Skill endpoint URL is not reachable from the sandbox', code: 'SSRF_BLOCKED' },
       { status: 400 }
     );
   }
