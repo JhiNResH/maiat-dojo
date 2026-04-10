@@ -37,29 +37,37 @@ export default function SkillSandbox() {
   const [loading, setLoading] = useState(false);
   const [secondsSinceUpdate, setSecondsSinceUpdate] = useState(0);
 
-  async function fetchPrice(sym: Symbol) {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/skills-internal/price', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: sym }),
-      });
-      if (res.ok) {
-        const json = await res.json() as PriceData;
-        setData(json);
-        setSecondsSinceUpdate(0);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }
-
   // Fetch on symbol change + 5s poll
   useEffect(() => {
+    const controller = new AbortController();
+
+    async function fetchPrice(sym: Symbol) {
+      setLoading(true);
+      try {
+        const res = await fetch('/api/skills-internal/price', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: sym }),
+          signal: controller.signal,
+        });
+        if (res.ok) {
+          const json = await res.json() as PriceData;
+          setData(json);
+          setSecondsSinceUpdate(0);
+        }
+      } catch (err) {
+        if ((err as Error).name === 'AbortError') return;
+      } finally {
+        setLoading(false);
+      }
+    }
+
     fetchPrice(symbol);
     const id = setInterval(() => fetchPrice(symbol), 5000);
-    return () => clearInterval(id);
+    return () => {
+      clearInterval(id);
+      controller.abort();
+    };
   }, [symbol]);
 
   // Tick every second for "Updated Xs ago"
