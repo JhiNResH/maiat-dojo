@@ -111,13 +111,37 @@ export async function POST(
       );
     }
 
-    // Warn if on-chain binding never completed (ops reconciliation)
+    // Race guard: open's fire-and-forget BSC bind can still be in flight at
+    // close time (especially during E2E tests that close within ~1s of open).
+    // Poll DB briefly for onchainJobId so settleSessionOnChain can actually fire.
+    // Timeout generous enough for createJob + setBudget + fund (~3 txs ×~3s).
     if (!session.onchainJobId) {
-      console.warn('[sessions/close] onchainJobId not set at close time:', {
-        sessionId: session.id,
-        status: session.status,
-        reason: 'on-chain binding may have failed at open — reconcile manually',
-      });
+      const POLL_MS = 500;
+      const MAX_WAIT_MS = 20_000;
+      const start = Date.now();
+      while (Date.now() - start < MAX_WAIT_MS) {
+        await new Promise((r) => setTimeout(r, POLL_MS));
+        const refresh = await prisma.session.findUnique({
+          where: { id: session.id },
+          select: { onchainJobId: true },
+        });
+        if (refresh?.onchainJobId) {
+          session.onchainJobId = refresh.onchainJobId;
+          console.log('[sessions/close] onchainJobId resolved via poll:', {
+            sessionId: session.id,
+            onchainJobId: refresh.onchainJobId,
+            waitedMs: Date.now() - start,
+          });
+          break;
+        }
+      }
+      if (!session.onchainJobId) {
+        console.warn('[sessions/close] onchainJobId not set after poll:', {
+          sessionId: session.id,
+          waitedMs: Date.now() - start,
+          reason: 'on-chain binding still pending — reconcile via cron',
+        });
+      }
     }
 
     // 8. Aggregate SkillCall scores → PASS/FAIL decision

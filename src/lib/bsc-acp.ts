@@ -37,6 +37,16 @@ const ACP_ABI = [
     stateMutability: 'nonpayable',
   },
   {
+    type: 'function', name: 'setBudget',
+    inputs: [
+      { name: 'jobId',     type: 'uint256' },
+      { name: 'amount',    type: 'uint256' },
+      { name: 'optParams', type: 'bytes' },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
     type: 'function', name: 'fund',
     inputs: [
       { name: 'jobId',          type: 'uint256' },
@@ -175,7 +185,16 @@ export async function createSessionOnChain(params: CreateJobParams): Promise<Acp
 
       console.log('[acp] createJob:', { jobId: jobId.toString(), txHash: createHash });
 
-      // 2. approve USDC if needed
+      // 2. setBudget (createJob initializes budget=0; fund() requires budget == expectedBudget && budget != 0)
+      const setBudgetHash = await wallet.writeContract({
+        address: config.acpAddress, abi: ACP_ABI, functionName: 'setBudget',
+        args: [jobId, params.budgetUsdc, '0x'],
+      });
+      const setBudgetReceipt = await client.waitForTransactionReceipt({ hash: setBudgetHash, confirmations: 1, timeout: 15_000 });
+      if (setBudgetReceipt.status !== 'success') return { success: false, txHash: setBudgetHash, error: 'setBudget reverted' };
+      console.log('[acp] setBudget:', { jobId: jobId.toString(), budget: params.budgetUsdc.toString(), txHash: setBudgetHash });
+
+      // 3. approve USDC if needed
       const allowance = await client.readContract({
         address: config.usdcAddress, abi: ERC20_ABI, functionName: 'allowance',
         args: [relayer, config.acpAddress],
@@ -190,7 +209,7 @@ export async function createSessionOnChain(params: CreateJobParams): Promise<Acp
         console.log('[acp] USDC approved:', approveHash);
       }
 
-      // 3. fund
+      // 4. fund
       const fundHash = await wallet.writeContract({
         address: config.acpAddress, abi: ACP_ABI, functionName: 'fund',
         args: [jobId, params.budgetUsdc, '0x'],
