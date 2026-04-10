@@ -1,16 +1,19 @@
 "use client";
 
 /**
- * ChatInput — bottom input bar with submit-on-Enter.
+ * ChatInput — bottom composer.
  *
  * Spec: specs/2026-04-09-chat-first-ui.md
  *
- * Pure presentational. The parent ChatRoom owns the message list and the
- * intent dispatch — this component only collects text and forwards it.
+ * Claude-style composer card:
+ *   - Single bordered container (no inner textarea border).
+ *   - Serif input type for editorial feel, mono hint row.
+ *   - Send button lives inside the card on the bottom-right.
+ *   - Pressing Enter sends; Shift+Enter inserts a newline.
  */
 
 import { useRef, useState } from "react";
-import { Send } from "lucide-react";
+import { CornerDownLeft } from "lucide-react";
 
 export interface ChatInputProps {
   pending?: boolean;
@@ -20,7 +23,7 @@ export interface ChatInputProps {
 
 export function ChatInput({
   pending = false,
-  placeholder = 'Try "list skills", "price of BTC", or "help"',
+  placeholder = 'Ask the front desk — try "list skills", "price of BTC", or "help"',
   onSubmit,
 }: ChatInputProps) {
   const [value, setValue] = useState("");
@@ -41,29 +44,42 @@ export function ChatInput({
     }
   }
 
+  const canSend = value.trim().length > 0 && !pending;
+
   return (
-    <div className="border-t border-[#1a1a1a]/20 bg-[#f0ece2] p-3">
-      <div className="flex items-end gap-2">
+    <div className="px-6 pb-5 pt-2">
+      <div
+        className="border bg-[#f8f5ef] shadow-[0_-1px_0_0_rgba(26,26,26,0.06),0_1px_0_0_rgba(26,26,26,0.04)]"
+        style={{ borderColor: "#1a1a1a" }}
+      >
         <textarea
           ref={taRef}
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          rows={1}
-          className="flex-1 resize-none border border-[#b8a990] bg-[#f8f5ef] px-3 py-2 font-mono text-xs leading-relaxed text-[#1a1a1a] placeholder:text-[#1a1a1a]/30 focus:border-[#1a1a1a] focus:outline-none"
-          style={{ maxHeight: "120px" }}
+          rows={2}
+          className="block w-full resize-none border-0 bg-transparent px-4 pt-4 pb-2 font-serif text-[15px] leading-[1.55] text-[#1a1a1a] placeholder:font-serif placeholder:italic placeholder:text-[#1a1a1a]/30 focus:outline-none"
+          style={{ maxHeight: "160px" }}
           disabled={pending}
+          autoFocus
         />
-        <button
-          type="button"
-          onClick={send}
-          disabled={pending || value.trim().length === 0}
-          className="flex h-9 items-center gap-1 border border-[#1a1a1a] bg-[#1a1a1a] px-3 font-mono text-[10px] uppercase tracking-wider text-[#f0ece2] transition disabled:opacity-40"
-        >
-          <Send size={12} />
-          Send
-        </button>
+        <div className="flex items-center justify-between border-t border-dotted border-[#1a1a1a]/20 px-4 py-2">
+          <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-[#1a1a1a]/35">
+            Enter <span className="text-[#1a1a1a]/20">to send</span>
+            <span className="mx-2 text-[#1a1a1a]/15">·</span>
+            Shift+Enter <span className="text-[#1a1a1a]/20">for newline</span>
+          </span>
+          <button
+            type="button"
+            onClick={send}
+            disabled={!canSend}
+            className="flex items-center gap-1.5 border border-[#1a1a1a] bg-[#1a1a1a] px-3 py-1 font-mono text-[10px] uppercase tracking-wider text-[#f0ece2] transition hover:bg-[#1a1a1a]/85 disabled:cursor-not-allowed disabled:opacity-25"
+          >
+            Send
+            <CornerDownLeft size={11} />
+          </button>
+        </div>
       </div>
     </div>
   );

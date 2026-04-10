@@ -5,9 +5,17 @@
  *
  * Spec: specs/2026-04-09-chat-first-ui.md
  *
- * Discriminated switch over `message.kind`. The TypeScript exhaustiveness
- * check (`assertNever`) means adding a new chat card requires updating both
- * the union in `types.ts` and this switch — the compiler enforces it.
+ * Layout model = Claude chat × newspaper editorial.
+ *   - No bubbles. Each message is a row: small mono role label on top,
+ *     serif body beneath, generous vertical rhythm.
+ *   - User rows get a subtle inset background + 2px ink accent on the left.
+ *   - Dojo rows are flowing text with no container (so embedded cards —
+ *     skill list, executor — read as editorial asides, not stacked chrome).
+ *   - Tone (warn / ok) is expressed as a left border colour on user-facing
+ *     error messages, not a full bubble.
+ *
+ * Discriminated switch + assertNever means adding a new chat card requires
+ * updating both the union in `types.ts` and this switch.
  */
 
 import type { ChatMessage as ChatMsg, ChatSkillSummary } from "./types";
@@ -24,31 +32,33 @@ function assertNever(x: never): never {
   throw new Error(`Unhandled chat message kind: ${JSON.stringify(x)}`);
 }
 
-function Bubble({
+/** Row scaffold — label + content column, consistent rhythm. */
+function Row({
   role,
   children,
 }: {
   role: "user" | "dojo";
   children: React.ReactNode;
 }) {
-  const isUser = role === "user";
   return (
-    <div
-      className={`flex w-full ${isUser ? "justify-end" : "justify-start"} mb-3`}
-    >
-      <div
-        className={`max-w-[88%] ${isUser ? "items-end" : "items-start"} flex flex-col`}
-      >
-        <span className="mb-0.5 font-mono text-[9px] uppercase tracking-wider text-[#1a1a1a]/35">
-          {isUser ? "You" : "Dojo"}
+    <div className="mb-8 first:mt-2">
+      <div className="mb-1.5 flex items-center gap-2">
+        <span
+          className={`font-mono text-[9px] uppercase tracking-[0.2em] ${
+            role === "user" ? "text-[#1a1a1a]/50" : "text-[#8b0000]/70"
+          }`}
+        >
+          {role === "user" ? "You" : "Dojo"}
         </span>
-        <div className="w-full">{children}</div>
+        <span className="h-px flex-1 bg-[#1a1a1a]/10" />
       </div>
+      <div>{children}</div>
     </div>
   );
 }
 
-function PlainBubble({
+/** Plain text body — serif, editorial leading, no bubble. */
+function Body({
   role,
   content,
   tone = "neutral",
@@ -58,16 +68,27 @@ function PlainBubble({
   tone?: "neutral" | "warn" | "ok";
 }) {
   const isUser = role === "user";
-  const toneBorder =
+  const toneColor =
     tone === "warn"
-      ? "border-[#8b0000]"
+      ? "border-l-[#8b0000]"
       : tone === "ok"
-        ? "border-[#1a1a1a]"
-        : "border-[#b8a990]";
+        ? "border-l-[#1a1a1a]"
+        : "border-l-[#1a1a1a]/40";
+
+  if (isUser) {
+    return (
+      <div
+        className={`whitespace-pre-wrap break-words border-l-2 bg-[#1a1a1a]/[0.035] px-4 py-3 font-serif text-[15px] leading-[1.65] text-[#1a1a1a] ${toneColor}`}
+      >
+        {content}
+      </div>
+    );
+  }
+
   return (
     <div
-      className={`whitespace-pre-wrap break-words border bg-[#f8f5ef] px-3 py-2 font-serif text-sm leading-relaxed text-[#1a1a1a] ${toneBorder} ${
-        isUser ? "border-l-[3px] border-l-[#1a1a1a]" : ""
+      className={`whitespace-pre-wrap break-words font-serif text-[15px] leading-[1.65] text-[#1a1a1a] ${
+        tone === "warn" ? "border-l-2 border-l-[#8b0000] pl-4" : ""
       }`}
     >
       {content}
@@ -79,45 +100,45 @@ export function ChatMessage({ message, onRunSkill }: ChatMessageProps) {
   switch (message.kind) {
     case "text":
       return (
-        <Bubble role={message.role}>
-          <PlainBubble
+        <Row role={message.role}>
+          <Body
             role={message.role}
             content={message.content}
             tone={message.role === "dojo" ? message.tone : "neutral"}
           />
-        </Bubble>
+        </Row>
       );
 
     case "help":
       return (
-        <Bubble role="dojo">
+        <Row role="dojo">
           <CommandHelpCard />
-        </Bubble>
+        </Row>
       );
 
     case "skill-list":
       return (
-        <Bubble role="dojo">
+        <Row role="dojo">
           <SkillListCard skills={message.skills} onRun={onRunSkill} />
-        </Bubble>
+        </Row>
       );
 
     case "skill-executor":
       return (
-        <Bubble role="dojo">
+        <Row role="dojo">
           <SkillExecutor skill={message.skill} mode="sandbox" />
-        </Bubble>
+        </Row>
       );
 
     case "phase-2-stub":
       return (
-        <Bubble role="dojo">
-          <PlainBubble
+        <Row role="dojo">
+          <Body
             role="dojo"
             tone="warn"
             content={`"${message.feature}" ships in Phase 2. For now: try "list skills" or "call <skill name>".`}
           />
-        </Bubble>
+        </Row>
       );
 
     default:

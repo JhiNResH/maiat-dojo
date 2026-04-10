@@ -7,12 +7,13 @@
  *
  * Layout:
  *   - Masthead (newspaper identity, nav, auth)
- *   - Main: 70/30 grid — <ChatRoom> left, <SidePanel> right
- *   - Below md breakpoint the panel collapses under the chat
+ *   - Hero (one big editorial headline — the paper's voice)
+ *   - Main: chat + editorial sidebar, separated by a 1px ink vertical rule
+ *   - Footer (masthead rules + colophon)
  *
- * The old newspaper browse list has moved into <SkillListCard> (rendered
- * inside the chat) and <BuyerPanel> (top 5 in the right rail). The canonical
- * `/skill/[id]` detail page still exists — chat and URLs are duals.
+ * Design model = Claude composer × broadsheet newspaper. No boxy cards,
+ * no chat bubbles — just editorial rhythm with serif bodies, mono labels,
+ * and thin dotted separators.
  */
 
 import Link from "next/link";
@@ -35,13 +36,13 @@ function AuthButton() {
 
     return (
       <div className="flex items-center gap-3">
-        <span className="font-mono text-xs text-[#1a1a1a]/50">
-          <User size={12} className="mr-1 inline" />
+        <span className="font-mono text-[10px] uppercase tracking-wider text-[#1a1a1a]/50">
+          <User size={11} className="mr-1 inline" />
           {displayName}
         </span>
         <button
           onClick={logout}
-          className="font-mono text-xs text-[#1a1a1a]/30 underline underline-offset-2 transition-colors hover:text-[#1a1a1a]"
+          className="font-mono text-[10px] uppercase tracking-wider text-[#1a1a1a]/30 underline underline-offset-2 transition-colors hover:text-[#1a1a1a]"
         >
           Sign Out
         </button>
@@ -52,10 +53,10 @@ function AuthButton() {
   return (
     <button
       onClick={login}
-      className="flex items-center gap-2 bg-[#1a1a1a] px-4 py-2 font-mono text-xs tracking-wider text-[#f0ece2] transition-colors hover:bg-[#1a1a1a]/80"
+      className="flex items-center gap-2 bg-[#1a1a1a] px-4 py-2 font-mono text-[10px] uppercase tracking-wider text-[#f0ece2] transition-colors hover:bg-[#1a1a1a]/85"
     >
-      <LogIn size={12} />
-      CONNECT WALLET
+      <LogIn size={11} />
+      Connect Wallet
     </button>
   );
 }
@@ -72,12 +73,12 @@ export default function DojoPage() {
     <div className="flex min-h-screen flex-col bg-[#f0ece2]">
       <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-6 py-6">
         {/* ═══ MASTHEAD ═══ */}
-        <header className="mb-4">
+        <header className="mb-6">
           <div className="mb-2 flex items-center justify-between">
             <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-[#1a1a1a]/30">
               {today}
             </span>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-5">
               <Link
                 href="/demo"
                 className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#1a1a1a]/30 transition-colors hover:text-[#1a1a1a]"
@@ -114,45 +115,37 @@ export default function DojoPage() {
           <div className="masthead-rule" />
         </header>
 
-        {/* ═══ CHAT + PANEL ═══ */}
+        {/* ═══ HERO ═══ */}
+        <section className="mb-6 border-y border-[#1a1a1a]/15 py-5 text-center">
+          <h2 className="mx-auto max-w-2xl font-serif text-2xl font-black leading-tight text-[#1a1a1a] md:text-[28px]">
+            Your agent deserves skills it can trust.
+          </h2>
+          <p className="mx-auto mt-2 max-w-xl font-serif text-sm italic leading-relaxed text-[#1a1a1a]/50">
+            Every skill on the Dojo has an on-chain trust score built from real
+            transactions. Pay per call. No subscriptions. No guessing. Ask the
+            front desk below.
+          </p>
+        </section>
+
+        {/* ═══ CHAT + SIDEBAR ═══ */}
         <main
-          className="grid flex-1 gap-4 md:grid-cols-[minmax(0,1fr)_320px]"
-          style={{ minHeight: "calc(100vh - 280px)" }}
+          className="grid flex-1 gap-0 md:grid-cols-[minmax(0,1fr)_300px]"
+          style={{ minHeight: "600px" }}
         >
-          <section
-            className="flex min-h-[560px] flex-col border bg-[#f8f5ef]"
-            style={{
-              borderColor: "#b8a990",
-              borderLeftWidth: "3px",
-              borderLeftColor: "#1a1a1a",
-            }}
-          >
-            <div className="flex items-baseline justify-between border-b border-dotted border-[#1a1a1a]/20 px-4 py-2">
-              <span className="font-mono text-[9px] uppercase tracking-wider text-[#1a1a1a]/50">
-                Front Desk
-              </span>
-              <span className="font-mono text-[9px] text-[#1a1a1a]/30">
-                buyer mode
-              </span>
-            </div>
-            <div className="flex-1 overflow-hidden">
-              <ChatRoom />
-            </div>
+          <section className="flex min-h-[600px] flex-col border border-[#1a1a1a]/20 bg-[#f0ece2] md:border-r-0">
+            <ChatRoom />
           </section>
 
-          <aside
-            className="min-h-[560px] border bg-[#f0ece2]"
-            style={{ borderColor: "#b8a990" }}
-          >
+          <aside className="min-h-[600px] border border-[#1a1a1a]/20 bg-[#f0ece2]">
             <SidePanel role="buyer" />
           </aside>
         </main>
 
         {/* ═══ FOOTER ═══ */}
-        <footer className="mt-6">
+        <footer className="mt-8">
           <div className="masthead-rule mb-1" />
           <div className="mb-1 h-[1px] bg-[#1a1a1a]/20" />
-          <div className="masthead-rule mb-2" />
+          <div className="masthead-rule mb-3" />
           <div className="flex items-center justify-between py-1">
             <span className="font-mono text-[10px] uppercase tracking-wider text-[#1a1a1a]/25">
               The Dojo &copy; 2026 &middot; Maiat Protocol &middot; BSC

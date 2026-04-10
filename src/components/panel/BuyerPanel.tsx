@@ -1,25 +1,37 @@
 "use client";
 
 /**
- * BuyerPanel — side rail for a buyer-mode session.
+ * BuyerPanel — editorial sidebar for a buyer-mode session.
  *
  * Spec: specs/2026-04-09-chat-first-ui.md (panel = chat-adjacent state)
  *
- * Layout:
- *   1. Wallet status (Privy)
- *   2. Top skills (fetched once, links to /skill/[id])
- *   3. Recent sessions (Phase 2 stub)
+ * Styled as a newspaper classifieds column:
+ *   - "Agent" section (wallet status, Privy)
+ *   - "Headlines" section (top 5 skills, deep-link to /skill/[id])
+ *   - "Classifieds" stub (Phase 2 — sessions)
  *
- * The chat room is still the source of truth for actions — this panel is
- * a passive HUD. Clicking a skill here deep-links to the canonical URL
- * (invariant #2, chat ↔ URL duality).
+ * No boxy cards. Each section is introduced with a double-rule header
+ * and rows are separated by dotted dividers. The chat room is still the
+ * source of truth for actions; this panel is a passive editorial HUD.
  */
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePrivy } from "@privy-io/react-auth";
-import { User, Wallet } from "lucide-react";
 import type { ChatSkillSummary } from "../chat/types";
+
+function SectionHeader({ label, meta }: { label: string; meta?: string }) {
+  return (
+    <div className="mb-3 flex items-baseline justify-between border-b-[3px] border-double border-[#1a1a1a]/60 pb-1">
+      <span className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-[#1a1a1a]/70">
+        {label}
+      </span>
+      {meta && (
+        <span className="font-mono text-[9px] text-[#1a1a1a]/30">{meta}</span>
+      )}
+    </div>
+  );
+}
 
 export function BuyerPanel() {
   const { ready, authenticated, login, logout, user } = usePrivy();
@@ -49,125 +61,112 @@ export function BuyerPanel() {
     : null;
 
   return (
-    <aside className="flex h-full flex-col gap-4 overflow-y-auto px-4 py-4">
-      {/* Wallet card */}
-      <section
-        className="border bg-[#f8f5ef] p-3"
-        style={{
-          borderColor: "#b8a990",
-          borderLeftWidth: "3px",
-          borderLeftColor: "#1a1a1a",
-        }}
-      >
-        <div className="mb-2 flex items-center justify-between border-b border-dotted border-[#1a1a1a]/20 pb-1">
-          <span className="font-mono text-[9px] uppercase tracking-wider text-[#1a1a1a]/50">
-            Agent
-          </span>
-          <span className="font-mono text-[9px] text-[#1a1a1a]/30">
-            {ready ? (authenticated ? "connected" : "offline") : "…"}
-          </span>
-        </div>
+    <aside className="flex h-full flex-col gap-8 overflow-y-auto px-5 py-6">
+      {/* ─── AGENT ─── */}
+      <section>
+        <SectionHeader
+          label="Agent"
+          meta={ready ? (authenticated ? "online" : "offline") : "…"}
+        />
         {!ready ? (
-          <p className="font-mono text-[10px] text-[#1a1a1a]/30">
+          <p className="font-serif text-[13px] italic text-[#1a1a1a]/30">
             Booting wallet…
           </p>
         ) : authenticated && user ? (
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2 font-serif text-sm font-bold text-[#1a1a1a]">
-              <User size={12} className="text-[#1a1a1a]/60" />
+          <div className="space-y-2">
+            <div className="font-serif text-[15px] font-bold leading-tight text-[#1a1a1a]">
               {displayName}
             </div>
             {user.wallet?.address && (
-              <div className="flex items-center gap-2 font-mono text-[9px] text-[#1a1a1a]/40">
-                <Wallet size={10} />
-                <span className="truncate">{user.wallet.address}</span>
+              <div className="font-mono text-[9px] uppercase tracking-wider text-[#1a1a1a]/40">
+                <span className="text-[#1a1a1a]/25">wallet</span>{" "}
+                {user.wallet.address.slice(0, 10)}…
+                {user.wallet.address.slice(-6)}
               </div>
             )}
             <button
               onClick={logout}
-              className="self-start font-mono text-[9px] uppercase tracking-wider text-[#1a1a1a]/40 underline underline-offset-2 hover:text-[#1a1a1a]"
+              className="pt-1 font-mono text-[9px] uppercase tracking-wider text-[#1a1a1a]/35 underline underline-offset-2 transition hover:text-[#8b0000]"
             >
-              Sign Out
+              Sign out
             </button>
           </div>
         ) : (
-          <button
-            onClick={login}
-            className="mt-1 flex w-full items-center justify-center gap-2 border border-[#1a1a1a] bg-[#1a1a1a] px-3 py-2 font-mono text-[10px] uppercase tracking-wider text-[#f0ece2] transition hover:bg-[#1a1a1a]/90"
-          >
-            <Wallet size={12} />
-            Connect Wallet
-          </button>
+          <div className="space-y-2">
+            <p className="font-serif text-[13px] italic leading-snug text-[#1a1a1a]/50">
+              Connect a wallet to open sessions &amp; track trust scores.
+            </p>
+            <button
+              onClick={login}
+              className="mt-1 w-full border border-[#1a1a1a] bg-[#1a1a1a] px-3 py-2 font-mono text-[10px] uppercase tracking-wider text-[#f0ece2] transition hover:bg-[#1a1a1a]/85"
+            >
+              Connect Wallet →
+            </button>
+          </div>
         )}
       </section>
 
-      {/* Top skills card */}
-      <section
-        className="border bg-[#f8f5ef] p-3"
-        style={{
-          borderColor: "#b8a990",
-          borderLeftWidth: "3px",
-          borderLeftColor: "#1a1a1a",
-        }}
-      >
-        <div className="mb-2 flex items-baseline justify-between border-b border-dotted border-[#1a1a1a]/20 pb-1">
-          <span className="font-mono text-[9px] uppercase tracking-wider text-[#1a1a1a]/50">
-            Top Skills
-          </span>
-          <span className="font-mono text-[9px] text-[#1a1a1a]/30">
-            {top?.length ?? "…"}
-          </span>
-        </div>
+      {/* ─── HEADLINES ─── */}
+      <section>
+        <SectionHeader
+          label="Headlines"
+          meta={top?.length ? `top ${top.length}` : undefined}
+        />
         {top === null ? (
-          <p className="font-mono text-[10px] text-[#1a1a1a]/30">Loading…</p>
+          <p className="font-serif text-[13px] italic text-[#1a1a1a]/30">
+            Loading…
+          </p>
         ) : top.length === 0 ? (
-          <p className="font-mono text-[10px] text-[#1a1a1a]/30">
+          <p className="font-serif text-[13px] italic text-[#1a1a1a]/30">
             No skills listed yet.
           </p>
         ) : (
-          <ul className="divide-y divide-dotted divide-[#1a1a1a]/15">
+          <ul>
             {top.map((s, i) => (
-              <li key={s.id} className="flex items-baseline gap-2 py-1.5">
-                <span className="font-serif text-sm font-black leading-none text-[#1a1a1a]/15">
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <Link
-                    href={`/skill/${s.id}`}
-                    className="block truncate font-serif text-xs font-bold text-[#1a1a1a] hover:underline"
-                  >
-                    {s.name}
-                  </Link>
-                  {s.category && (
-                    <div className="font-mono text-[9px] uppercase tracking-wider text-[#1a1a1a]/35">
-                      {s.category}
+              <li
+                key={s.id}
+                className="border-b border-dotted border-[#1a1a1a]/15 py-2 last:border-b-0"
+              >
+                <div className="flex items-start gap-2.5">
+                  <span className="w-5 shrink-0 pt-0.5 text-right font-serif text-[14px] font-black leading-none text-[#1a1a1a]/15">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <Link
+                      href={`/skill/${s.id}`}
+                      className="block truncate font-serif text-[13px] font-bold leading-tight text-[#1a1a1a] hover:underline"
+                    >
+                      {s.name}
+                    </Link>
+                    <div className="mt-0.5 flex items-baseline justify-between gap-2">
+                      <span className="truncate font-mono text-[9px] uppercase tracking-wider text-[#1a1a1a]/35">
+                        {s.category ?? "misc"}
+                      </span>
+                      <span className="shrink-0 font-mono text-[9px] font-bold text-[#1a1a1a]">
+                        {s.pricePerCall != null && s.pricePerCall > 0
+                          ? `$${s.pricePerCall.toFixed(3)}`
+                          : "FREE"}
+                      </span>
                     </div>
-                  )}
+                  </div>
                 </div>
-                <span className="shrink-0 font-mono text-[9px] font-bold text-[#1a1a1a]">
-                  {s.pricePerCall != null && s.pricePerCall > 0
-                    ? `$${s.pricePerCall.toFixed(3)}`
-                    : "FREE"}
-                </span>
               </li>
             ))}
           </ul>
         )}
-        <div className="mt-2 border-t border-dotted border-[#1a1a1a]/20 pt-1 text-right font-mono text-[9px] text-[#1a1a1a]/30">
-          say <span className="text-[#1a1a1a]/60">list skills</span> in chat
+        <div className="mt-3 text-right font-mono text-[9px] text-[#1a1a1a]/30">
+          say{" "}
+          <span className="text-[#8b0000]/70">list skills</span> in chat for
+          the full catalogue
         </div>
       </section>
 
-      {/* Sessions stub */}
-      <section
-        className="border border-dashed bg-[#f8f5ef]/50 p-3"
-        style={{ borderColor: "#b8a990" }}
-      >
-        <div className="mb-1 font-mono text-[9px] uppercase tracking-wider text-[#1a1a1a]/40">
-          Recent Sessions
-        </div>
-        <p className="font-serif text-xs italic text-[#1a1a1a]/30">
-          Ships in Phase 2 — session history &amp; close flow.
+      {/* ─── CLASSIFIEDS (phase 2 stub) ─── */}
+      <section>
+        <SectionHeader label="Classifieds" meta="phase 2" />
+        <p className="font-serif text-[13px] italic leading-snug text-[#1a1a1a]/35">
+          Session history &amp; close flow ships in Phase 2. Until then,
+          every run is sandboxed.
         </p>
       </section>
     </aside>

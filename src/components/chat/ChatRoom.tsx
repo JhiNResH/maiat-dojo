@@ -51,7 +51,7 @@ const GREETING: ChatMsg = {
   kind: "text",
   ts: 0,
   content:
-    'Welcome to the Dojo. I\'m the front desk for the marketplace.\nTry "list skills" to browse, "price of BTC" to sandbox the oracle, or "help" for the full command list.',
+    "Welcome to the Dojo. I'm the front desk for the marketplace — I can browse the catalog, sandbox-run any skill, or walk you through a session.\n\nTry \"list skills\" to see what's on offer, \"price of BTC\" to test the oracle, or \"help\" for the full command list.",
 };
 
 export function ChatRoom() {
@@ -210,15 +210,24 @@ export function ChatRoom() {
     <div className="flex h-full flex-col">
       <div
         ref={scrollerRef}
-        className="flex-1 overflow-y-auto px-4 py-4"
+        className="flex-1 overflow-y-auto px-6 pt-6 pb-2"
         style={{ scrollBehavior: "smooth" }}
       >
         {renderedMessages}
         {pending && (
-          <div className="mb-3 flex justify-start">
-            <span className="font-mono text-[9px] uppercase tracking-wider text-[#1a1a1a]/40">
-              Dojo is thinking…
-            </span>
+          <div className="mb-8">
+            <div className="mb-1.5 flex items-center gap-2">
+              <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-[#8b0000]/70">
+                Dojo
+              </span>
+              <span className="h-px flex-1 bg-[#1a1a1a]/10" />
+            </div>
+            <div className="flex items-center gap-1.5 font-serif text-[15px] italic text-[#1a1a1a]/40">
+              <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[#1a1a1a]/50 [animation-delay:0ms]" />
+              <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[#1a1a1a]/50 [animation-delay:150ms]" />
+              <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[#1a1a1a]/50 [animation-delay:300ms]" />
+              <span className="ml-1">thinking</span>
+            </div>
           </div>
         )}
       </div>
