@@ -70,7 +70,9 @@ export async function POST(req: NextRequest) {
         /^192\.168\./,
         /^169\.254\./,   // link-local / cloud metadata
         /^::1$/,         // IPv6 loopback
-        /^fc00:/,        // IPv6 ULA
+        /^fc00:/,        // ULA fc00::/8
+        /^fd/,           // ULA fd00::/8 (fc00::/7 covers both fc and fd)
+        /^fe[89ab][0-9a-f]:/i, // link-local fe80::/10
       ];
       if (BLOCKED.some((rx) => rx.test(hostname))) {
         return NextResponse.json(

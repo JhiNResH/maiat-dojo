@@ -87,6 +87,7 @@ export function PublishWizardCard() {
 
   const authHeaders = useCallback(async () => {
     const token = await getAccessToken();
+    if (!token) throw new Error('Session expired — please sign in and try again.');
     return { Authorization: `Bearer ${token}` };
   }, [getAccessToken]);
 
