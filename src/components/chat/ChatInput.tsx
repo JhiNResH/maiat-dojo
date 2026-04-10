@@ -15,15 +15,19 @@
 import { useRef, useState } from "react";
 import { CornerDownLeft } from "lucide-react";
 
+export type ChatInputVariant = "hero" | "compact";
+
 export interface ChatInputProps {
   pending?: boolean;
   placeholder?: string;
+  variant?: ChatInputVariant;
   onSubmit: (text: string) => void;
 }
 
 export function ChatInput({
   pending = false,
   placeholder = 'Ask the front desk — try "list skills", "price of BTC", or "help"',
+  variant = "compact",
   onSubmit,
 }: ChatInputProps) {
   const [value, setValue] = useState("");
@@ -45,22 +49,33 @@ export function ChatInput({
   }
 
   const canSend = value.trim().length > 0 && !pending;
+  const isHero = variant === "hero";
+
+  // Hero variant: no outer px/pb wrapper (parent controls spacing), bigger
+  // textarea, thicker border, larger serif for a search-bar-like presence.
+  // Compact variant: the original Claude-style bottom composer.
+  const wrapperClass = isHero ? "" : "px-6 pb-5 pt-2";
+  const containerClass = isHero
+    ? "border-2 bg-[#f8f5ef]"
+    : "border bg-[#f8f5ef] shadow-[0_-1px_0_0_rgba(26,26,26,0.06),0_1px_0_0_rgba(26,26,26,0.04)]";
+  const textareaClass = isHero
+    ? "block w-full resize-none border-0 bg-transparent px-5 pt-5 pb-3 font-serif text-[18px] leading-[1.5] text-[#1a1a1a] placeholder:font-serif placeholder:italic placeholder:text-[#1a1a1a]/30 focus:outline-none"
+    : "block w-full resize-none border-0 bg-transparent px-4 pt-4 pb-2 font-serif text-[15px] leading-[1.55] text-[#1a1a1a] placeholder:font-serif placeholder:italic placeholder:text-[#1a1a1a]/30 focus:outline-none";
+  const textareaRows = isHero ? 3 : 2;
+  const textareaMaxHeight = isHero ? "220px" : "160px";
 
   return (
-    <div className="px-6 pb-5 pt-2">
-      <div
-        className="border bg-[#f8f5ef] shadow-[0_-1px_0_0_rgba(26,26,26,0.06),0_1px_0_0_rgba(26,26,26,0.04)]"
-        style={{ borderColor: "#1a1a1a" }}
-      >
+    <div className={wrapperClass}>
+      <div className={containerClass} style={{ borderColor: "#1a1a1a" }}>
         <textarea
           ref={taRef}
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          rows={2}
-          className="block w-full resize-none border-0 bg-transparent px-4 pt-4 pb-2 font-serif text-[15px] leading-[1.55] text-[#1a1a1a] placeholder:font-serif placeholder:italic placeholder:text-[#1a1a1a]/30 focus:outline-none"
-          style={{ maxHeight: "160px" }}
+          rows={textareaRows}
+          className={textareaClass}
+          style={{ maxHeight: textareaMaxHeight }}
           disabled={pending}
           autoFocus
         />
