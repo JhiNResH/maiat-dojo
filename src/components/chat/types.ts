@@ -27,6 +27,7 @@ export type ChatMessage =
   | DojoHelp
   | DojoSkillList
   | DojoSkillExecutor
+  | DojoPublishWizard
   | DojoPhase2Stub;
 
 interface BaseMessage {
@@ -62,6 +63,11 @@ export interface DojoSkillExecutor extends BaseMessage {
   role: "dojo";
   kind: "skill-executor";
   skill: SkillExecutorSkill & ChatSkillSummary;
+}
+
+export interface DojoPublishWizard extends BaseMessage {
+  role: "dojo";
+  kind: "publish-wizard";
 }
 
 export interface DojoPhase2Stub extends BaseMessage {

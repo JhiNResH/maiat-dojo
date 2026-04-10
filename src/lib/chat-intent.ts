@@ -18,6 +18,7 @@
 
 export type ChatIntent =
   | { kind: 'help' }
+  | { kind: 'publish' }
   | { kind: 'list-skills'; query?: string }
   | { kind: 'call-skill'; query: string }
   | { kind: 'my-sessions' }
@@ -25,6 +26,7 @@ export type ChatIntent =
   | { kind: 'unknown'; raw: string };
 
 const HELP_RX = /^\s*(help|\?|\/help|commands?|what can you do)\s*$/i;
+const PUBLISH_RX = /^\s*(publish|add\s+skill|create\s+skill|new\s+skill)\s*$/i;
 const LIST_RX =
   /^\s*(list|show|browse|see|view)?\s*(all\s+)?skills?\s*$/i;
 const LIST_FUZZY_RX = /^\s*(list|browse)\s*$/i;
@@ -41,6 +43,8 @@ export function parseChatIntent(raw: string): ChatIntent {
   if (text.length === 0) return { kind: 'unknown', raw };
 
   if (HELP_RX.test(text)) return { kind: 'help' };
+
+  if (PUBLISH_RX.test(text)) return { kind: 'publish' };
 
   if (LIST_RX.test(text) || LIST_FUZZY_RX.test(text)) {
     return { kind: 'list-skills' };

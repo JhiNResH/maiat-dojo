@@ -21,6 +21,7 @@
 import type { ChatMessage as ChatMsg, ChatSkillSummary } from "./types";
 import { SkillListCard } from "./cards/SkillListCard";
 import { CommandHelpCard } from "./cards/CommandHelpCard";
+import { PublishWizardCard } from "./cards/PublishWizardCard";
 import { SkillExecutor } from "../skill/SkillExecutor";
 
 export interface ChatMessageProps {
@@ -127,6 +128,13 @@ export function ChatMessage({ message, onRunSkill }: ChatMessageProps) {
       return (
         <Row role="dojo">
           <SkillExecutor skill={message.skill} mode="sandbox" />
+        </Row>
+      );
+
+    case "publish-wizard":
+      return (
+        <Row role="dojo">
+          <PublishWizardCard />
         </Row>
       );
 

@@ -18,6 +18,7 @@ interface CommandRow {
 const COMMANDS: CommandRow[] = [
   { cmd: "list skills", desc: "Browse the marketplace" },
   { cmd: "call <name>", desc: "Sandbox-run a skill in chat" },
+  { cmd: "publish", desc: "Publish a new skill (6-step wizard)" },
   { cmd: "price of BTC", desc: "Shortcut → Token Price Oracle" },
   { cmd: "echo", desc: "Shortcut → Echo Test" },
   { cmd: "help", desc: "Show this list" },

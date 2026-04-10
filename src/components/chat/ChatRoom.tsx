@@ -144,6 +144,10 @@ export function ChatRoom() {
           return;
         }
 
+        case "publish":
+          push({ role: "dojo", kind: "publish-wizard" });
+          return;
+
         case "my-sessions":
           push({ role: "dojo", kind: "phase-2-stub", feature: "my sessions" });
           return;
