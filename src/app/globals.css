@@ -46,6 +46,23 @@ body {
   transition: background-color 0.7s ease, color 0.7s ease;
 }
 
+/* Newspaper grain — fractal noise overlay with multiply blend so the dark
+   specks actually bite into the paper, not float on top. Fixed-position +
+   pointer-events: none so it never blocks interactivity. Two layers:
+   1. Fine high-frequency grain (fibers in the paper stock)
+   2. Coarser low-frequency grain (uneven ink coverage) */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1000;
+  mix-blend-mode: multiply;
+  background-image:
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.3' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.18'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.08'/%3E%3C/svg%3E");
+}
+
 /* ── Liquid Glass ── */
 .liquid-glass {
   backdrop-filter: blur(60px) saturate(180%);
@@ -87,4 +104,97 @@ body {
 /* ── Bg Radial Gradient (for Tailwind `bg-gradient-radial`) ── */
 .bg-gradient-radial {
   background: radial-gradient(var(--tw-gradient-stops));
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   EDITORIAL MICRO-MOTION — post-liquid-glass polish pass
+   spec: specs/2026-04-09-chat-first-ui.md (editorial polish §Motion)
+═══════════════════════════════════════════════════════════════════ */
+
+/* Letterpress hover — text sinks 0.5px with a paper-colored highlight on
+   top and an ink shadow beneath, mimicking a pressed lead type character.
+   Apply sparingly to interactive text (nav links, button labels, etc.) */
+.letterpress {
+  transition: transform 180ms ease, text-shadow 180ms ease;
+}
+.letterpress:hover {
+  transform: translateY(0.5px);
+  text-shadow:
+    0 -0.5px 0 rgba(240, 236, 226, 0.9),
+    0 1px 1.5px rgba(26, 26, 26, 0.22);
+}
+
+/* Ink-pen underline — reveals a hand-drawn wavy line beneath the text on
+   hover, left-to-right, with a pen-ease cubic-bezier so it accelerates
+   slightly at the end like a real stroke. Inline SVG data URI = no extra
+   HTTP request. Encoded color: %231a1a1a = #1a1a1a. */
+.ink-underline {
+  background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 6' preserveAspectRatio='none'%3E%3Cpath d='M1,3 Q20,1 40,3 T80,3 T119,3' stroke='%231a1a1a' stroke-width='1.3' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 0% 5px;
+  padding-bottom: 4px;
+  transition: background-size 460ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.ink-underline:hover,
+.ink-underline:focus-visible {
+  background-size: 100% 5px;
+}
+
+/* Typewriter reveal — rows fade-and-rise into place with a per-item
+   stagger. Parent passes `style={{ animationDelay }}` with the index.
+   Respects prefers-reduced-motion. */
+@keyframes reveal-row {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .reveal-row {
+    animation: reveal-row 420ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  }
+}
+
+/* Editorial pull quote — oversized italic serif with a hanging opening
+   quote and a thick ink rule on the left. Drop cap is handled inline via
+   ::first-letter. Hanging-punctuation pulls the leading " outside the
+   block in browsers that support it (Safari, mobile) and degrades
+   silently elsewhere. */
+.editorial-pull-quote {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 1.5rem;
+  line-height: 1.4;
+  color: var(--ink);
+  padding: 0.25rem 0 0.25rem 1.25rem;
+  border-left: 3px solid var(--ink);
+  hanging-punctuation: first last;
+  text-wrap: balance;
+  position: relative;
+}
+.editorial-pull-quote::first-letter {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 3.25rem;
+  line-height: 0.85;
+  float: left;
+  padding-right: 0.35rem;
+  padding-top: 0.2rem;
+  font-weight: 900;
+}
+.editorial-pull-quote::before {
+  content: '\201C'; /* opening curly quote */
+  position: absolute;
+  left: -0.45em;
+  top: -0.15em;
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: rgba(26, 26, 26, 0.25);
+  line-height: 1;
 }
