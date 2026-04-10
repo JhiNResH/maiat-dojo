@@ -3,8 +3,11 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { ArrowLeft } from "lucide-react";
 import PurchaseCard from "@/components/PurchaseCard";
+import TrustCard from "@/components/skill/TrustCard";
 
 export const dynamic = "force-dynamic";
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 function truncateAddress(address: string | null | undefined): string {
   if (!address) return "—";
@@ -25,19 +28,78 @@ export default async function SkillPage({ params }: { params: { id: string } }) 
     include: {
       creator: true,
       sessions: {
-        where: { status: { in: ["settled", "refunded"] } },
-        select: { callCount: true, status: true },
+        orderBy: { openedAt: "desc" },
+        select: {
+          status: true,
+          callCount: true,
+          basAttestationUid: true,
+          openedAt: true,
+          payerAgentId: true,
+          calls: { select: { latencyMs: true } },
+        },
       },
     },
   });
 
   if (!skill) notFound();
 
-  // Real stats from DB
-  const totalCalls = skill.sessions.reduce((sum, s) => sum + s.callCount, 0);
+  // ─── TrustCard stats ────────────────────────────────────────────
+  // (Computed next to the query so Prisma + math stay colocated.)
   const totalSessions = skill.sessions.length;
+  const totalCalls = skill.sessions.reduce((sum, s) => sum + s.callCount, 0);
   const passedSessions = skill.sessions.filter((s) => s.status === "settled").length;
   const passRate = totalSessions > 0 ? Math.round((passedSessions / totalSessions) * 100) : 0;
+
+  // Prefer evaluator-assigned score; fall back to DB-derived pass rate.
+  const trustScore = skill.evaluationScore ?? passRate;
+
+  // BAS attestation split: only sessions that emitted a uid count.
+  const basPassCount = skill.sessions.filter(
+    (s) => s.basAttestationUid && s.status === "settled",
+  ).length;
+  const basFailCount = skill.sessions.filter(
+    (s) => s.basAttestationUid && s.status === "refunded",
+  ).length;
+
+  // Median latency across every SkillCall (ignores null/zero).
+  const latencies = skill.sessions
+    .flatMap((s) => s.calls)
+    .map((c) => c.latencyMs)
+    .filter((n): n is number => typeof n === "number" && n > 0)
+    .sort((a, b) => a - b);
+  const medianLatencyMs = latencies.length
+    ? latencies[Math.floor(latencies.length / 2)]
+    : null;
+
+  // Sparkline: last 10 sessions, oldest → newest, mapped to a 0-100 score.
+  // settled = 100, refunded = 20, anything in-flight = 60 (interim).
+  const sparkline = [...skill.sessions]
+    .slice(0, 10)
+    .reverse()
+    .map((s) => (s.status === "settled" ? 100 : s.status === "refunded" ? 20 : 60));
+
+  // 7-day activity heatmap: one bucket per day, oldest on the left.
+  const now = Date.now();
+  const last7Days = Array.from({ length: 7 }, (_, i) => {
+    const dayStart = now - (6 - i) * DAY_MS;
+    const dayEnd = dayStart + DAY_MS;
+    return skill.sessions.some((s) => {
+      const t = s.openedAt.getTime();
+      return t >= dayStart && t < dayEnd;
+    });
+  });
+
+  // Unique agents in the last 7 days.
+  const weekAgo = now - 7 * DAY_MS;
+  const uniqueAgentsThisWeek = new Set(
+    skill.sessions
+      .filter((s) => s.openedAt.getTime() >= weekAgo)
+      .map((s) => s.payerAgentId),
+  ).size;
+
+  const creatorVerified = skill.creator.erc8004TokenId != null;
+  const creatorLabel =
+    skill.creator.displayName || truncateAddress(skill.creator.walletAddress);
 
   return (
     <main className="min-h-screen bg-[#f0ece2]">
@@ -71,41 +133,23 @@ export default async function SkillPage({ params }: { params: { id: string } }) 
           </p>
         </header>
 
-        {/* ═══ STATS BAR ═══ */}
-        <div className="flex divide-x divide-[#1a1a1a]/15 border-y border-[#1a1a1a]/15 mb-8">
-          <div className="flex-1 text-center py-4">
-            <span className="font-serif font-black text-2xl text-[#1a1a1a] block leading-none">
-              {skill.pricePerCall ? `$${skill.pricePerCall.toFixed(2)}` : "FREE"}
-            </span>
-            <span className="font-mono text-[10px] uppercase tracking-wider text-[#1a1a1a]/40 block mt-1">
-              Per Call
-            </span>
-          </div>
-          <div className="flex-1 text-center py-4">
-            <span className="font-serif font-black text-2xl text-[#1a1a1a] block leading-none">
-              {totalCalls.toLocaleString()}
-            </span>
-            <span className="font-mono text-[10px] uppercase tracking-wider text-[#1a1a1a]/40 block mt-1">
-              Total Calls
-            </span>
-          </div>
-          <div className="flex-1 text-center py-4">
-            <span className="font-serif font-black text-2xl text-[#1a1a1a] block leading-none">
-              {totalSessions}
-            </span>
-            <span className="font-mono text-[10px] uppercase tracking-wider text-[#1a1a1a]/40 block mt-1">
-              Sessions
-            </span>
-          </div>
-          <div className="flex-1 text-center py-4">
-            <span className="font-serif font-black text-2xl text-[#1a1a1a] block leading-none">
-              <TrustBar score={skill.evaluationScore ?? 0} />
-            </span>
-            <span className="font-mono text-[10px] uppercase tracking-wider text-[#1a1a1a]/40 block mt-1">
-              Trust Score
-            </span>
-          </div>
-        </div>
+        {/* ═══ TRUST DOSSIER (flagship #1, PR #18) ═══ */}
+        <TrustCard
+          skillName={skill.name}
+          category={skill.category}
+          trustScore={trustScore}
+          sparkline={sparkline}
+          totalSessions={totalSessions}
+          totalCalls={totalCalls}
+          creatorLabel={creatorLabel}
+          creatorAddress={skill.creator.walletAddress}
+          creatorVerified={creatorVerified}
+          basPassCount={basPassCount}
+          basFailCount={basFailCount}
+          medianLatencyMs={medianLatencyMs}
+          last7Days={last7Days}
+          uniqueAgentsThisWeek={uniqueAgentsThisWeek}
+        />
 
         {/* ═══ TWO-COLUMN ═══ */}
         <div className="grid md:grid-cols-[1fr_260px] gap-8">
@@ -129,42 +173,6 @@ export default async function SkillPage({ params }: { params: { id: string } }) 
               </div>
             </section>
 
-            {/* Session History */}
-            {totalSessions > 0 && (
-              <section className="mb-8">
-                <div className="section-header mb-4">
-                  <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-[#1a1a1a]/60">
-                    Session History
-                  </span>
-                </div>
-                <div className="classified" data-label="Stats">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <span className="font-mono text-[10px] text-[#1a1a1a]/40 uppercase tracking-wider block mb-1">
-                        Pass Rate
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 h-2 bg-[#1a1a1a]/10 overflow-hidden">
-                          <div
-                            className="h-full bg-[#1a1a1a]"
-                            style={{ width: `${passRate}%` }}
-                          />
-                        </div>
-                        <span className="font-mono text-xs font-bold text-[#1a1a1a]">{passRate}%</span>
-                      </div>
-                    </div>
-                    <div>
-                      <span className="font-mono text-[10px] text-[#1a1a1a]/40 uppercase tracking-wider block mb-1">
-                        Avg Calls / Session
-                      </span>
-                      <span className="font-mono text-sm font-bold text-[#1a1a1a]">
-                        {totalSessions > 0 ? (totalCalls / totalSessions).toFixed(1) : "—"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </section>
-            )}
           </div>
 
           {/* ─── RIGHT SIDEBAR ─── */}
@@ -251,25 +259,3 @@ export default async function SkillPage({ params }: { params: { id: string } }) 
   );
 }
 
-// --- Trust Score Bar ---
-
-function TrustBar({ score }: { score: number }) {
-  const clamped = Math.min(100, Math.max(0, score));
-  const filled = Math.round(clamped / 10);
-
-  return (
-    <div className="flex items-center gap-1.5 justify-center">
-      <div className="flex gap-[2px]">
-        {Array.from({ length: 10 }).map((_, i) => (
-          <div
-            key={i}
-            className={`w-[5px] h-3 ${
-              i < filled ? "bg-[#1a1a1a]" : "bg-[#1a1a1a]/10"
-            }`}
-          />
-        ))}
-      </div>
-      <span className="text-xs font-mono text-[#1a1a1a]/50">{clamped}</span>
-    </div>
-  );
-}
