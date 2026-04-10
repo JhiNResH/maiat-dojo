@@ -7,6 +7,7 @@ import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
 import { BackgroundEffect } from '@/components/landing/BackgroundEffect';
 import PurchaseCard from '@/components/PurchaseCard';
+import TrustCard from '@/components/TrustCard';
 
 interface SkillData {
   id: string;
@@ -26,7 +27,20 @@ interface SkillData {
     id: string;
     displayName: string | null;
     walletAddress: string | null;
+    erc8004TokenId: string | null;
   };
+}
+
+interface Attestation {
+  sessionId: string;
+  status: 'settled' | 'refunded';
+  uid: string;
+  settledAt: string | null;
+}
+
+interface HeatmapBucket {
+  date: string;
+  count: number;
 }
 
 interface Props {
@@ -34,6 +48,12 @@ interface Props {
   totalCalls: number;
   totalSessions: number;
   passRate: number;
+  passedSessions: number;
+  failedSessions: number;
+  sparkline: number[];
+  medianLatencyMs: number | null;
+  heatmap: HeatmapBucket[];
+  attestations: Attestation[];
 }
 
 function truncateAddress(address: string | null | undefined): string {
@@ -53,7 +73,12 @@ export default function SkillPageClient({
   skill,
   totalCalls,
   totalSessions,
-  passRate,
+  passedSessions,
+  failedSessions,
+  sparkline,
+  medianLatencyMs,
+  heatmap,
+  attestations,
 }: Props) {
   const { isDark } = useDarkMode();
   const trustScore = skill.evaluationScore ?? 0;
@@ -186,110 +211,22 @@ export default function SkillPageClient({
                 </div>
               </section>
 
-              {totalSessions > 0 && (
-                <section
-                  className={`rounded-3xl p-8 border transition-colors duration-700 ${glassCard}`}
-                  style={glassStyle}
-                >
-                  <div
-                    className={`text-[10px] font-bold uppercase tracking-[0.3em] mb-6 ${
-                      isDark ? 'text-gray-500' : 'text-gray-400'
-                    }`}
-                  >
-                    Session history
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span
-                          className={`text-[10px] font-bold uppercase tracking-[0.15em] ${
-                            isDark ? 'text-gray-500' : 'text-gray-400'
-                          }`}
-                        >
-                          Pass rate
-                        </span>
-                        <span
-                          className={`font-mono text-sm font-bold tabular-nums ${
-                            isDark ? 'text-white' : 'text-black'
-                          }`}
-                        >
-                          {passRate}%
-                        </span>
-                      </div>
-                      <div
-                        className={`h-1.5 rounded-full overflow-hidden ${
-                          isDark ? 'bg-white/10' : 'bg-black/10'
-                        }`}
-                      >
-                        <div
-                          className="h-full rounded-full bg-emerald-500 transition-all"
-                          style={{ width: `${passRate}%` }}
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <div
-                        className={`text-[10px] font-bold uppercase tracking-[0.15em] mb-2 ${
-                          isDark ? 'text-gray-500' : 'text-gray-400'
-                        }`}
-                      >
-                        Avg calls / session
-                      </div>
-                      <div
-                        className={`font-mono text-2xl font-bold tabular-nums ${
-                          isDark ? 'text-white' : 'text-black'
-                        }`}
-                      >
-                        {totalSessions > 0
-                          ? (totalCalls / totalSessions).toFixed(1)
-                          : '—'}
-                      </div>
-                    </div>
-                  </div>
-                </section>
-              )}
-
-              {/* Trust meter card */}
-              <section
-                className={`rounded-3xl p-8 border transition-colors duration-700 ${glassCard}`}
-                style={glassStyle}
-              >
-                <div
-                  className={`text-[10px] font-bold uppercase tracking-[0.3em] mb-5 ${
-                    isDark ? 'text-gray-500' : 'text-gray-400'
-                  }`}
-                >
-                  Trust score
-                </div>
-                <div className="flex items-center gap-5">
-                  <div
-                    className={`font-mono text-5xl font-bold tabular-nums ${
-                      isDark ? 'text-white' : 'text-black'
-                    }`}
-                  >
-                    {trustScore}
-                  </div>
-                  <div className="flex-1">
-                    <div
-                      className={`h-1.5 rounded-full overflow-hidden mb-2 ${
-                        isDark ? 'bg-white/10' : 'bg-black/10'
-                      }`}
-                    >
-                      <div
-                        className="h-full rounded-full bg-emerald-500 transition-all"
-                        style={{ width: `${Math.min(100, trustScore)}%` }}
-                      />
-                    </div>
-                    <p
-                      className={`text-xs ${
-                        isDark ? 'text-gray-500' : 'text-gray-400'
-                      }`}
-                    >
-                      Built from {totalSessions} on-chain BAS attestations on BSC.
-                    </p>
-                  </div>
-                </div>
-              </section>
+              {/* Flagship: trust dossier */}
+              <TrustCard
+                trustScore={trustScore}
+                passedSessions={passedSessions}
+                failedSessions={failedSessions}
+                totalSessions={totalSessions}
+                medianLatencyMs={medianLatencyMs}
+                sparkline={sparkline}
+                heatmap={heatmap}
+                attestations={attestations}
+                creator={{
+                  displayName: skill.creator.displayName,
+                  walletAddress: skill.creator.walletAddress,
+                  erc8004TokenId: skill.creator.erc8004TokenId,
+                }}
+              />
             </div>
 
             {/* Right sidebar */}
