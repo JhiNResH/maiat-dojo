@@ -26,6 +26,7 @@ import {
 } from "@/lib/chat-intent";
 import { ChatMessage } from "./ChatMessage";
 import { ChatInput } from "./ChatInput";
+import { LandingHero } from "../landing/LandingHero";
 import {
   nextMessageId,
   type ChatMessage as ChatMsg,
@@ -45,17 +46,14 @@ type ChatMsgDraft = DistributiveOmit<ChatMsg, "id" | "ts">;
 // because both halves are present in the same row.
 type CatalogSkill = ChatSkillSummary & SkillExecutorSkill;
 
-const GREETING: ChatMsg = {
-  id: "m-greeting",
-  role: "dojo",
-  kind: "text",
-  ts: 0,
-  content:
-    "Welcome to the Dojo. I'm the front desk for the marketplace — I can browse the catalog, sandbox-run any skill, or walk you through a session.\n\nTry \"list skills\" to see what's on offer, \"price of BTC\" to test the oracle, or \"help\" for the full command list.",
-};
+/**
+ * Landing vs chat mode toggle — we start with ZERO messages. The landing
+ * hero IS the greeting, so no canned "welcome" card gets inserted into the
+ * log. First user submit flips the state into full chat view.
+ */
 
 export function ChatRoom() {
-  const [messages, setMessages] = useState<ChatMsg[]>([GREETING]);
+  const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [pending, setPending] = useState(false);
   const [catalog, setCatalog] = useState<CatalogSkill[] | null>(null);
   const [catalogError, setCatalogError] = useState<string | null>(null);
@@ -206,6 +204,15 @@ export function ChatRoom() {
     [messages, handleRunFromList]
   );
 
+  // Landing mode: zero-message state shows the editorial hero + leaderboard
+  // + trending. The hero's own composer routes through handleSubmit too, so
+  // submitting from either surface lands in the same dispatcher.
+  const isLanding = messages.length === 0;
+
+  if (isLanding) {
+    return <LandingHero pending={pending} onSubmit={handleSubmit} />;
+  }
+
   return (
     <div className="flex h-full flex-col">
       <div
@@ -213,25 +220,29 @@ export function ChatRoom() {
         className="flex-1 overflow-y-auto px-6 pt-6 pb-2"
         style={{ scrollBehavior: "smooth" }}
       >
-        {renderedMessages}
-        {pending && (
-          <div className="mb-8">
-            <div className="mb-1.5 flex items-center gap-2">
-              <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-[#8b0000]/70">
-                Dojo
-              </span>
-              <span className="h-px flex-1 bg-[#1a1a1a]/10" />
+        <div className="mx-auto w-full max-w-2xl">
+          {renderedMessages}
+          {pending && (
+            <div className="mb-8">
+              <div className="mb-1.5 flex items-center gap-2">
+                <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-[#8b0000]/70">
+                  Dojo
+                </span>
+                <span className="h-px flex-1 bg-[#1a1a1a]/10" />
+              </div>
+              <div className="flex items-center gap-1.5 font-serif text-[15px] italic text-[#1a1a1a]/40">
+                <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[#1a1a1a]/50 [animation-delay:0ms]" />
+                <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[#1a1a1a]/50 [animation-delay:150ms]" />
+                <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[#1a1a1a]/50 [animation-delay:300ms]" />
+                <span className="ml-1">thinking</span>
+              </div>
             </div>
-            <div className="flex items-center gap-1.5 font-serif text-[15px] italic text-[#1a1a1a]/40">
-              <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[#1a1a1a]/50 [animation-delay:0ms]" />
-              <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[#1a1a1a]/50 [animation-delay:150ms]" />
-              <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[#1a1a1a]/50 [animation-delay:300ms]" />
-              <span className="ml-1">thinking</span>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
-      <ChatInput pending={pending} onSubmit={handleSubmit} />
+      <div className="mx-auto w-full max-w-2xl">
+        <ChatInput pending={pending} onSubmit={handleSubmit} />
+      </div>
     </div>
   );
 }

@@ -29,14 +29,18 @@ export async function GET(req: NextRequest) {
     | { createdAt: "desc" }
     | { price: "asc" }
     | { price: "desc" }
-    | { rating: "desc" };
+    | { rating: "desc" }
+    | { evaluationScore: "desc" };
 
+  // `trust` — sort by on-chain-backed evaluationScore DESC. Nulls sink to the
+  // bottom via Prisma's default null ordering (fine for "top N").
   const orderByMap: Record<string, SkillOrderBy> = {
     popular: { installs: "desc" },
     newest: { createdAt: "desc" },
     price_asc: { price: "asc" },
     price_desc: { price: "desc" },
     rating: { rating: "desc" },
+    trust: { evaluationScore: "desc" },
   };
   const orderBy: SkillOrderBy = orderByMap[sort] ?? orderByMap.popular;
 
