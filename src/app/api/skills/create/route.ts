@@ -186,6 +186,52 @@ export async function POST(req: NextRequest) {
       ? randomBytes(32).toString('hex')
       : undefined;
 
+    // SSRF guard — reject private/internal addresses at write time.
+    // The gateway fires this URL on every agent call; blocking here is
+    // defence-in-depth over the per-request check in the gateway/run route.
+    if (endpointUrl) {
+      let parsedEndpoint: URL;
+      try {
+        parsedEndpoint = new URL(endpointUrl as string);
+      } catch {
+        return NextResponse.json(
+          { error: 'endpointUrl is not a valid URL' },
+          { status: 400 }
+        );
+      }
+      const isProduction = process.env.NODE_ENV === 'production';
+      if (
+        parsedEndpoint.protocol !== 'https:' &&
+        !(parsedEndpoint.protocol === 'http:' && !isProduction)
+      ) {
+        return NextResponse.json(
+          { error: 'endpointUrl must use https' },
+          { status: 400 }
+        );
+      }
+      if (isProduction) {
+        const h = parsedEndpoint.hostname.toLowerCase();
+        const BLOCKED_PATTERNS = [
+          /^localhost$/,
+          /^127\./,
+          /^10\./,
+          /^172\.(1[6-9]|2\d|3[01])\./,
+          /^192\.168\./,
+          /^169\.254\./,
+          /^::1$/,
+          /^fc00:/,
+          /^fd/,
+          /^fe[89ab][0-9a-f]:/i,
+        ];
+        if (BLOCKED_PATTERNS.some((rx) => rx.test(h))) {
+          return NextResponse.json(
+            { error: 'endpointUrl targets a private or internal address' },
+            { status: 400 }
+          );
+        }
+      }
+    }
+
     // Stringify schema/example fields if passed as objects
     const stringify = (v: unknown): string | null => {
       if (v === undefined || v === null) return null;
