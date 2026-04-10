@@ -163,6 +163,10 @@ export function PublishWizardCard() {
 
   // Step 6: Publish
   const handlePublish = useCallback(async () => {
+    if (!user?.id) {
+      setError("Not authenticated — please sign in and try again.");
+      return;
+    }
     setLoading(true);
     setError(null);
     try {

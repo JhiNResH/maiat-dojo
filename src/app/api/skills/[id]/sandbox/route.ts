@@ -12,8 +12,8 @@
  *  2. HMAC secret never leaves the server.
  *  3. Avoids CORS surprises when the creator endpoint is on another origin.
  *
- * Auth: none in Phase 1. Sandbox is rate-limited at the network layer and
- * does not bill. Phase 2 will gate this on KYA-1 + per-creator quota.
+ * Auth: Privy JWT required (dev bypass via DOJO_SKIP_PRIVY_AUTH).
+ * Phase 2 will add KYA-1 identity gate + per-creator quota.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -51,7 +51,9 @@ function isSsrfBlocked(endpointUrl: string): boolean {
       /^192\.168\./,
       /^169\.254\./,
       /^::1$/,
-      /^fc00:/,
+      /^fc00:/,  // ULA fc00::/8
+      /^fd/,     // ULA fd00::/8 (fc00::/7 covers both fc and fd)
+      /^fe[89ab][0-9a-f]:/i, // link-local fe80::/10
     ];
     if (BLOCKED.some((rx) => rx.test(h))) return true;
   }
