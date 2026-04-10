@@ -8,6 +8,7 @@ import { Footer } from '@/components/landing/Footer';
 import { BackgroundEffect } from '@/components/landing/BackgroundEffect';
 import PurchaseCard from '@/components/PurchaseCard';
 import TrustCard from '@/components/TrustCard';
+import SkillSandbox from '@/components/SkillSandbox';
 
 interface SkillData {
   id: string;
@@ -210,6 +211,11 @@ export default function SkillPageClient({
                     ))}
                 </div>
               </section>
+
+              {/* Flagship: live sandbox (token-price-oracle only) */}
+              {skill.gatewaySlug === 'token-price-oracle' && (
+                <SkillSandbox />
+              )}
 
               {/* Flagship: trust dossier */}
               <TrustCard
