@@ -330,11 +330,6 @@ export async function POST(
       );
     }
 
-    const hmacSecret = skill.creatorHmacSecret ?? '';
-    const hmacHex = createHmac('sha256', hmacSecret)
-      .update(rawBody)
-      .digest('hex');
-
     const abortController = new AbortController();
     const timeoutId = setTimeout(() => abortController.abort(), 30_000);
 
@@ -343,16 +338,24 @@ export async function POST(
     let forwardError: unknown = null;
     let latencyMs = 0;
 
+    // Only sign and forward HMAC when the skill has a secret configured.
+    // Sending HMAC-SHA256(body, '') is forgeable by any caller — skip entirely.
+    const forwardHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'X-Dojo-JobId': jobIdHeader,
+      'X-Dojo-AgentTokenId': tokenIdHeader,
+      'X-Dojo-SkillSlug': gatewaySlug,
+    };
+    if (skill.creatorHmacSecret) {
+      forwardHeaders['X-Dojo-HMAC'] = createHmac('sha256', skill.creatorHmacSecret)
+        .update(rawBody)
+        .digest('hex');
+    }
+
     try {
       creatorRes = await fetch(skill.endpointUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Dojo-HMAC': hmacHex,
-          'X-Dojo-JobId': jobIdHeader,
-          'X-Dojo-AgentTokenId': tokenIdHeader,
-          'X-Dojo-SkillSlug': gatewaySlug,
-        },
+        headers: forwardHeaders,
         body: rawBody,
         signal: abortController.signal,
       });
