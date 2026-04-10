@@ -32,7 +32,9 @@ import { getContracts } from '@/lib/contracts';
 import { settleSessionOnChain } from '@/lib/bsc-acp';
 
 export const MAX_PER_RUN = 25;
-export const LOOKBACK_MINUTES = 60; // reconcile only sessions closed within the last hour
+// Cron fires every 5 minutes (vercel.json). 60-minute window gives 12 retry attempts
+// per deferred session before it falls out of scope. Extend if BSC bind can take >55min.
+export const LOOKBACK_MINUTES = 60;
 
 // Matches scripts/check-onchain-job.ts — Solidity auto-getter output shape.
 // IMPORTANT: must include `description` (string) or viem mis-decodes as
@@ -77,7 +79,9 @@ async function readJobStatus(acp: `0x${string}`, jobId: bigint): Promise<number 
       functionName: 'jobs',
       args: [jobId],
     }) as readonly [bigint, string, string, string, string, string, bigint, bigint, number];
-    return result[8];
+    // index 8 = status (id, client, provider, evaluator, hook, description, budget, expiredAt, status)
+    const STATUS_IDX = 8;
+    return result[STATUS_IDX];
   } catch (e) {
     console.warn(`[reconcile] jobs(${jobId}) read failed:`, (e as Error).message);
     return null;
@@ -98,12 +102,16 @@ export async function reconcilePendingBscSettle(): Promise<ReconcileStats> {
   }
 
   const since = new Date(Date.now() - LOOKBACK_MINUTES * 60 * 1000);
+  // Exclude sessions settled in the last 60s: gives the close route's fire-and-forget
+  // settleSessionOnChain call time to mine before we re-read on-chain status.
+  // Without this, the cron can race with the inline settle tx and double-fire.
+  const graceCutoff = new Date(Date.now() - 60 * 1000);
 
   // PASS sessions (settled) only — FAIL (refunded) has no release path in Phase 1.
   const candidates = await prisma.session.findMany({
     where: {
       status: 'settled',
-      settledAt: { gte: since },
+      settledAt: { gte: since, lte: graceCutoff },
     },
     select: {
       id: true,
@@ -129,35 +137,65 @@ export async function reconcilePendingBscSettle(): Promise<ReconcileStats> {
     stats.checked++;
 
     if (!session.onchainJobId) {
-      console.log(`[reconcile] ${session.id} — onchainJobId still null, open bind has not landed yet, skipping`);
+      const ageMs = session.settledAt ? Date.now() - session.settledAt.getTime() : 0;
+      const ageMin = Math.round(ageMs / 60_000);
+      if (ageMin >= LOOKBACK_MINUTES - 5) {
+        // Near the lookback ceiling with no jobId — this session is about to fall out
+        // of the reconcile window permanently. Manual intervention may be needed.
+        console.error(`[reconcile] ALERT: ${session.id} — onchainJobId null for ${ageMin}min, nearing LOOKBACK_MINUTES ceiling. Open bind may have failed permanently.`);
+      } else {
+        console.log(`[reconcile] ${session.id} — onchainJobId still null (${ageMin}min old), open bind has not landed yet, skipping`);
+      }
       stats.skippedNoJobId++;
       continue;
     }
 
-    const jobId = BigInt(session.onchainJobId);
-    const onChainStatus = await readJobStatus(acpAddress, jobId);
-    if (onChainStatus === null) continue;
-
-    if (!NEEDS_SETTLE.has(onChainStatus)) {
-      // Already Completed / Rejected / Expired — nothing to do.
-      stats.skippedTerminal++;
+    // Validate onchainJobId before BigInt cast — a malformed value throws SyntaxError
+    // which would abort the entire loop, leaving all subsequent sessions unprocessed.
+    if (!/^[0-9]+$/.test(session.onchainJobId)) {
+      console.error(`[reconcile] ${session.id} — invalid onchainJobId format: "${session.onchainJobId}", skipping`);
+      stats.failed++;
       continue;
     }
 
-    console.log(`[reconcile] ${session.id} — job ${jobId} is ${STATUS[onChainStatus]}, firing settle...`);
-    const result = await settleSessionOnChain({
-      jobId: session.onchainJobId,
-      sessionId: session.id,
-      callCount: session.callCount,
-    });
+    try {
+      const jobId = BigInt(session.onchainJobId);
+      const onChainStatus = await readJobStatus(acpAddress, jobId);
+      if (onChainStatus === null) {
+        // BSC RPC failure — count as failed so monitoring dashboards see the gap.
+        stats.failed++;
+        continue;
+      }
 
-    if (result.success) {
-      stats.settled++;
-      console.log(`[reconcile] ${session.id} — settle ok: tx=${result.txHash}`);
-    } else {
+      if (!NEEDS_SETTLE.has(onChainStatus)) {
+        // Already Completed / Rejected / Expired — nothing to do.
+        stats.skippedTerminal++;
+        continue;
+      }
+
+      console.log(`[reconcile] ${session.id} — job ${jobId} is ${STATUS[onChainStatus]}, firing settle...`);
+      const result = await settleSessionOnChain({
+        jobId: session.onchainJobId,
+        sessionId: session.id,
+        callCount: session.callCount,
+      });
+
+      if (result.success) {
+        stats.settled++;
+        console.log(`[reconcile] ${session.id} — settle ok: tx=${result.txHash}`);
+      } else {
+        stats.failed++;
+        console.error(`[reconcile] ${session.id} — settle failed: ${result.error}`);
+      }
+    } catch (err) {
+      // Unexpected error in per-session handling — log and continue to next session.
       stats.failed++;
-      console.error(`[reconcile] ${session.id} — settle failed: ${result.error}`);
+      console.error(`[reconcile] ${session.id} — unexpected error:`, err);
     }
+  }
+
+  if (stats.skippedNoJobId > 0) {
+    console.warn(`[reconcile] ${stats.skippedNoJobId} session(s) still have no onchainJobId. If this persists beyond ${LOOKBACK_MINUTES} minutes they will be permanently unreconciled and may need manual intervention.`);
   }
 
   console.log('[reconcile] done:', stats);

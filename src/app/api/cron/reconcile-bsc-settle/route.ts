@@ -28,6 +28,7 @@
  *   - src/app/api/sessions/[id]/close/route.ts (the deferrer)
  */
 
+import { timingSafeEqual } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { reconcilePendingBscSettle } from '@/lib/bsc-reconcile';
 
@@ -46,13 +47,19 @@ export async function GET(req: NextRequest) {
   if (!expected) {
     console.error('[cron/reconcile-bsc-settle] CRON_SECRET not configured');
     return NextResponse.json(
-      { error: 'CRON_SECRET not configured' },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }
 
-  if (authHeader !== `Bearer ${expected}`) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  // Constant-time comparison prevents timing oracle attacks on the secret.
+  const authBuf = Buffer.from(authHeader ?? '');
+  const expectedBuf = Buffer.from(`Bearer ${expected}`);
+  const authorized =
+    authBuf.length === expectedBuf.length &&
+    timingSafeEqual(authBuf, expectedBuf);
+  if (!authorized) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
@@ -62,7 +69,6 @@ export async function GET(req: NextRequest) {
     // reconcilePendingBscSettle() shouldn't throw, but belt-and-suspenders
     // so a bug in the reconciler doesn't spam 500s into Vercel's cron log.
     console.error('[cron/reconcile-bsc-settle] unexpected error:', err);
-    const message = err instanceof Error ? err.message : 'reconcile failed';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: 'Reconcile failed' }, { status: 500 });
   }
 }

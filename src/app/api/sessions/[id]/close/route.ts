@@ -293,7 +293,7 @@ export async function POST(
       }
     })();
 
-    // 13. Return updated session
+    // 12. Return updated session
     return NextResponse.json({
       session: buildResponse(updated),
     });
