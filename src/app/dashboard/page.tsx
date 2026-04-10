@@ -67,7 +67,7 @@ export default function DashboardPage() {
           setLoading(false);
           return;
         }
-        return fetch('/api/dashboard/stats', {
+        return fetch(`/api/dashboard/stats?privyId=${encodeURIComponent(user.id)}`, {
           headers: { Authorization: `Bearer ${token}` },
         })
           .then((r) => {
