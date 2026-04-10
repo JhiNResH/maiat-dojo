@@ -1,11 +1,14 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import { usePrivy } from "@privy-io/react-auth";
-import { ArrowLeft, Share2, Layers, LogIn } from "lucide-react";
-import { SkillCard, type SkillCardData } from "@/components/SkillCard";
-import { CATEGORY_COLORS } from "@/lib/rarity";
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { motion } from 'framer-motion';
+import { usePrivy } from '@privy-io/react-auth';
+import { ArrowLeft, Layers, LogIn, Share2 } from 'lucide-react';
+import { useDarkMode } from '@/app/DarkModeContext';
+import { Navbar } from '@/components/landing/Navbar';
+import { Footer } from '@/components/landing/Footer';
+import { BackgroundEffect } from '@/components/landing/BackgroundEffect';
 
 interface PurchasedSkill {
   id: string;
@@ -24,6 +27,7 @@ interface GroupedSkills {
 }
 
 export default function DeckPage() {
+  const { isDark } = useDarkMode();
   const { ready, authenticated, login, getAccessToken } = usePrivy();
   const [skills, setSkills] = useState<PurchasedSkill[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,245 +35,319 @@ export default function DeckPage() {
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [copying, setCopying] = useState(false);
 
-  // Fetch purchased skills
   useEffect(() => {
     async function fetchPurchases() {
       if (!ready || !authenticated) {
         setLoading(false);
         return;
       }
-
       try {
         const token = await getAccessToken();
-        const res = await fetch("/api/user/purchases", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+        const res = await fetch('/api/user/purchases', {
+          headers: { Authorization: `Bearer ${token}` },
         });
-
         if (!res.ok) {
           const data = await res.json();
-          throw new Error(data.error || "Failed to fetch purchases");
+          throw new Error(data.error || 'Failed to fetch purchases');
         }
-
         const data = await res.json();
         setSkills(data.skills);
       } catch (err) {
-        console.error("Failed to fetch deck:", err);
-        setError(err instanceof Error ? err.message : "Failed to load deck");
+        console.error('Failed to fetch deck:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load deck');
       } finally {
         setLoading(false);
       }
     }
-
     fetchPurchases();
   }, [ready, authenticated, getAccessToken]);
 
-  // Group skills by category
   const groupedSkills: GroupedSkills = skills.reduce((acc, skill) => {
-    const category = skill.category || "Other";
-    if (!acc[category]) {
-      acc[category] = [];
-    }
+    const category = skill.category || 'Other';
+    if (!acc[category]) acc[category] = [];
     acc[category].push(skill);
     return acc;
   }, {} as GroupedSkills);
 
-  // Sort categories by size
   const sortedCategories = Object.keys(groupedSkills).sort(
     (a, b) => groupedSkills[b].length - groupedSkills[a].length
   );
 
-  // Share deck handler
   const handleShareDeck = async () => {
     setCopying(true);
     try {
-      // Generate share URL with skill IDs
-      const skillIds = skills.map((s) => s.id).join(",");
-      const url = `${window.location.origin}/deck/shared?skills=${encodeURIComponent(skillIds)}`;
-
+      const skillIds = skills.map((s) => s.id).join(',');
+      const url = `${window.location.origin}/deck/shared?skills=${encodeURIComponent(
+        skillIds
+      )}`;
       await navigator.clipboard.writeText(url);
       setShareUrl(url);
-
-      // Reset after 3 seconds
-      setTimeout(() => {
-        setShareUrl(null);
-      }, 3000);
+      setTimeout(() => setShareUrl(null), 3000);
     } catch (err) {
-      console.error("Failed to copy share URL:", err);
+      console.error('Failed to copy share URL:', err);
     } finally {
       setCopying(false);
     }
   };
 
-  // Convert to SkillCardData
-  const toCardData = (skill: PurchasedSkill): SkillCardData => ({
-    id: skill.id,
-    name: skill.name,
-    icon: skill.icon,
-    category: skill.category,
-    rating: skill.rating,
-    installs: skill.installs,
-    price: skill.price,
-  });
+  const glassCard = isDark
+    ? 'border-white/[0.06] bg-white/[0.03]'
+    : 'border-black/[0.06] bg-white/60';
 
-  // Not authenticated
-  if (ready && !authenticated) {
-    return (
-      <main className="min-h-screen bg-[#f0ece2]">
-        <div className="max-w-4xl mx-auto px-6 py-8">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-[#8b0000] hover:underline mb-8"
-          >
-            <ArrowLeft size={14} />
-            The Dojo
-          </Link>
-
-          <div className="text-center py-16">
-            <Layers size={48} className="mx-auto text-[#1a1a1a]/20 mb-4" />
-            <h1 className="font-serif font-black text-4xl text-[#1a1a1a] mb-4">
-              MY DECK
-            </h1>
-            <p className="font-serif text-lg text-[#1a1a1a]/60 mb-8 max-w-md mx-auto">
-              Sign in to view your collection of skill cards.
-            </p>
-            <button
-              onClick={login}
-              className="inline-flex items-center gap-2 bg-[#1a1a1a] text-[#f0ece2] font-mono text-sm px-6 py-3 hover:bg-[#1a1a1a]/80 transition-colors tracking-wider"
-            >
-              <LogIn size={16} />
-              SIGN IN TO VIEW DECK
-            </button>
-          </div>
-        </div>
-      </main>
-    );
-  }
+  const glassStyle = {
+    backdropFilter: 'blur(40px) saturate(180%)',
+    WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+  } as const;
 
   return (
-    <main className="min-h-screen bg-[#f0ece2]">
-      <div className="max-w-5xl mx-auto px-6 py-8 page-container">
-        {/* Back link */}
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-[#8b0000] hover:underline mb-6"
-        >
-          <ArrowLeft size={14} />
-          The Dojo
-        </Link>
+    <div
+      className="min-h-screen atmosphere transition-colors duration-700"
+      style={{
+        background: isDark ? '#0A0A0A' : '#fafaf7',
+        color: isDark ? '#ededed' : '#0a0a0a',
+      }}
+    >
+      <BackgroundEffect />
+      <Navbar />
 
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="font-serif font-black text-5xl text-[#1a1a1a] mb-2">
-              MY DECK
-            </h1>
-            <p className="font-mono text-sm text-[#1a1a1a]/50">
-              {skills.length} skill{skills.length !== 1 ? "s" : ""} collected
-            </p>
-          </div>
+      <main className="relative pt-32 pb-20 px-6">
+        <div className="max-w-6xl mx-auto">
+          <Link
+            href="/"
+            className={`inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] mb-10 transition-opacity hover:opacity-70 ${
+              isDark ? 'text-gray-400' : 'text-gray-500'
+            }`}
+          >
+            <ArrowLeft className="w-3 h-3" />
+            Back to marketplace
+          </Link>
 
-          {/* Share button */}
-          {skills.length > 0 && (
-            <button
-              onClick={handleShareDeck}
-              disabled={copying}
-              className="inline-flex items-center gap-2 bg-[#1a1a1a] text-[#f0ece2] font-mono text-xs px-4 py-2 hover:bg-[#1a1a1a]/80 transition-colors tracking-wider disabled:opacity-50"
+          {ready && !authenticated ? (
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+              className={`rounded-3xl p-12 border text-center max-w-xl mx-auto ${glassCard}`}
+              style={glassStyle}
             >
-              <Share2 size={14} />
-              {shareUrl ? "LINK COPIED!" : "SHARE MY DECK"}
-            </button>
-          )}
-        </div>
-
-        {/* Loading state */}
-        {loading && (
-          <div className="text-center py-16">
-            <p className="font-mono text-sm text-[#1a1a1a]/40 animate-pulse">
-              Loading your deck...
-            </p>
-          </div>
-        )}
-
-        {/* Error state */}
-        {error && (
-          <div className="text-center py-16">
-            <p className="font-mono text-sm text-[#8b0000]">{error}</p>
-          </div>
-        )}
-
-        {/* Empty state */}
-        {!loading && !error && skills.length === 0 && (
-          <div className="text-center py-16">
-            <Layers size={48} className="mx-auto text-[#1a1a1a]/20 mb-4" />
-            <h2 className="font-serif font-bold text-2xl text-[#1a1a1a] mb-2">
-              Your deck is empty
-            </h2>
-            <p className="font-serif text-[#1a1a1a]/60 mb-6 max-w-md mx-auto">
-              Browse the marketplace to acquire your first skill cards.
-            </p>
-            <Link
-              href="/"
-              className="inline-block bg-[#1a1a1a] text-[#f0ece2] font-mono text-sm px-6 py-3 hover:bg-[#1a1a1a]/80 transition-colors tracking-wider"
-            >
-              BROWSE SKILLS
-            </Link>
-          </div>
-        )}
-
-        {/* Skills by category */}
-        {!loading && !error && skills.length > 0 && (
-          <div className="space-y-10">
-            {sortedCategories.map((category) => (
-              <section key={category}>
-                {/* Category header */}
-                <div className="flex items-center gap-3 mb-4">
+              <div
+                className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-6 border ${
+                  isDark ? 'border-white/10 bg-white/5' : 'border-black/10 bg-white/60'
+                }`}
+              >
+                <Layers className="w-5 h-5" />
+              </div>
+              <h1
+                className={`font-sans font-semibold text-4xl md:text-5xl tracking-[-0.03em] leading-[0.95] mb-4 ${
+                  isDark ? 'text-white' : 'text-black'
+                }`}
+              >
+                Your deck, locked.
+              </h1>
+              <p
+                className={`text-sm leading-relaxed mb-8 max-w-sm mx-auto ${
+                  isDark ? 'text-gray-400' : 'text-gray-500'
+                }`}
+              >
+                Sign in to view the skills you&apos;ve collected and share your build
+                with other agents.
+              </p>
+              <button
+                onClick={login}
+                className={`inline-flex items-center gap-2 px-7 py-4 rounded-full text-xs font-bold uppercase tracking-[0.15em] transition-all hover:scale-[1.02] ${
+                  isDark ? 'bg-white text-black' : 'bg-black text-white'
+                }`}
+              >
+                <LogIn className="w-3 h-3" />
+                Sign in to view deck
+              </button>
+            </motion.div>
+          ) : (
+            <>
+              {/* Header */}
+              <header className="flex items-start justify-between gap-6 mb-12">
+                <div>
                   <div
-                    className="w-4 h-4"
-                    style={{
-                      backgroundColor: CATEGORY_COLORS[category] ?? "#3a3a3a",
-                    }}
-                  />
-                  <h2 className="font-mono text-sm font-bold uppercase tracking-[0.2em] text-[#1a1a1a]">
-                    {category}
-                  </h2>
-                  <span className="font-mono text-xs text-[#1a1a1a]/40">
-                    ({groupedSkills[category].length})
-                  </span>
-                  <div className="flex-1 border-b border-dotted border-[#1a1a1a]/20" />
+                    className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border mb-5 ${
+                      isDark
+                        ? 'border-white/10 bg-white/5'
+                        : 'border-black/10 bg-white/60'
+                    }`}
+                  >
+                    <Layers className="w-3 h-3" />
+                    <span className="text-[9px] font-bold uppercase tracking-[0.2em]">
+                      My deck
+                    </span>
+                  </div>
+                  <h1
+                    className={`font-sans font-semibold text-4xl md:text-6xl tracking-[-0.03em] leading-[0.95] mb-3 ${
+                      isDark ? 'text-white' : 'text-black'
+                    }`}
+                  >
+                    Your collection.
+                  </h1>
+                  <p
+                    className={`font-mono text-xs tabular-nums ${
+                      isDark ? 'text-gray-500' : 'text-gray-400'
+                    }`}
+                  >
+                    {skills.length} skill{skills.length !== 1 ? 's' : ''} collected
+                  </p>
                 </div>
 
-                {/* Skills grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                  {groupedSkills[category].map((skill) => (
-                    <SkillCard
-                      key={skill.id}
-                      skill={toCardData(skill)}
-                      size="md"
-                      showPrice={false}
-                      href={`/skill/${skill.id}`}
-                    />
+                {skills.length > 0 && (
+                  <button
+                    onClick={handleShareDeck}
+                    disabled={copying}
+                    className={`shrink-0 inline-flex items-center gap-2 px-5 py-3 rounded-full text-[10px] font-bold uppercase tracking-[0.15em] transition-all hover:scale-[1.02] disabled:opacity-50 ${
+                      isDark ? 'bg-white text-black' : 'bg-black text-white'
+                    }`}
+                  >
+                    <Share2 className="w-3 h-3" />
+                    {shareUrl ? 'Link copied' : 'Share deck'}
+                  </button>
+                )}
+              </header>
+
+              {loading && (
+                <div className="text-center py-24">
+                  <p
+                    className={`font-mono text-xs uppercase tracking-[0.2em] animate-pulse ${
+                      isDark ? 'text-gray-500' : 'text-gray-400'
+                    }`}
+                  >
+                    Loading your deck…
+                  </p>
+                </div>
+              )}
+
+              {error && (
+                <div
+                  className={`rounded-3xl p-8 border text-center ${glassCard}`}
+                  style={glassStyle}
+                >
+                  <p className="font-mono text-xs text-red-500">{error}</p>
+                </div>
+              )}
+
+              {!loading && !error && skills.length === 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4 }}
+                  className={`rounded-3xl p-16 border text-center max-w-xl mx-auto ${glassCard}`}
+                  style={glassStyle}
+                >
+                  <div
+                    className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-6 border ${
+                      isDark
+                        ? 'border-white/10 bg-white/5'
+                        : 'border-black/10 bg-white/60'
+                    }`}
+                  >
+                    <Layers className="w-5 h-5" />
+                  </div>
+                  <h2
+                    className={`font-sans font-semibold text-2xl mb-3 ${
+                      isDark ? 'text-white' : 'text-black'
+                    }`}
+                  >
+                    Your deck is empty
+                  </h2>
+                  <p
+                    className={`text-sm mb-8 max-w-sm mx-auto ${
+                      isDark ? 'text-gray-400' : 'text-gray-500'
+                    }`}
+                  >
+                    Browse the marketplace to acquire your first skill cards.
+                  </p>
+                  <Link
+                    href="/"
+                    className={`inline-flex items-center gap-2 px-7 py-4 rounded-full text-xs font-bold uppercase tracking-[0.15em] transition-all hover:scale-[1.02] ${
+                      isDark ? 'bg-white text-black' : 'bg-black text-white'
+                    }`}
+                  >
+                    Browse skills
+                  </Link>
+                </motion.div>
+              )}
+
+              {!loading && !error && skills.length > 0 && (
+                <div className="space-y-12">
+                  {sortedCategories.map((category, ci) => (
+                    <motion.section
+                      key={category}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.4, delay: ci * 0.05 }}
+                    >
+                      <div className="flex items-center gap-3 mb-5">
+                        <div
+                          className={`text-[10px] font-bold uppercase tracking-[0.3em] ${
+                            isDark ? 'text-gray-500' : 'text-gray-400'
+                          }`}
+                        >
+                          {category}
+                        </div>
+                        <div
+                          className={`font-mono text-[10px] tabular-nums ${
+                            isDark ? 'text-gray-600' : 'text-gray-500'
+                          }`}
+                        >
+                          {groupedSkills[category].length}
+                        </div>
+                        <div
+                          className={`flex-1 border-b ${
+                            isDark ? 'border-white/[0.06]' : 'border-black/[0.06]'
+                          }`}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                        {groupedSkills[category].map((skill, i) => (
+                          <motion.div
+                            key={skill.id}
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.35, delay: i * 0.03 }}
+                          >
+                            <Link
+                              href={`/skill/${skill.id}`}
+                              className={`block rounded-2xl p-4 border transition-all hover:scale-[1.02] ${
+                                isDark
+                                  ? 'border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04]'
+                                  : 'border-black/[0.06] bg-white/40 hover:bg-white/70'
+                              }`}
+                            >
+                              <div className="text-2xl mb-3">{skill.icon}</div>
+                              <div
+                                className={`font-sans font-semibold text-xs truncate ${
+                                  isDark ? 'text-white' : 'text-black'
+                                }`}
+                              >
+                                {skill.name}
+                              </div>
+                              <div
+                                className={`font-mono text-[9px] uppercase tracking-[0.15em] mt-1 ${
+                                  isDark ? 'text-gray-500' : 'text-gray-400'
+                                }`}
+                              >
+                                {skill.category}
+                              </div>
+                            </Link>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </motion.section>
                   ))}
                 </div>
-              </section>
-            ))}
-          </div>
-        )}
+              )}
+            </>
+          )}
+        </div>
+      </main>
 
-        {/* Footer */}
-        <footer className="mt-16 pt-4">
-          <div className="masthead-rule mb-2" />
-          <div className="flex justify-between items-center py-2">
-            <span className="font-mono text-xs text-[#1a1a1a]/25 tracking-wider">
-              THE DOJO © 2026 · MAIAT PROTOCOL · BUILT ON BSC
-            </span>
-            <span className="font-serif italic text-xs text-[#1a1a1a]/25">
-              dojo.maiat.io
-            </span>
-          </div>
-        </footer>
-      </div>
-    </main>
+      <Footer />
+    </div>
   );
 }
