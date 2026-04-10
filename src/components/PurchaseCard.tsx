@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { LogIn } from "lucide-react";
+import CheckoutCard from "@/components/CheckoutCard";
 
 interface Skill {
   id: string;
@@ -274,6 +275,8 @@ export default function PurchaseCard({ skill }: Props) {
             </div>
           ))}
         </div>
+
+        <CheckoutCard />
 
         <div className="font-mono text-[10px] text-[#1a1a1a]/40 bg-[#1a1a1a]/[0.03] p-2 border border-[#1a1a1a]/10 mb-3 break-all">
           POST {activeResult.gatewayUrl}
