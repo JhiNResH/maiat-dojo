@@ -600,6 +600,65 @@ MAX_SETTLEMENT_TIME: 90 days
           : "http://localhost:3000/api/skills-internal/price",
         gatewaySlug: "token-price-oracle",
         pricePerCall: 0.005,
+        // --- Profile-driven renderer (2026-04-09) ---
+        executionKind: "sync",
+        inputShape: "form",
+        outputShape: "json",
+        estLatencyMs: 800,
+        sandboxable: true,
+        authRequired: false,
+        inputSchema: JSON.stringify({
+          type: "object",
+          required: ["token"],
+          properties: {
+            token: {
+              type: "string",
+              title: "Token Symbol",
+              description: "Token ticker (e.g. BNB, ETH, BTC) or contract address",
+              default: "BNB",
+            },
+            chain: {
+              type: "string",
+              title: "Chain",
+              enum: ["bsc", "eth", "base"],
+              default: "bsc",
+            },
+            currency: {
+              type: "string",
+              title: "Output Currency",
+              enum: ["usd", "eur", "jpy"],
+              default: "usd",
+            },
+          },
+        }),
+        outputSchema: JSON.stringify({
+          type: "object",
+          properties: {
+            token: { type: "string" },
+            chain: { type: "string" },
+            currency: { type: "string" },
+            price_usd: { type: "number" },
+            twap_1h: { type: "number" },
+            change_24h: { type: "number" },
+            source: { type: "string" },
+            timestamp: { type: "string", format: "date-time" },
+          },
+        }),
+        exampleInput: JSON.stringify({
+          token: "BNB",
+          chain: "bsc",
+          currency: "usd",
+        }),
+        exampleOutput: JSON.stringify({
+          token: "BNB",
+          chain: "bsc",
+          currency: "usd",
+          price_usd: 312.45,
+          twap_1h: 312.14,
+          change_24h: 0.0123,
+          source: "mock-oracle",
+          timestamp: "2026-04-09T12:00:00.000Z",
+        }),
         fileType: "markdown",
         fileContent: `# Token Price Oracle
 
@@ -655,6 +714,46 @@ POST /v1/quote
           : "http://localhost:3000/api/skills-internal/echo",
         gatewaySlug: "echo-test",
         pricePerCall: 0.001,
+        // --- Profile-driven renderer (2026-04-09) ---
+        executionKind: "sync",
+        inputShape: "form",
+        outputShape: "json",
+        estLatencyMs: 200,
+        sandboxable: true,
+        authRequired: false,
+        inputSchema: JSON.stringify({
+          type: "object",
+          required: ["message"],
+          properties: {
+            message: {
+              type: "string",
+              title: "Message",
+              description: "Any text the skill will echo back",
+              default: "hello dojo",
+            },
+            data: {
+              type: "string",
+              title: "Optional Payload",
+              description: "Optional free-form text payload",
+            },
+          },
+        }),
+        outputSchema: JSON.stringify({
+          type: "object",
+          properties: {
+            echo: { type: "object" },
+            latency_ms: { type: "number" },
+            server_ts: { type: "string", format: "date-time" },
+          },
+        }),
+        exampleInput: JSON.stringify({
+          message: "hello dojo",
+        }),
+        exampleOutput: JSON.stringify({
+          echo: { message: "hello dojo" },
+          latency_ms: 12,
+          server_ts: "2026-04-09T12:00:00.000Z",
+        }),
         fileType: "markdown",
         fileContent: `# Echo Test
 
