@@ -283,8 +283,7 @@ export default function DojoPage() {
                 <motion.div
                   key={item.step}
                   initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
+                  animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: i * 0.08 }}
                   className={`liquid-glass-card rounded-3xl p-7 border transition-colors duration-700 hover-lift ${
                     isDark
@@ -397,8 +396,7 @@ function SkillCard({
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
+      animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: index * 0.04 }}
     >
       <Link
