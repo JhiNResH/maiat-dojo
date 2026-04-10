@@ -38,14 +38,46 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validate URL format
+    // Validate URL — block SSRF vectors
+    let parsed: URL;
     try {
-      new URL(endpointUrl);
+      parsed = new URL(endpointUrl);
     } catch {
       return NextResponse.json(
         { error: 'Invalid endpointUrl' },
         { status: 400 }
       );
+    }
+
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    // Scheme: https always; http only in dev (for localhost testing)
+    if (parsed.protocol !== 'https:' && !(parsed.protocol === 'http:' && !isProduction)) {
+      return NextResponse.json(
+        { error: 'endpointUrl must use https' },
+        { status: 400 }
+      );
+    }
+
+    // Block private/internal IPs in production (SSRF guard)
+    if (isProduction) {
+      const hostname = parsed.hostname.toLowerCase();
+      const BLOCKED = [
+        /^localhost$/,
+        /^127\./,
+        /^10\./,
+        /^172\.(1[6-9]|2\d|3[01])\./,
+        /^192\.168\./,
+        /^169\.254\./,   // link-local / cloud metadata
+        /^::1$/,         // IPv6 loopback
+        /^fc00:/,        // IPv6 ULA
+      ];
+      if (BLOCKED.some((rx) => rx.test(hostname))) {
+        return NextResponse.json(
+          { error: 'endpointUrl targets a private address' },
+          { status: 400 }
+        );
+      }
     }
 
     const headers: Record<string, string> = {
