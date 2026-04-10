@@ -37,7 +37,8 @@ interface PassiveResult {
 async function getOrCreateAgent(
   privyId: string,
   token: string,
-  displayName: string | undefined
+  displayName: string | undefined,
+  walletAddress: string | undefined
 ): Promise<string> {
   const key = `dojo_agent_${privyId}`;
   const cached = localStorage.getItem(key);
@@ -49,6 +50,7 @@ async function getOrCreateAgent(
     body: JSON.stringify({
       privyId,
       displayName,
+      walletAddress,
       agent: {
         name: `${displayName || "My"} Agent`,
         description: "Default agent created by Dojo",
@@ -81,6 +83,7 @@ export default function PurchaseCard({ skill }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [activeResult, setActiveResult] = useState<ActiveResult | null>(null);
   const [passiveResult, setPassiveResult] = useState<PassiveResult | null>(null);
+  const [closing, setClosing] = useState(false);
   const [budget, setBudget] = useState<string>(
     skill.pricePerCall ? String(Math.max(1, Math.round(skill.pricePerCall * 20))) : "5"
   );
@@ -132,6 +135,27 @@ export default function PurchaseCard({ skill }: Props) {
     }
   }
 
+  // ── Active: close session ─────────────────────────────────────────────────
+  async function handleCloseSession() {
+    if (!activeResult) return;
+    setClosing(true);
+    try {
+      const token = await getAccessToken();
+      if (!token || !user) throw new Error("Not authenticated");
+      await fetch(`/api/sessions/${activeResult.sessionId}/close`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ privyId: user.id }),
+      });
+      setStep("idle");
+      setActiveResult(null);
+    } catch {
+      // silent — session will expire naturally
+    } finally {
+      setClosing(false);
+    }
+  }
+
   // ── Active: open session ──────────────────────────────────────────────────
   async function handleFundSession() {
     setStep("loading");
@@ -146,7 +170,7 @@ export default function PurchaseCard({ skill }: Props) {
         displayName: user.google?.name ?? undefined,
       });
 
-      const agentId = await getOrCreateAgent(user.id, token, user.google?.name ?? undefined);
+      const agentId = await getOrCreateAgent(user.id, token, user.google?.name ?? undefined, user.wallet?.address ?? undefined);
 
       const sessionRes = await fetch("/api/sessions/open", {
         method: "POST",
@@ -255,9 +279,17 @@ export default function PurchaseCard({ skill }: Props) {
           POST {activeResult.gatewayUrl}
         </div>
 
-        <p className="font-mono text-[10px] text-[#1a1a1a]/30 border-l-2 border-[#1a1a1a]/15 pl-2">
+        <p className="font-mono text-[10px] text-[#1a1a1a]/30 border-l-2 border-[#1a1a1a]/15 pl-2 mb-4">
           Pass <code>X-Session-Id: {activeResult.sessionId.slice(0, 8)}…</code> in your agent headers.
         </p>
+
+        <button
+          onClick={handleCloseSession}
+          disabled={closing}
+          className="w-full font-mono text-[10px] text-[#1a1a1a]/40 hover:text-[#1a1a1a] transition-colors py-1 border border-dotted border-[#1a1a1a]/20 disabled:opacity-40"
+        >
+          {closing ? "Closing…" : "Close Session & Refund"}
+        </button>
       </div>
     );
   }
