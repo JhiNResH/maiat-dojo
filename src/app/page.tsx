@@ -78,19 +78,19 @@ export default function DojoPage() {
             <div className="flex items-center gap-5">
               <Link
                 href="/demo"
-                className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#1a1a1a]/30 transition-colors hover:text-[#1a1a1a]"
+                className="letterpress ink-underline font-mono text-[10px] uppercase tracking-[0.2em] text-[#1a1a1a]/45 transition-colors hover:text-[#1a1a1a]"
               >
                 Demo
               </Link>
               <Link
                 href="/dashboard"
-                className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#1a1a1a]/30 transition-colors hover:text-[#1a1a1a]"
+                className="letterpress ink-underline font-mono text-[10px] uppercase tracking-[0.2em] text-[#1a1a1a]/45 transition-colors hover:text-[#1a1a1a]"
               >
                 Dashboard
               </Link>
               <Link
                 href="/leaderboard"
-                className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#1a1a1a]/30 transition-colors hover:text-[#1a1a1a]"
+                className="letterpress ink-underline font-mono text-[10px] uppercase tracking-[0.2em] text-[#1a1a1a]/45 transition-colors hover:text-[#1a1a1a]"
               >
                 Leaderboard
               </Link>

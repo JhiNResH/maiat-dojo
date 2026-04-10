@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { ArrowLeft } from "lucide-react";
 import PurchaseCard from "@/components/PurchaseCard";
+import { PullQuote } from "@/components/editorial/PullQuote";
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +46,7 @@ export default async function SkillPage({ params }: { params: { id: string } }) 
         {/* ═══ BACK ═══ */}
         <Link
           href="/"
-          className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-[#1a1a1a]/40 hover:text-[#1a1a1a] transition-colors mb-8"
+          className="letterpress inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-[#1a1a1a]/40 hover:text-[#1a1a1a] transition-colors mb-8"
         >
           <ArrowLeft size={12} />
           The Dojo
@@ -111,22 +112,41 @@ export default async function SkillPage({ params }: { params: { id: string } }) 
         <div className="grid md:grid-cols-[1fr_260px] gap-8">
           {/* ─── LEFT ─── */}
           <div>
-            {/* Description */}
+            {/* Description — PullQuote lead (short description) sets the
+                editorial tone; longDescription body flows below without a
+                drop-cap so the two treatments don't fight. Fallback to a
+                drop-cap on the sole description paragraph when there's no
+                longDescription at all. */}
             <section className="mb-8">
               <div className="section-header mb-4">
                 <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-[#1a1a1a]/60">
                   About This Skill
                 </span>
               </div>
-              <div className="font-serif text-base text-[#1a1a1a]/80 leading-relaxed">
-                {(skill.longDescription || skill.description || "No description provided.")
-                  .split("\n\n")
-                  .map((p, i) => (
-                    <p key={i} className={`mb-4 ${i === 0 ? "drop-cap" : ""}`}>
-                      {p}
-                    </p>
-                  ))}
-              </div>
+              {skill.longDescription ? (
+                <>
+                  {skill.description && (
+                    <PullQuote className="mb-6">{skill.description}</PullQuote>
+                  )}
+                  <div className="font-serif text-base text-[#1a1a1a]/80 leading-relaxed">
+                    {skill.longDescription.split("\n\n").map((p, i) => (
+                      <p key={i} className="mb-4">
+                        {p}
+                      </p>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="font-serif text-base text-[#1a1a1a]/80 leading-relaxed">
+                  {(skill.description || "No description provided.")
+                    .split("\n\n")
+                    .map((p, i) => (
+                      <p key={i} className={`mb-4 ${i === 0 ? "drop-cap" : ""}`}>
+                        {p}
+                      </p>
+                    ))}
+                </div>
+              )}
             </section>
 
             {/* Session History */}

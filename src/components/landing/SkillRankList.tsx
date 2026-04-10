@@ -67,7 +67,8 @@ export function SkillRankList({
           {skills.map((s, i) => (
             <li
               key={s.id}
-              className="border-b border-dotted border-[#1a1a1a]/15 py-2 last:border-b-0"
+              className="reveal-row border-b border-dotted border-[#1a1a1a]/15 py-2 last:border-b-0"
+              style={{ animationDelay: `${i * 80}ms` }}
             >
               <div className="flex items-start gap-2.5">
                 <span className="w-5 shrink-0 pt-0.5 text-right font-serif text-[14px] font-black leading-none text-[#1a1a1a]/15">
@@ -76,7 +77,7 @@ export function SkillRankList({
                 <div className="min-w-0 flex-1">
                   <Link
                     href={`/skill/${s.id}`}
-                    className="block truncate font-serif text-[13px] font-bold leading-tight text-[#1a1a1a] hover:underline"
+                    className="ink-underline inline-block max-w-full truncate align-top font-serif text-[13px] font-bold leading-tight text-[#1a1a1a]"
                   >
                     {s.name}
                   </Link>
