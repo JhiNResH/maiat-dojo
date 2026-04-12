@@ -261,7 +261,7 @@ export default function PurchaseCard({ skill }: Props) {
         </button>
         <button
           onClick={() => { setStep("idle"); setPassiveResult(null); }}
-          className={`w-full font-mono text-[10px] ${faint} hover:${ink} transition-colors py-1`}
+          className={`w-full font-mono text-[10px] ${faint} hover:opacity-100 transition-colors py-1`}
         >
           View again
         </button>
