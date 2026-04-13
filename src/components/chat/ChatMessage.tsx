@@ -46,7 +46,7 @@ function Row({
       <div className="mb-1.5 flex items-center gap-2">
         <span
           className={`font-mono text-[9px] uppercase tracking-[0.2em] ${
-            role === "user" ? "text-[#1a1a1a]/50" : "text-[#8b0000]/70"
+            role === "user" ? "text-[#1a1a1a]/50" : "text-[#b08d57]/70"
           }`}
         >
           {role === "user" ? "You" : "Dojo"}
@@ -71,7 +71,7 @@ function Body({
   const isUser = role === "user";
   const toneColor =
     tone === "warn"
-      ? "border-l-[#8b0000]"
+      ? "border-l-[#dc2626]"
       : tone === "ok"
         ? "border-l-[#1a1a1a]"
         : "border-l-[#1a1a1a]/40";
@@ -89,7 +89,7 @@ function Body({
   return (
     <div
       className={`whitespace-pre-wrap break-words font-serif text-[15px] leading-[1.65] text-[#1a1a1a] ${
-        tone === "warn" ? "border-l-2 border-l-[#8b0000] pl-4" : ""
+        tone === "warn" ? "border-l-2 border-l-[#dc2626] pl-4" : ""
       }`}
     >
       {content}

@@ -34,7 +34,7 @@ export interface SkillRankListProps {
 function SectionHeader({ label, meta }: { label: string; meta?: string }) {
   return (
     <div className="mb-3 flex items-baseline justify-between border-b-[3px] border-double border-[#1a1a1a]/60 pb-1">
-      <span className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-[#1a1a1a]/70">
+      <span className="border-l-[3px] border-[#1a1a1a] pl-3 font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-[#1a1a1a]/70">
         {label}
       </span>
       {meta && (
@@ -64,35 +64,48 @@ export function SkillRankList({
         </p>
       ) : (
         <ul>
-          {skills.map((s, i) => (
-            <li
-              key={s.id}
-              className="reveal-row border-b border-dotted border-[#1a1a1a]/15 py-2 last:border-b-0"
-              style={{ animationDelay: `${i * 80}ms` }}
-            >
-              <div className="flex items-start gap-2.5">
-                <span className="w-5 shrink-0 pt-0.5 text-right font-serif text-[14px] font-black leading-none text-[#1a1a1a]/15">
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <Link
-                    href={`/skill/${s.id}`}
-                    className="ink-underline inline-block max-w-full truncate align-top font-serif text-[13px] font-bold leading-tight text-[#1a1a1a]"
+          {skills.map((s, i) => {
+            const isTop3 = i < 3;
+            return (
+              <li
+                key={s.id}
+                className={`unfold-down border-b border-dotted border-[#1a1a1a]/15 last:border-b-0 ${
+                  isTop3 ? "py-3" : "py-2.5"
+                }`}
+                style={{ animationDelay: `${i * 80}ms` }}
+              >
+                <div className="flex items-start gap-2.5">
+                  <span
+                    className={`w-5 shrink-0 pt-0.5 text-right font-serif font-black leading-none ${
+                      isTop3
+                        ? "text-[22px] text-[#b08d57]/30"
+                        : "text-[18px] text-[#1a1a1a]/15"
+                    }`}
                   >
-                    {s.name}
-                  </Link>
-                  <div className="mt-0.5 flex items-baseline justify-between gap-2">
-                    <span className="truncate font-mono text-[9px] uppercase tracking-wider text-[#1a1a1a]/35">
-                      {s.category ?? "misc"}
-                    </span>
-                    <span className="shrink-0 font-mono text-[9px] font-bold text-[#1a1a1a]">
-                      {metric(s)}
-                    </span>
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <Link
+                      href={`/skill/${s.id}`}
+                      className={`ink-underline inline-block max-w-full truncate align-top font-serif font-bold leading-tight text-[#1a1a1a] ${
+                        isTop3 ? "text-[15px]" : "text-[13px]"
+                      }`}
+                    >
+                      {s.name}
+                    </Link>
+                    <div className="mt-0.5 flex items-baseline justify-between gap-2">
+                      <span className="truncate font-mono text-[9px] uppercase tracking-wider text-[#1a1a1a]/35">
+                        {s.category ?? "misc"}
+                      </span>
+                      <span className="shrink-0 font-mono text-[9px] font-bold text-[#1a1a1a]">
+                        {metric(s)}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ul>
       )}
     </section>

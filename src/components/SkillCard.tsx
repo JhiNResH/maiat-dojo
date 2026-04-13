@@ -125,7 +125,7 @@ export function SkillCard({
       <div
         className={`font-mono text-[#1a1a1a]/50 text-center ${config.stats}`}
       >
-        <span className="text-[#8b0000]">★ {skill.rating.toFixed(1)}</span>
+        <span className="text-[#b08d57]">★ {skill.rating.toFixed(1)}</span>
         <span className="mx-1">·</span>
         <span>{skill.installs.toLocaleString()}</span>
       </div>

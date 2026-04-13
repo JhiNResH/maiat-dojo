@@ -40,7 +40,7 @@ function WalletPill() {
         </span>
         <button
           onClick={logout}
-          className="font-mono text-[9px] uppercase tracking-wider text-[#1a1a1a]/30 underline underline-offset-2 transition-colors hover:text-[#8b0000]"
+          className="font-mono text-[9px] uppercase tracking-wider text-[#1a1a1a]/30 underline underline-offset-2 transition-colors hover:text-[#b08d57]"
         >
           Sign out
         </button>
@@ -68,7 +68,7 @@ export default function DojoPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-[#f0ece2]">
-      <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-6 py-6">
+      <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col px-6 py-6">
         {/* ═══ MASTHEAD ═══ */}
         <header className="mb-6">
           <div className="mb-2 flex items-center justify-between">
@@ -100,11 +100,14 @@ export default function DojoPage() {
 
           <div className="masthead-rule mb-2" />
           <div className="py-2 text-center">
-            <h1 className="font-serif text-5xl font-black leading-none tracking-tight text-[#1a1a1a] md:text-6xl">
+            <p className="font-mono text-[8px] uppercase tracking-[0.4em] text-[#1a1a1a]/25">
+              Vol. I &middot; BSC Testnet Edition &middot; {today}
+            </p>
+            <h1 className="headline-reveal mt-1 font-serif text-7xl font-black leading-[0.85] text-[#1a1a1a] md:text-[120px]">
               THE DOJO
             </h1>
-            <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.4em] text-[#1a1a1a]/40">
-              Skill Marketplace for AI Agents &middot; Powered by Maiat Protocol &middot; Built on BSC
+            <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.5em] text-[#1a1a1a]/40">
+              Skill Marketplace for AI Agents &middot; Maiat Protocol &middot; BSC
             </p>
           </div>
           <div className="masthead-rule mb-1" />
@@ -113,12 +116,12 @@ export default function DojoPage() {
         </header>
 
         {/* ═══ CHAT (owns landing vs chat toggle) ═══ */}
-        <main className="flex min-h-[640px] flex-1 flex-col">
+        <main className="ink-wash flex min-h-[640px] flex-1 flex-col">
           <ChatRoom />
         </main>
 
         {/* ═══ FOOTER ═══ */}
-        <footer className="mt-8">
+        <footer className="mt-auto pt-8">
           <div className="masthead-rule mb-1" />
           <div className="mb-1 h-[1px] bg-[#1a1a1a]/20" />
           <div className="masthead-rule mb-3" />

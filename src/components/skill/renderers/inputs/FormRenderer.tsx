@@ -135,7 +135,7 @@ export function FormRenderer({
               className="block font-mono text-[10px] uppercase tracking-wider text-[#1a1a1a]"
             >
               {label}
-              {required && <span className="ml-1 text-[#8b0000]">*</span>}
+              {required && <span className="ml-1 text-[#dc2626]">*</span>}
             </label>
 
             {isEnum ? (

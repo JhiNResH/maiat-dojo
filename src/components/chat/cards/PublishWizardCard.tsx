@@ -259,11 +259,11 @@ export function PublishWizardCard() {
         </div>
         <p className="font-serif text-[15px] leading-[1.65] text-[#1a1a1a]">
           <strong>{publishedSkillName}</strong> is now live. Try{" "}
-          <code className="font-mono text-[11px] font-bold text-[#8b0000]">
+          <code className="font-mono text-[11px] font-bold text-[#b08d57]">
             list skills
           </code>{" "}
           to see it, or{" "}
-          <code className="font-mono text-[11px] font-bold text-[#8b0000]">
+          <code className="font-mono text-[11px] font-bold text-[#b08d57]">
             call {publishedSkillName.toLowerCase().replace(/\s+/g, "-")}
           </code>{" "}
           to test.
@@ -283,7 +283,7 @@ export function PublishWizardCard() {
               s < step
                 ? "bg-[#1a1a1a]"
                 : s === step
-                  ? "bg-[#8b0000]"
+                  ? "bg-[#b08d57]"
                   : "bg-[#1a1a1a]/15"
             }`}
           />
@@ -292,7 +292,7 @@ export function PublishWizardCard() {
 
       {/* Error display */}
       {error && (
-        <div className="mb-3 border-l-2 border-[#8b0000] bg-[#8b0000]/5 px-2 py-1 font-mono text-[11px] text-[#8b0000]">
+        <div className="mb-3 border-l-2 border-[#dc2626] bg-[#dc2626]/5 px-2 py-1 font-mono text-[11px] text-[#dc2626]">
           {error}
         </div>
       )}
@@ -471,7 +471,7 @@ export function PublishWizardCard() {
               className={`border-l-2 px-3 py-2 ${
                 dryRunResult.ok
                   ? "border-green-800 bg-green-800/5"
-                  : "border-[#8b0000] bg-[#8b0000]/5"
+                  : "border-[#dc2626] bg-[#dc2626]/5"
               }`}
             >
               <div className="mb-1 font-mono text-[11px] font-bold">
