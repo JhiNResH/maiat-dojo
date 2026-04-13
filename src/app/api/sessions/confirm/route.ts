@@ -101,8 +101,9 @@ export async function POST(req: NextRequest) {
       args: [jobId],
     });
 
-    // job returns tuple: [id, client, provider, evaluator, budget, status, expiredAt, description, deliverable, hook]
-    const [jobIdOnChain, , jobProvider, , jobBudget, jobStatus] = job;
+    // Field order: [id, client, provider, evaluator, hook, description, budget, expiredAt, status]
+    // Verified against check-onchain-job.ts (2026-04-09, job #14)
+    const [jobIdOnChain, jobClient, jobProvider, jobEvaluator, , , jobBudget, , jobStatus] = job;
 
     // Verify job exists
     if (jobIdOnChain === 0n) {
@@ -120,6 +121,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Verify caller's wallet is the job client (prevents session hijacking — H-01)
+    const callerWallet = (agent.walletAddress ?? user.walletAddress)?.toLowerCase();
+    if (!callerWallet || (jobClient as string).toLowerCase() !== callerWallet) {
+      return NextResponse.json(
+        { error: 'Job client does not match agent wallet — you did not fund this job' },
+        { status: 403 }
+      );
+    }
+
     // Verify provider is our relayer (so settle flow works)
     const relayerAddress = bscConfig.privateKey
       ? (await import('viem/accounts')).privateKeyToAccount(bscConfig.privateKey).address.toLowerCase()
@@ -128,6 +138,14 @@ export async function POST(req: NextRequest) {
     if (!relayerAddress || (jobProvider as string).toLowerCase() !== relayerAddress) {
       return NextResponse.json(
         { error: 'Job provider is not the Dojo relayer — settle will fail' },
+        { status: 400 }
+      );
+    }
+
+    // Verify evaluator matches Dojo evaluator (M-01: close TOCTOU gap)
+    if ((jobEvaluator as string).toLowerCase() !== acpConfig.evaluatorAddress.toLowerCase()) {
+      return NextResponse.json(
+        { error: 'Job evaluator does not match Dojo evaluator' },
         { status: 400 }
       );
     }

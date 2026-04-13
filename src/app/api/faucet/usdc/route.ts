@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
 import { verifyPrivyAuth } from '@/lib/privy-server';
 import { createBscPublicClient, createBscWalletClient, getBscConfig, withRelayerLock } from '@/lib/erc8004';
 import { getContracts } from '@/lib/contracts';
@@ -79,6 +80,15 @@ export async function POST(req: NextRequest) {
           { status: 403 }
         );
       }
+    }
+
+    // Verify wallet belongs to authenticated user
+    const user = await prisma.user.findUnique({ where: { privyId } });
+    if (!user?.walletAddress || user.walletAddress.toLowerCase() !== walletAddress.toLowerCase()) {
+      return NextResponse.json(
+        { error: 'Wallet not linked to your account' },
+        { status: 403 }
+      );
     }
 
     // Rate limit

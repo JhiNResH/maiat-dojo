@@ -108,19 +108,20 @@ export const ACP_ABI = [
     stateMutability: 'nonpayable',
   },
   {
+    // Field order verified against check-onchain-job.ts (2026-04-09, job #14).
+    // Solidity auto-getter omits bytes32 fields — no `deliverable`.
     type: 'function', name: 'jobs',
     inputs: [{ name: 'jobId', type: 'uint256' }],
     outputs: [
-      { name: 'id',          type: 'uint256' },
-      { name: 'client',      type: 'address' },
-      { name: 'provider',    type: 'address' },
-      { name: 'evaluator',   type: 'address' },
-      { name: 'budget',      type: 'uint256' },
-      { name: 'status',      type: 'uint8' },
-      { name: 'expiredAt',   type: 'uint256' },
-      { name: 'description', type: 'string' },
-      { name: 'deliverable', type: 'bytes32' },
-      { name: 'hook',        type: 'address' },
+      { name: 'id',          type: 'uint256' },  // [0]
+      { name: 'client',      type: 'address' },  // [1]
+      { name: 'provider',    type: 'address' },  // [2]
+      { name: 'evaluator',   type: 'address' },  // [3]
+      { name: 'hook',        type: 'address' },  // [4]
+      { name: 'description', type: 'string' },   // [5]
+      { name: 'budget',      type: 'uint256' },  // [6]
+      { name: 'expiredAt',   type: 'uint256' },  // [7]
+      { name: 'status',      type: 'uint8' },    // [8]
     ],
     stateMutability: 'view',
   },

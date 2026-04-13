@@ -2,9 +2,11 @@
 
 import { useState, useCallback } from 'react';
 import { useAccount, useWriteContract, useReadContract } from 'wagmi';
-import { parseEventLogs, type Log } from 'viem';
+import { waitForTransactionReceipt } from 'wagmi/actions';
+import { parseEventLogs } from 'viem';
 import { usePrivy } from '@privy-io/react-auth';
 import { ACP_ABI, USDC_ABI, getContracts } from '@/lib/contracts';
+import { config as wagmiConfig } from '@/lib/wagmi';
 
 export type EscrowStep =
   | 'idle'
@@ -211,43 +213,15 @@ export function useEscrowFund() {
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
-/** Poll for tx receipt via raw RPC. Returns logs compatible with viem's parseEventLogs. */
-async function waitForTx(hash: `0x${string}`): Promise<{ logs: Log[] }> {
-  const rpcUrl = 'https://data-seed-prebsc-1-s1.binance.org:8545';
-  const maxAttempts = 30;
-  const interval = 2000;
-
-  for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(rpcUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        method: 'eth_getTransactionReceipt',
-        params: [hash],
-        id: 1,
-      }),
-    });
-    const data = await res.json();
-    if (data.result) {
-      if (data.result.status === '0x0') {
-        throw new Error(`Transaction reverted: ${hash}`);
-      }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const logs: Log[] = (data.result.logs || []).map((log: any) => ({
-        address: log.address as `0x${string}`,
-        topics: log.topics as `0x${string}`[],
-        data: (log.data || '0x') as `0x${string}`,
-        blockHash: log.blockHash as `0x${string}`,
-        blockNumber: BigInt(log.blockNumber),
-        logIndex: Number(log.logIndex),
-        transactionHash: log.transactionHash as `0x${string}`,
-        transactionIndex: Number(log.transactionIndex),
-        removed: log.removed ?? false,
-      }));
-      return { logs };
-    }
-    await new Promise(r => setTimeout(r, interval));
+/** Wait for tx confirmation using wagmi's built-in transport (chain-aware). */
+async function waitForTx(hash: `0x${string}`) {
+  const receipt = await waitForTransactionReceipt(wagmiConfig, {
+    hash,
+    confirmations: 1,
+    timeout: 60_000,
+  });
+  if (receipt.status === 'reverted') {
+    throw new Error(`Transaction reverted: ${hash}`);
   }
-  throw new Error(`Transaction not confirmed after ${maxAttempts * interval / 1000}s: ${hash}`);
+  return receipt;
 }
