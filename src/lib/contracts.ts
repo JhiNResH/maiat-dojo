@@ -71,5 +71,73 @@ export const USDC_ABI = [
   },
 ] as const;
 
+// ─── ACP (AgenticCommerceHooked) ABI ─────────────────────────────────────
+// Client-importable subset for agent-side tx construction.
+// Server-side bsc-acp.ts has its own private copy with submit/evaluate.
+export const ACP_ABI = [
+  {
+    type: 'function', name: 'createJob',
+    inputs: [
+      { name: 'provider',    type: 'address' },
+      { name: 'evaluator',   type: 'address' },
+      { name: 'expiredAt',   type: 'uint256' },
+      { name: 'description', type: 'string' },
+      { name: 'hook',        type: 'address' },
+    ],
+    outputs: [{ name: 'jobId', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function', name: 'setBudget',
+    inputs: [
+      { name: 'jobId',     type: 'uint256' },
+      { name: 'amount',    type: 'uint256' },
+      { name: 'optParams', type: 'bytes' },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function', name: 'fund',
+    inputs: [
+      { name: 'jobId',          type: 'uint256' },
+      { name: 'expectedBudget', type: 'uint256' },
+      { name: 'optParams',      type: 'bytes' },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    // Field order verified against check-onchain-job.ts (2026-04-09, job #14).
+    // Solidity auto-getter omits bytes32 fields — no `deliverable`.
+    type: 'function', name: 'jobs',
+    inputs: [{ name: 'jobId', type: 'uint256' }],
+    outputs: [
+      { name: 'id',          type: 'uint256' },  // [0]
+      { name: 'client',      type: 'address' },  // [1]
+      { name: 'provider',    type: 'address' },  // [2]
+      { name: 'evaluator',   type: 'address' },  // [3]
+      { name: 'hook',        type: 'address' },  // [4]
+      { name: 'description', type: 'string' },   // [5]
+      { name: 'budget',      type: 'uint256' },  // [6]
+      { name: 'expiredAt',   type: 'uint256' },  // [7]
+      { name: 'status',      type: 'uint8' },    // [8]
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'event', name: 'JobCreated',
+    inputs: [
+      { name: 'jobId',     type: 'uint256', indexed: true },
+      { name: 'client',    type: 'address', indexed: true },
+      { name: 'provider',  type: 'address', indexed: true },
+      { name: 'evaluator', type: 'address', indexed: false },
+      { name: 'expiredAt', type: 'uint256', indexed: false },
+      { name: 'hook',      type: 'address', indexed: false },
+    ],
+    anonymous: false,
+  },
+] as const;
+
 // ─── AgentIdentity ABI (re-export from erc8004 for convenience) ─────────
 export { AgentIdentityABI } from './erc8004';
