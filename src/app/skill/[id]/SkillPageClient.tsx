@@ -84,20 +84,17 @@ export default function SkillPageClient({
   const { isDark } = useDarkMode();
   const trustScore = skill.evaluationScore ?? 0;
 
-  const glassCard = isDark
-    ? 'border-white/[0.06] bg-white/[0.03]'
-    : 'border-black/[0.06] bg-white/60';
-
-  const glassStyle = {
-    backdropFilter: 'blur(40px) saturate(180%)',
-    WebkitBackdropFilter: 'blur(40px) saturate(180%)',
-  } as const;
+  const ink = isDark ? 'text-white' : 'text-[#1a1a1a]';
+  const muted = isDark ? 'text-gray-500' : 'text-[#1a1a1a]/60';
+  const faint = isDark ? 'text-gray-600' : 'text-[#1a1a1a]/40';
+  const panel = isDark ? 'border-white/10' : 'border-[#1a1a1a]/10';
+  const accent = 'text-[#b08d57]';
 
   return (
     <div
       className="min-h-screen atmosphere transition-colors duration-700"
       style={{
-        background: isDark ? '#0A0A0A' : '#fafaf7',
+        background: isDark ? '#0A0A0A' : '#f0ece2',
         color: isDark ? '#ededed' : '#0a0a0a',
       }}
     >
@@ -108,9 +105,7 @@ export default function SkillPageClient({
         <div className="max-w-6xl mx-auto">
           <Link
             href="/"
-            className={`inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] mb-10 transition-opacity hover:opacity-70 ${
-              isDark ? 'text-gray-400' : 'text-gray-500'
-            }`}
+            className={`inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] mb-10 transition-opacity hover:opacity-70 ${muted}`}
           >
             <ArrowLeft className="w-3 h-3" />
             Back to marketplace
@@ -120,29 +115,21 @@ export default function SkillPageClient({
           <header className="mb-12">
             {skill.category && (
               <span
-                className={`inline-block text-[9px] font-bold uppercase tracking-[0.2em] px-3 py-1.5 rounded-full border mb-5 ${
-                  isDark
-                    ? 'border-white/10 bg-white/5 text-gray-400'
-                    : 'border-black/10 bg-white/60 text-gray-500'
-                }`}
+                className={`inline-block font-mono text-[9px] uppercase tracking-[0.15em] px-3 py-1.5 border mb-5 ${panel} ${muted}`}
               >
                 {skill.category}
               </span>
             )}
             <h1
-              className={`font-sans font-semibold text-4xl md:text-6xl tracking-[-0.03em] leading-[0.95] mb-5 ${
-                isDark ? 'text-white' : 'text-black'
-              }`}
+              className={`font-serif text-4xl md:text-6xl tracking-[-0.03em] leading-[0.95] mb-5 ${ink}`}
             >
               {skill.name}
             </h1>
             <div
-              className={`flex items-center gap-2 text-sm ${
-                isDark ? 'text-gray-400' : 'text-gray-500'
-              }`}
+              className={`flex items-center gap-2 text-sm ${muted}`}
             >
               <span>by</span>
-              <span className={isDark ? 'text-white' : 'text-black'}>
+              <span className={ink}>
                 {skill.creator.displayName || truncateAddress(skill.creator.walletAddress)}
               </span>
               <span>·</span>
@@ -163,20 +150,15 @@ export default function SkillPageClient({
             ].map((stat) => (
               <div
                 key={stat.label}
-                className={`rounded-2xl p-5 border transition-colors duration-700 ${glassCard}`}
-                style={glassStyle}
+                className={`p-5 border transition-colors duration-700 ${panel}`}
               >
                 <div
-                  className={`font-mono text-2xl font-bold tabular-nums ${
-                    isDark ? 'text-white' : 'text-black'
-                  }`}
+                  className={`font-mono text-2xl font-bold tabular-nums ${ink}`}
                 >
                   {stat.value}
                 </div>
                 <div
-                  className={`text-[9px] font-bold uppercase tracking-[0.2em] mt-1 ${
-                    isDark ? 'text-gray-500' : 'text-gray-400'
-                  }`}
+                  className={`text-[9px] font-bold uppercase tracking-[0.2em] mt-1 ${muted}`}
                 >
                   {stat.label}
                 </div>
@@ -189,19 +171,16 @@ export default function SkillPageClient({
             {/* Left column */}
             <div className="space-y-6">
               <section
-                className={`rounded-3xl p-8 border transition-colors duration-700 ${glassCard}`}
-                style={glassStyle}
+                className={`p-8 border transition-colors duration-700 ${panel}`}
               >
                 <div
-                  className={`text-[10px] font-bold uppercase tracking-[0.3em] mb-5 ${
-                    isDark ? 'text-gray-500' : 'text-gray-400'
-                  }`}
+                  className={`font-mono text-[9px] uppercase tracking-[0.15em] mb-5 ${muted}`}
                 >
                   About this skill
                 </div>
                 <div
                   className={`text-base leading-relaxed space-y-4 ${
-                    isDark ? 'text-gray-300' : 'text-gray-700'
+                    isDark ? 'text-gray-300' : 'text-[#1a1a1a]/70'
                   }`}
                 >
                   {(skill.longDescription || skill.description || 'No description provided.')
@@ -250,13 +229,10 @@ export default function SkillPageClient({
               />
 
               <div
-                className={`rounded-3xl p-7 border transition-colors duration-700 ${glassCard}`}
-                style={glassStyle}
+                className={`p-7 border transition-colors duration-700 ${panel}`}
               >
                 <div
-                  className={`text-[10px] font-bold uppercase tracking-[0.3em] mb-5 ${
-                    isDark ? 'text-gray-500' : 'text-gray-400'
-                  }`}
+                  className={`font-mono text-[9px] uppercase tracking-[0.15em] mb-5 ${muted}`}
                 >
                   Specification
                 </div>
@@ -274,17 +250,13 @@ export default function SkillPageClient({
                       className="flex items-center justify-between"
                     >
                       <div
-                        className={`flex items-center gap-2 text-[11px] font-medium uppercase tracking-wider ${
-                          isDark ? 'text-gray-500' : 'text-gray-400'
-                        }`}
+                        className={`flex items-center gap-2 text-[11px] font-medium uppercase tracking-wider ${muted}`}
                       >
                         <Icon className="w-3 h-3" />
                         {label}
                       </div>
                       <span
-                        className={`font-mono text-xs font-semibold tabular-nums ${
-                          isDark ? 'text-white' : 'text-black'
-                        }`}
+                        className={`font-mono text-xs font-semibold tabular-nums ${ink}`}
                       >
                         {value}
                       </span>
@@ -294,13 +266,10 @@ export default function SkillPageClient({
               </div>
 
               <div
-                className={`rounded-3xl p-7 border transition-colors duration-700 ${glassCard}`}
-                style={glassStyle}
+                className={`p-7 border transition-colors duration-700 ${panel}`}
               >
                 <div
-                  className={`text-[10px] font-bold uppercase tracking-[0.3em] mb-5 ${
-                    isDark ? 'text-gray-500' : 'text-gray-400'
-                  }`}
+                  className={`font-mono text-[9px] uppercase tracking-[0.15em] mb-5 ${muted}`}
                 >
                   Creator
                 </div>
@@ -317,16 +286,12 @@ export default function SkillPageClient({
                   </div>
                   <div className="min-w-0">
                     <div
-                      className={`font-sans font-semibold text-sm truncate ${
-                        isDark ? 'text-white' : 'text-black'
-                      }`}
+                      className={`font-serif text-sm truncate ${ink}`}
                     >
                       {skill.creator.displayName || 'Anonymous'}
                     </div>
                     <div
-                      className={`font-mono text-[10px] tabular-nums ${
-                        isDark ? 'text-gray-500' : 'text-gray-400'
-                      }`}
+                      className={`font-mono text-[10px] tabular-nums ${muted}`}
                     >
                       {truncateAddress(skill.creator.walletAddress)}
                     </div>

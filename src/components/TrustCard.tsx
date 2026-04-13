@@ -1,6 +1,5 @@
 'use client';
 
-import { motion } from 'framer-motion';
 import { BadgeCheck, ExternalLink, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { useDarkMode } from '@/app/DarkModeContext';
 
@@ -56,7 +55,7 @@ function Sparkline({ series, isDark }: { series: number[]; isDark: boolean }) {
     return (
       <div
         className={`text-[9px] font-bold uppercase tracking-[0.15em] ${
-          isDark ? 'text-gray-600' : 'text-gray-400'
+          isDark ? 'text-gray-600' : 'text-[#1a1a1a]/40'
         }`}
       >
         Awaiting data
@@ -133,13 +132,13 @@ function Heatmap({ buckets, isDark }: { buckets: HeatmapBucket[]; isDark: boolea
         return (
           <div key={i} className="flex flex-col items-center gap-1.5">
             <div
-              className="w-7 h-10 rounded-md transition-colors"
+              className="w-7 h-10 transition-colors"
               style={{ backgroundColor: bg }}
               title={`${b.date}: ${b.count} session${b.count === 1 ? '' : 's'}`}
             />
             <span
               className={`text-[9px] font-bold uppercase tracking-wider ${
-                isDark ? 'text-gray-600' : 'text-gray-400'
+                isDark ? 'text-gray-600' : 'text-[#1a1a1a]/40'
               }`}
             >
               {label[0]}
@@ -170,7 +169,7 @@ function TrendPill({
         ? 'text-red-500'
         : isDark
           ? 'text-gray-500'
-          : 'text-gray-400';
+          : 'text-[#1a1a1a]/40';
   const sign = delta > 0 ? '+' : '';
   return (
     <div className={`flex items-center gap-1 text-xs font-mono ${colorClass}`}>
@@ -196,39 +195,27 @@ export default function TrustCard({
 }: Props) {
   const { isDark } = useDarkMode();
 
-  const glassCard = isDark
-    ? 'border-white/[0.06] bg-white/[0.03]'
-    : 'border-black/[0.06] bg-white/60';
-
-  const glassStyle = {
-    backdropFilter: 'blur(40px) saturate(180%)',
-    WebkitBackdropFilter: 'blur(40px) saturate(180%)',
-  } as const;
+  const ink = isDark ? 'text-white' : 'text-[#1a1a1a]';
+  const muted = isDark ? 'text-gray-500' : 'text-[#1a1a1a]/60';
+  const faint = isDark ? 'text-gray-600' : 'text-[#1a1a1a]/40';
+  const divider = isDark ? 'border-white/10' : 'border-[#1a1a1a]/10';
 
   const creatorVerified = !!creator.erc8004TokenId;
   const erc8004Url = `${BSCSCAN_TESTNET}/address/${ERC8004_TESTNET_ADDRESS}`;
 
   return (
-    <motion.section
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className={`rounded-3xl p-8 border transition-colors duration-700 ${glassCard}`}
-      style={glassStyle}
+    <section
+      className={`p-8 border transition-colors duration-700 ${divider}`}
     >
       {/* Header row */}
       <div className="flex items-center justify-between mb-8">
         <div
-          className={`text-[10px] font-bold uppercase tracking-[0.3em] ${
-            isDark ? 'text-gray-500' : 'text-gray-400'
-          }`}
+          className={`font-mono text-[9px] uppercase tracking-[0.15em] ${muted}`}
         >
           Trust dossier
         </div>
         <div
-          className={`text-[10px] font-mono uppercase tracking-[0.15em] ${
-            isDark ? 'text-gray-600' : 'text-gray-400'
-          }`}
+          className={`font-mono text-[9px] uppercase tracking-[0.15em] ${faint}`}
         >
           BSC · BAS
         </div>
@@ -238,16 +225,12 @@ export default function TrustCard({
       <div className="flex items-start gap-8 mb-10">
         <div>
           <div
-            className={`font-sans font-semibold text-[64px] leading-none tabular-nums tracking-[-0.04em] ${
-              isDark ? 'text-white' : 'text-black'
-            }`}
+            className={`font-serif text-[64px] leading-none tabular-nums tracking-[-0.04em] ${ink}`}
           >
             {trustScore}
           </div>
           <div
-            className={`text-[9px] font-bold uppercase tracking-[0.2em] mt-2 ${
-              isDark ? 'text-gray-500' : 'text-gray-400'
-            }`}
+            className={`text-[9px] font-bold uppercase tracking-[0.2em] mt-2 ${muted}`}
           >
             Trust score
           </div>
@@ -256,9 +239,7 @@ export default function TrustCard({
           <TrendPill sparkline={sparkline} isDark={isDark} />
           <Sparkline series={sparkline} isDark={isDark} />
           <div
-            className={`text-[9px] font-bold uppercase tracking-[0.2em] ${
-              isDark ? 'text-gray-600' : 'text-gray-400'
-            }`}
+            className={`text-[9px] font-bold uppercase tracking-[0.2em] ${faint}`}
           >
             Last {sparkline.length || 0} sessions
           </div>
@@ -267,16 +248,12 @@ export default function TrustCard({
 
       {/* Stat row: PASS / FAIL / LATENCY */}
       <div
-        className={`grid grid-cols-3 gap-4 mb-10 pt-6 border-t ${
-          isDark ? 'border-white/[0.06]' : 'border-black/[0.06]'
-        }`}
+        className={`grid grid-cols-3 gap-4 mb-10 pt-6 border-t ${divider}`}
       >
         <div>
           <div className="flex items-baseline gap-1.5">
             <span
-              className={`font-mono text-2xl font-bold tabular-nums ${
-                isDark ? 'text-white' : 'text-black'
-              }`}
+              className={`font-mono text-2xl font-bold tabular-nums ${ink}`}
             >
               {passedSessions}
             </span>
@@ -285,9 +262,7 @@ export default function TrustCard({
             </span>
           </div>
           <div
-            className={`text-[9px] font-bold uppercase tracking-[0.2em] mt-1 ${
-              isDark ? 'text-gray-500' : 'text-gray-400'
-            }`}
+            className={`text-[9px] font-bold uppercase tracking-[0.2em] mt-1 ${muted}`}
           >
             BAS attestations
           </div>
@@ -295,9 +270,7 @@ export default function TrustCard({
         <div>
           <div className="flex items-baseline gap-1.5">
             <span
-              className={`font-mono text-2xl font-bold tabular-nums ${
-                isDark ? 'text-white' : 'text-black'
-              }`}
+              className={`font-mono text-2xl font-bold tabular-nums ${ink}`}
             >
               {failedSessions}
             </span>
@@ -306,34 +279,26 @@ export default function TrustCard({
             </span>
           </div>
           <div
-            className={`text-[9px] font-bold uppercase tracking-[0.2em] mt-1 ${
-              isDark ? 'text-gray-500' : 'text-gray-400'
-            }`}
+            className={`text-[9px] font-bold uppercase tracking-[0.2em] mt-1 ${muted}`}
           >
             Refunded sessions
           </div>
         </div>
         <div>
           <div
-            className={`font-mono text-2xl font-bold tabular-nums ${
-              isDark ? 'text-white' : 'text-black'
-            }`}
+            className={`font-mono text-2xl font-bold tabular-nums ${ink}`}
           >
             {medianLatencyMs !== null ? `${medianLatencyMs}` : '—'}
             {medianLatencyMs !== null && (
               <span
-                className={`text-xs font-bold ml-1 ${
-                  isDark ? 'text-gray-500' : 'text-gray-400'
-                }`}
+                className={`text-xs font-bold ml-1 ${muted}`}
               >
                 ms
               </span>
             )}
           </div>
           <div
-            className={`text-[9px] font-bold uppercase tracking-[0.2em] mt-1 ${
-              isDark ? 'text-gray-500' : 'text-gray-400'
-            }`}
+            className={`text-[9px] font-bold uppercase tracking-[0.2em] mt-1 ${muted}`}
           >
             Median latency
           </div>
@@ -342,14 +307,10 @@ export default function TrustCard({
 
       {/* 7-day heatmap */}
       <div
-        className={`mb-10 pt-6 border-t ${
-          isDark ? 'border-white/[0.06]' : 'border-black/[0.06]'
-        }`}
+        className={`mb-10 pt-6 border-t ${divider}`}
       >
         <div
-          className={`text-[9px] font-bold uppercase tracking-[0.2em] mb-4 ${
-            isDark ? 'text-gray-500' : 'text-gray-400'
-          }`}
+          className={`font-mono text-[9px] uppercase tracking-[0.15em] mb-4 ${muted}`}
         >
           Last 7 days activity
         </div>
@@ -358,22 +319,16 @@ export default function TrustCard({
 
       {/* BAS attestations list */}
       <div
-        className={`mb-10 pt-6 border-t ${
-          isDark ? 'border-white/[0.06]' : 'border-black/[0.06]'
-        }`}
+        className={`mb-10 pt-6 border-t ${divider}`}
       >
         <div className="flex items-center justify-between mb-4">
           <div
-            className={`text-[9px] font-bold uppercase tracking-[0.2em] ${
-              isDark ? 'text-gray-500' : 'text-gray-400'
-            }`}
+            className={`font-mono text-[9px] uppercase tracking-[0.15em] ${muted}`}
           >
             On-chain attestations
           </div>
           <div
-            className={`text-[9px] font-mono tabular-nums ${
-              isDark ? 'text-gray-600' : 'text-gray-400'
-            }`}
+            className={`text-[9px] font-mono tabular-nums ${faint}`}
           >
             {attestations.length} / {totalSessions}
           </div>
@@ -381,9 +336,7 @@ export default function TrustCard({
 
         {attestations.length === 0 ? (
           <div
-            className={`text-xs py-2 ${
-              isDark ? 'text-gray-600' : 'text-gray-400'
-            }`}
+            className={`text-xs py-2 ${faint}`}
           >
             No BAS records yet. The first settled session will attest on-chain.
           </div>
@@ -397,10 +350,10 @@ export default function TrustCard({
                   href={`${BSCSCAN_TESTNET}/search?q=${a.uid}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`group flex items-center justify-between gap-3 px-4 py-3 rounded-xl border transition-all no-underline ${
+                  className={`group flex items-center justify-between gap-3 px-4 py-3 border transition-all no-underline ${
                     isDark
-                      ? 'border-white/[0.04] bg-white/[0.02] hover:bg-white/[0.05]'
-                      : 'border-black/[0.04] bg-white/40 hover:bg-white/70'
+                      ? 'border-white/10 hover:bg-white/[0.03]'
+                      : 'border-[#1a1a1a]/10 hover:bg-[#1a1a1a]/[0.02]'
                   }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
@@ -415,7 +368,7 @@ export default function TrustCard({
                     </span>
                     <span
                       className={`font-mono text-[11px] tabular-nums truncate ${
-                        isDark ? 'text-gray-300' : 'text-gray-700'
+                        isDark ? 'text-gray-300' : 'text-[#1a1a1a]/70'
                       }`}
                     >
                       {truncateUid(a.uid)}
@@ -423,16 +376,12 @@ export default function TrustCard({
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <span
-                      className={`text-[10px] ${
-                        isDark ? 'text-gray-600' : 'text-gray-400'
-                      }`}
+                      className={`text-[10px] ${faint}`}
                     >
                       {formatRelative(a.settledAt)}
                     </span>
                     <ExternalLink
-                      className={`w-3 h-3 transition-opacity opacity-40 group-hover:opacity-100 ${
-                        isDark ? 'text-gray-400' : 'text-gray-500'
-                      }`}
+                      className={`w-3 h-3 transition-opacity opacity-40 group-hover:opacity-100 ${muted}`}
                     />
                   </div>
                 </a>
@@ -444,9 +393,7 @@ export default function TrustCard({
 
       {/* Creator verify row */}
       <div
-        className={`pt-6 border-t ${
-          isDark ? 'border-white/[0.06]' : 'border-black/[0.06]'
-        }`}
+        className={`pt-6 border-t ${divider}`}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -461,15 +408,13 @@ export default function TrustCard({
             )}
             <div>
               <div
-                className={`text-[9px] font-bold uppercase tracking-[0.2em] ${
-                  isDark ? 'text-gray-500' : 'text-gray-400'
-                }`}
+                className={`font-mono text-[9px] uppercase tracking-[0.15em] ${muted}`}
               >
                 Creator identity
               </div>
               <div
                 className={`font-mono text-[11px] tabular-nums mt-0.5 ${
-                  isDark ? 'text-gray-300' : 'text-gray-700'
+                  isDark ? 'text-gray-300' : 'text-[#1a1a1a]/70'
                 }`}
               >
                 {creatorVerified
@@ -483,9 +428,7 @@ export default function TrustCard({
               href={erc8004Url}
               target="_blank"
               rel="noopener noreferrer"
-              className={`inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.15em] transition-opacity hover:opacity-70 no-underline ${
-                isDark ? 'text-gray-400' : 'text-gray-500'
-              }`}
+              className={`inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.15em] transition-opacity hover:opacity-70 no-underline ${muted}`}
             >
               ERC-8004
               <ExternalLink className="w-3 h-3" />
@@ -493,6 +436,6 @@ export default function TrustCard({
           )}
         </div>
       </div>
-    </motion.section>
+    </section>
   );
 }

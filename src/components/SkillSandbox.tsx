@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { useDarkMode } from '@/app/DarkModeContext';
 
 type Symbol = 'BTC' | 'ETH' | 'BNB';
@@ -80,7 +79,7 @@ export default function SkillSandbox() {
     data && data.change_24h > 0
       ? '#16a34a'
       : data && data.change_24h < 0
-      ? '#8b0000'
+      ? '#dc2626'
       : isDark
       ? '#6b7280'
       : '#9ca3af';
@@ -95,10 +94,7 @@ export default function SkillSandbox() {
   }
 
   return (
-    <motion.section
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
+    <section
       style={{
         borderTop: `4px double ${borderColor}`,
         borderBottom: `4px double ${borderColor}`,
@@ -109,7 +105,7 @@ export default function SkillSandbox() {
       <div className="flex items-center justify-between mb-5">
         <span
           className={`text-[10px] font-bold uppercase tracking-[0.3em] ${
-            isDark ? 'text-gray-500' : 'text-gray-400'
+            isDark ? 'text-gray-500' : 'text-[#1a1a1a]/50'
           }`}
         >
           Live Oracle Output
@@ -135,10 +131,10 @@ export default function SkillSandbox() {
               onClick={() => setSymbol(s)}
               className={`px-3 py-1 text-[9px] font-bold uppercase tracking-[0.15em] transition-colors ${
                 symbol === s
-                  ? 'bg-[#8b0000] text-white'
+                  ? 'bg-[#b08d57] text-white'
                   : isDark
                   ? 'text-gray-500 hover:text-gray-300'
-                  : 'text-gray-400 hover:text-gray-600'
+                  : 'text-[#1a1a1a]/50 hover:text-[#1a1a1a]/70'
               }`}
             >
               {s}
@@ -152,10 +148,10 @@ export default function SkillSandbox() {
               onClick={() => setTimeframe(t)}
               className={`px-3 py-1 text-[9px] font-bold uppercase tracking-[0.15em] transition-colors ${
                 timeframe === t
-                  ? 'bg-[#8b0000] text-white'
+                  ? 'bg-[#b08d57] text-white'
                   : isDark
                   ? 'text-gray-500 hover:text-gray-300'
-                  : 'text-gray-400 hover:text-gray-600'
+                  : 'text-[#1a1a1a]/50 hover:text-[#1a1a1a]/70'
               }`}
             >
               {t}
@@ -167,7 +163,7 @@ export default function SkillSandbox() {
       {/* Data */}
       {loading && !data ? (
         <div
-          className={`font-mono text-[11px] ${isDark ? 'text-gray-600' : 'text-gray-400'}`}
+          className={`font-mono text-[11px] ${isDark ? 'text-gray-600' : 'text-[#1a1a1a]/40'}`}
         >
           Loading…
         </div>
@@ -185,7 +181,7 @@ export default function SkillSandbox() {
               </div>
               <div
                 className={`text-[9px] font-bold uppercase tracking-[0.15em] mt-1 ${
-                  isDark ? 'text-gray-500' : 'text-gray-400'
+                  isDark ? 'text-gray-500' : 'text-[#1a1a1a]/50'
                 }`}
               >
                 Price (USD)
@@ -200,7 +196,7 @@ export default function SkillSandbox() {
               </div>
               <div
                 className={`text-[9px] font-bold uppercase tracking-[0.15em] mt-1 ${
-                  isDark ? 'text-gray-500' : 'text-gray-400'
+                  isDark ? 'text-gray-500' : 'text-[#1a1a1a]/50'
                 }`}
               >
                 Change (24H)
@@ -213,14 +209,14 @@ export default function SkillSandbox() {
             <div>
               <div
                 className={`font-mono text-sm font-bold tabular-nums ${
-                  isDark ? 'text-gray-300' : 'text-gray-700'
+                  isDark ? 'text-gray-300' : 'text-[#1a1a1a]/70'
                 }`}
               >
                 {formatPrice(data.twap_1h)}
               </div>
               <div
                 className={`text-[9px] font-bold uppercase tracking-[0.15em] mt-1 ${
-                  isDark ? 'text-gray-500' : 'text-gray-400'
+                  isDark ? 'text-gray-500' : 'text-[#1a1a1a]/50'
                 }`}
               >
                 {twapLabel}
@@ -229,14 +225,14 @@ export default function SkillSandbox() {
             <div>
               <div
                 className={`font-mono text-sm font-bold ${
-                  isDark ? 'text-gray-300' : 'text-gray-700'
+                  isDark ? 'text-gray-300' : 'text-[#1a1a1a]/70'
                 }`}
               >
                 {data.source}
               </div>
               <div
                 className={`text-[9px] font-bold uppercase tracking-[0.15em] mt-1 ${
-                  isDark ? 'text-gray-500' : 'text-gray-400'
+                  isDark ? 'text-gray-500' : 'text-[#1a1a1a]/50'
                 }`}
               >
                 Source
@@ -245,12 +241,12 @@ export default function SkillSandbox() {
           </div>
 
           <div
-            className={`text-[9px] font-mono ${isDark ? 'text-gray-600' : 'text-gray-400'}`}
+            className={`text-[9px] font-mono ${isDark ? 'text-gray-600' : 'text-[#1a1a1a]/40'}`}
           >
             Updated {updatedText()}
           </div>
         </>
       ) : null}
-    </motion.section>
+    </section>
   );
 }
