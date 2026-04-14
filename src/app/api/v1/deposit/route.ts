@@ -68,34 +68,43 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // --- Balance cap ---
-  const newBalance = user.creditBalance + amount;
-  if (newBalance > MAX_TOTAL_BALANCE) {
+  // --- Atomic balance cap + increment (prevents TOCTOU race) ---
+  const updated = await prisma.user.updateMany({
+    where: {
+      id: user.id,
+      creditBalance: { lte: MAX_TOTAL_BALANCE - amount },
+    },
+    data: { creditBalance: { increment: amount } },
+  });
+
+  if (updated.count === 0) {
     return NextResponse.json(
       {
         error: `Total balance would exceed $${MAX_TOTAL_BALANCE} cap`,
         balance: user.creditBalance,
-        max_deposit: MAX_TOTAL_BALANCE - user.creditBalance,
+        max_deposit: Math.max(0, MAX_TOTAL_BALANCE - user.creditBalance),
       },
       { status: 400 },
     );
   }
 
-  // --- Increment balance ---
-  const updated = await prisma.user.update({
+  // Re-read for accurate balance in response
+  const refreshed = await prisma.user.findUnique({
     where: { id: user.id },
-    data: { creditBalance: { increment: amount } },
+    select: { creditBalance: true },
   });
+
+  const newBalance = refreshed?.creditBalance ?? user.creditBalance + amount;
 
   console.log('[v1/deposit] credit deposited:', {
     userId: user.id,
     amount,
     previousBalance: user.creditBalance,
-    newBalance: updated.creditBalance,
+    newBalance,
   });
 
   return NextResponse.json({
-    balance: updated.creditBalance,
+    balance: newBalance,
     deposited: amount,
   });
 }
