@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { evaluateCall } from '@/lib/session-evaluator';
 import { settleSession } from '@/lib/settle-session';
 import { prisma } from '@/lib/prisma';
+import { parseBody, v1RunInput } from '@/lib/validators';
+import { logError } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,18 +39,9 @@ export async function POST(req: NextRequest) {
   }
 
   // --- Parse body ---
-  const body = await req.json().catch(() => ({}));
-  const { skill: skillSlug, input } = body as {
-    skill?: string;
-    input?: Record<string, unknown>;
-  };
-
-  if (!skillSlug || typeof skillSlug !== 'string') {
-    return NextResponse.json(
-      { error: '`skill` (gatewaySlug) is required' },
-      { status: 400 },
-    );
-  }
+  const parsed = await parseBody(req, v1RunInput);
+  if (!parsed.success) return parsed.response;
+  const { skill: skillSlug, input } = parsed.data;
 
   // --- Find skill ---
   const skill = await prisma.skill.findUnique({
@@ -257,18 +250,17 @@ export async function POST(req: NextRequest) {
   }
 
   // --- Auto-close: settle session when budget exhausted ---
+  // Use known cost from the atomic updateMany above instead of a stale re-read.
+  // The budget was atomically decremented at line 214, so we can compute the
+  // effective remaining directly, eliminating one DB round-trip + race window.
   let settleTriggered = false;
   if (shouldCharge) {
-    const updatedSession = await prisma.session.findUnique({
-      where: { id: session.id },
-      select: { budgetRemaining: true, pricePerCall: true },
-    });
-
-    if (updatedSession && updatedSession.budgetRemaining < updatedSession.pricePerCall) {
+    const effectiveRemaining = session.budgetRemaining - cost;
+    if (effectiveRemaining < pricePerCall) {
       settleTriggered = true;
       // Fire-and-forget: settle session in background
       void settleSession(session.id).catch((err) => {
-        console.error('[v1/run] background settle failed:', err);
+        logError('v1/run:settle', err, { sessionId: session.id });
       });
     }
   }
