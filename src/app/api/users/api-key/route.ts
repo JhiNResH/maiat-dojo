@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { verifyPrivyAuth } from '@/lib/privy-server';
 import { randomBytes } from 'crypto';
 
 export const dynamic = 'force-dynamic';
@@ -10,12 +11,18 @@ export const dynamic = 'force-dynamic';
  * Generate or retrieve the API key for the authenticated user.
  * Idempotent: returns existing key if already generated.
  *
- * Auth: privyId in body (same pattern as other Dojo endpoints).
+ * Auth: Privy JWT in Authorization header + privyId in body (must match).
  *
  * Body: { privyId: string }
  * Response: { apiKey: string, created: boolean }
  */
 export async function POST(req: NextRequest) {
+  // --- Auth: verify Privy JWT and match privyId ---
+  const authResult = await verifyPrivyAuth(req.headers.get('Authorization'));
+  if (!authResult.success) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const body = await req.json().catch(() => ({}));
   const { privyId } = body as { privyId?: string };
 
@@ -24,6 +31,11 @@ export async function POST(req: NextRequest) {
       { error: 'Missing required field: privyId' },
       { status: 400 },
     );
+  }
+
+  // Verify the authenticated user owns this privyId (prevents token hijacking)
+  if (authResult.privyId !== privyId) {
+    return NextResponse.json({ error: 'Unauthorized — privyId mismatch' }, { status: 403 });
   }
 
   const user = await prisma.user.findUnique({ where: { privyId } });

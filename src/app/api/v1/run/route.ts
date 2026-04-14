@@ -120,6 +120,9 @@ export async function POST(req: NextRequest) {
         pricePerCall,
         status: 'funded',
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24h
+        // TODO(F6): Phase 2 — bind session to BSC on-chain job via AgenticCommerceHooked.
+        // onchainJobId is intentionally null here; REST API sessions are off-chain only.
+        // On-chain binding requires: agent wallet + createJob + setBudget + fund (see bsc-acp.ts).
       },
     });
   }
@@ -160,7 +163,20 @@ export async function POST(req: NextRequest) {
     });
 
     creatorStatus = res.status;
-    creatorBody = await res.text();
+
+    // Cap response body at 1 MB to prevent OOM (F4)
+    const MAX_BODY_BYTES = 1_048_576;
+    const contentLength = Number(res.headers.get('content-length') ?? 0);
+    if (contentLength > MAX_BODY_BYTES) {
+      creatorBody = '';
+      failed = true;
+    } else {
+      creatorBody = await res.text();
+      if (Buffer.byteLength(creatorBody, 'utf8') > MAX_BODY_BYTES) {
+        creatorBody = '';
+        failed = true;
+      }
+    }
   } catch {
     failed = true;
   }
@@ -213,11 +229,15 @@ export async function POST(req: NextRequest) {
           throw new Error('SESSION_CLOSED_OR_EXHAUSTED');
         }
 
-        // Decrement user credit balance
-        await tx.user.update({
-          where: { id: user.id },
+        // Decrement user credit balance — guard prevents negative balance under concurrency (F3)
+        const userUpdated = await tx.user.updateMany({
+          where: { id: user.id, creditBalance: { gte: pricePerCall } },
           data: { creditBalance: { decrement: pricePerCall } },
         });
+
+        if (userUpdated.count === 0) {
+          throw new Error('INSUFFICIENT_BALANCE');
+        }
       }
     });
   } catch (err: unknown) {
@@ -226,6 +246,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: 'Session exhausted during call. Retry.' },
         { status: 409 },
+      );
+    }
+    if (msg === 'INSUFFICIENT_BALANCE') {
+      return NextResponse.json(
+        { error: 'Insufficient credits — concurrent call drained balance.' },
+        { status: 402 },
       );
     }
     return NextResponse.json({ error: msg }, { status: 500 });

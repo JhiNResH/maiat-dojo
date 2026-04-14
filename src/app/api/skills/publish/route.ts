@@ -94,12 +94,33 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Validate endpoint URL
+  // Validate endpoint URL and block private/internal IPs (SSRF prevention)
+  let parsedEndpoint: URL;
   try {
-    new URL(endpoint as string);
+    parsedEndpoint = new URL(endpoint as string);
   } catch {
     return NextResponse.json(
       { error: 'Invalid endpoint URL' },
+      { status: 400 },
+    );
+  }
+
+  const host = parsedEndpoint.hostname.toLowerCase();
+  const isPrivate =
+    host === 'localhost' ||
+    host === '0.0.0.0' ||
+    /^127\./.test(host) ||
+    /^10\./.test(host) ||
+    /^192\.168\./.test(host) ||
+    /^172\.(1[6-9]|2[0-9]|3[01])\./.test(host) ||
+    /^169\.254\./.test(host) ||
+    host === '::1' ||
+    /^fc00:/i.test(host) ||
+    /^fd[0-9a-f]{2}:/i.test(host);
+
+  if (isPrivate || parsedEndpoint.protocol !== 'https:') {
+    return NextResponse.json(
+      { error: 'Endpoint must be a public HTTPS URL' },
       { status: 400 },
     );
   }
@@ -143,29 +164,41 @@ export async function POST(req: NextRequest) {
     : null;
 
   // --- Create skill ---
-  const skill = await prisma.skill.create({
-    data: {
-      name: (name as string).trim(),
-      description: (description as string).trim(),
-      category: (category as string).trim(),
-      icon,
-      tags,
-      price: price as number,
-      pricePerCall: price as number,
-      skillType: 'active',
-      endpointUrl: endpoint as string,
-      gatewaySlug,
-      fileContent: fileContent || null,
-      fileType: 'markdown',
-      isGated: false,
-      creatorHmacSecret: hmacSecret,
-      inputSchema,
-      outputSchema,
-      exampleInput,
-      exampleOutput,
-      creatorId: user.id,
-    },
-  });
+  let skill;
+  try {
+    skill = await prisma.skill.create({
+      data: {
+        name: (name as string).trim(),
+        description: (description as string).trim(),
+        category: (category as string).trim(),
+        icon,
+        tags,
+        price: price as number,
+        pricePerCall: price as number,
+        skillType: 'active',
+        endpointUrl: endpoint as string,
+        gatewaySlug,
+        fileContent: fileContent || null,
+        fileType: 'markdown',
+        isGated: false,
+        creatorHmacSecret: hmacSecret,
+        inputSchema,
+        outputSchema,
+        exampleInput,
+        exampleOutput,
+        creatorId: user.id,
+      },
+    });
+  } catch (err: unknown) {
+    // P2002 = unique constraint violation (slug race between check and insert)
+    if ((err as { code?: string }).code === 'P2002') {
+      return NextResponse.json(
+        { error: 'A skill with this name already exists — choose a different name' },
+        { status: 409 },
+      );
+    }
+    throw err;
+  }
 
   return NextResponse.json(
     {
