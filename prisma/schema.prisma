@@ -222,6 +222,8 @@ model Session {
 
   @@index([status, expiresAt])
   @@index([payerAgentId])
+  @@index([payerAgentId, status])
+  @@index([skillId])
 }
 
 // --- SkillCall (per-call log, Gateway writes) — 2026-04-05 ---

@@ -20,6 +20,7 @@
 import { prisma } from '@/lib/prisma';
 import { createSessionOnChain, closeAndSettleOnChain, getAcpConfig } from '@/lib/bsc-acp';
 import { signEvaluationProof } from '@/lib/gateway-signer';
+import { logError } from '@/lib/logger';
 
 const PASS_THRESHOLD = 80; // ≥80% of calls must pass
 
@@ -137,13 +138,10 @@ export async function settleSession(sessionId: string): Promise<SettleResult> {
           });
           console.log('[settle] on-chain bind:', { sessionId: session.id, jobId: onchainJobId });
         } else {
-          console.warn('[settle] on-chain bind failed (non-fatal):', {
-            sessionId: session.id,
-            error: bindResult.error,
-          });
+          logError('settle:bind', bindResult.error ?? 'unknown', { sessionId: session.id });
         }
       } catch (err) {
-        console.error('[settle] on-chain bind exception (non-fatal):', err);
+        logError('settle:bind', err, { sessionId: session.id });
       }
     }
   } else if (!onchainJobId) {
@@ -184,7 +182,7 @@ export async function settleSession(sessionId: string): Promise<SettleResult> {
         error: settleResult.error,
       });
     } catch (err) {
-      console.error('[settle] closeAndSettle exception (non-fatal):', err);
+      logError('settle:closeAndSettle', err, { sessionId: session.id, onchainJobId });
     }
   }
 
