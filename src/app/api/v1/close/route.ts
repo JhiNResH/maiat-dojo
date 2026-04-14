@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { settleSession } from '@/lib/settle-session';
+import { parseBody, v1CloseInput } from '@/lib/validators';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,15 +34,9 @@ export async function POST(req: NextRequest) {
   }
 
   // --- Parse body ---
-  const body = await req.json().catch(() => ({}));
-  const { session_id: sessionId } = body as { session_id?: string };
-
-  if (!sessionId || typeof sessionId !== 'string') {
-    return NextResponse.json(
-      { error: '`session_id` is required' },
-      { status: 400 },
-    );
-  }
+  const parsed = await parseBody(req, v1CloseInput);
+  if (!parsed.success) return parsed.response;
+  const { session_id: sessionId } = parsed.data;
 
   // --- Verify session exists + ownership ---
   const session = await prisma.session.findUnique({

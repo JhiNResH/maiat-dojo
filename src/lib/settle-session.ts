@@ -20,7 +20,7 @@
 import { prisma } from '@/lib/prisma';
 import { createSessionOnChain, closeAndSettleOnChain, getAcpConfig } from '@/lib/bsc-acp';
 import { signEvaluationProof } from '@/lib/gateway-signer';
-import { logError } from '@/lib/logger';
+import { logInfo, logWarn, logError } from '@/lib/logger';
 
 const PASS_THRESHOLD = 80; // ≥80% of calls must pass
 
@@ -99,7 +99,7 @@ export async function settleSession(sessionId: string): Promise<SettleResult> {
   const finalScore = passRate;
   const isPASS = totalCalls > 0 && passRate >= PASS_THRESHOLD;
 
-  console.log('[settle] evaluation:', {
+  logInfo('settle:evaluate', 'score aggregated', {
     sessionId: session.id,
     totalCalls,
     passedCalls,
@@ -136,7 +136,7 @@ export async function settleSession(sessionId: string): Promise<SettleResult> {
             where: { id: session.id },
             data: { onchainJobId },
           });
-          console.log('[settle] on-chain bind:', { sessionId: session.id, jobId: onchainJobId });
+          logInfo('settle:bind', 'on-chain bind success', { sessionId: session.id, jobId: onchainJobId });
         } else {
           logError('settle:bind', bindResult.error ?? 'unknown', { sessionId: session.id });
         }
@@ -145,7 +145,7 @@ export async function settleSession(sessionId: string): Promise<SettleResult> {
       }
     }
   } else if (!onchainJobId) {
-    console.warn('[settle] DOJO_RELAYER_PRIVATE_KEY not set — skipping on-chain bind');
+    logWarn('settle:bind', 'DOJO_RELAYER_PRIVATE_KEY not set — skipping on-chain bind');
   }
 
   // 4. closeAndSettle — gateway-signed atomic settlement
@@ -173,7 +173,7 @@ export async function settleSession(sessionId: string): Promise<SettleResult> {
         gatewaySignature,
       });
 
-      console.log('[settle] closeAndSettle:', {
+      logInfo('settle:closeAndSettle', 'settlement complete', {
         sessionId: session.id,
         onchainJobId,
         isPASS,
@@ -216,7 +216,7 @@ export async function settleSession(sessionId: string): Promise<SettleResult> {
     };
   }
 
-  console.log('[settle] session closed:', {
+  logInfo('settle:close', 'session closed', {
     sessionId: session.id,
     newStatus,
     isPASS,

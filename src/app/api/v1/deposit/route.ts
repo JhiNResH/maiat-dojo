@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { parseBody, v1DepositInput } from '@/lib/validators';
+import { logInfo } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,22 +53,9 @@ export async function POST(req: NextRequest) {
   }
 
   // --- Parse body ---
-  const body = await req.json().catch(() => ({}));
-  const { amount } = body as { amount?: number };
-
-  if (typeof amount !== 'number' || amount <= 0) {
-    return NextResponse.json(
-      { error: '`amount` must be a positive number (USDC)' },
-      { status: 400 },
-    );
-  }
-
-  if (amount > MAX_PER_DEPOSIT) {
-    return NextResponse.json(
-      { error: `Max deposit is $${MAX_PER_DEPOSIT} per request` },
-      { status: 400 },
-    );
-  }
+  const parsed = await parseBody(req, v1DepositInput);
+  if (!parsed.success) return parsed.response;
+  const { amount } = parsed.data;
 
   // --- Atomic balance cap + increment (prevents TOCTOU race) ---
   const updated = await prisma.user.updateMany({
@@ -96,7 +85,7 @@ export async function POST(req: NextRequest) {
 
   const newBalance = refreshed?.creditBalance ?? user.creditBalance + amount;
 
-  console.log('[v1/deposit] credit deposited:', {
+  logInfo('v1/deposit', 'credit deposited', {
     userId: user.id,
     amount,
     previousBalance: user.creditBalance,
