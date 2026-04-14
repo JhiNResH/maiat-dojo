@@ -146,7 +146,7 @@ export default function DownloadSkillButton({
           </div>
           <button
             onClick={handleCopy}
-            className="flex items-center gap-1 font-mono text-xs text-[#8b0000] hover:underline"
+            className="flex items-center gap-1 font-mono text-xs text-[#b08d57] hover:underline"
           >
             {copied ? <Check size={12} /> : <Copy size={12} />}
             {copied ? 'Copied!' : 'Copy'}
@@ -184,7 +184,7 @@ export default function DownloadSkillButton({
         <p className="font-mono text-xs text-red-600">{errorMsg}</p>
         <button
           onClick={handleDownload}
-          className="flex items-center gap-2 font-mono text-xs text-[#8b0000] hover:underline"
+          className="flex items-center gap-2 font-mono text-xs text-[#b08d57] hover:underline"
         >
           Try again
         </button>

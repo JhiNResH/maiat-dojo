@@ -7,7 +7,6 @@ import { ArrowLeft, Upload, Loader2, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { usePrivy } from '@privy-io/react-auth';
 import { useAutoCreateUser } from '@/hooks/useAutoCreateUser';
-import { useDarkMode } from '@/app/DarkModeContext';
 import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
 import { BackgroundEffect } from '@/components/landing/BackgroundEffect';
@@ -21,7 +20,6 @@ const EMOJI_OPTIONS = [
 
 export default function CreateSkillPage() {
   const router = useRouter();
-  const { isDark } = useDarkMode();
   const { ready, authenticated, login, user } = usePrivy();
   useAutoCreateUser();
 
@@ -41,28 +39,20 @@ export default function CreateSkillPage() {
   const [error, setError] = useState<string | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
-  const glassCard = isDark
-    ? 'border-white/[0.06] bg-white/[0.03]'
-    : 'border-black/[0.06] bg-white/60';
+  const glassCard = 'border border-[var(--border)] bg-[var(--card-bg)]';
 
   const glassStyle = {
     backdropFilter: 'blur(40px) saturate(180%)',
     WebkitBackdropFilter: 'blur(40px) saturate(180%)',
   } as const;
 
-  const inputBase = `w-full bg-transparent border rounded-2xl px-4 py-3 font-sans text-sm focus:outline-none transition-colors placeholder:opacity-30 ${
-    isDark
-      ? 'border-white/10 text-white focus:border-white/30 placeholder:text-white'
-      : 'border-black/10 text-black focus:border-black/40 placeholder:text-black'
-  }`;
+  const inputBase =
+    'w-full bg-transparent border rounded-2xl px-4 py-3 font-sans text-sm focus:outline-none transition-colors placeholder:opacity-30 border-[var(--border)] text-[var(--text)] focus:border-[var(--text-secondary)] placeholder:text-[var(--text)]';
 
-  const labelClass = `block text-[10px] font-bold uppercase tracking-[0.2em] mb-2 ${
-    isDark ? 'text-gray-500' : 'text-gray-400'
-  }`;
+  const labelClass =
+    'block text-[10px] font-bold uppercase tracking-[0.2em] mb-2 text-[var(--text-muted)]';
 
-  const helperClass = `text-[10px] font-mono mt-2 ${
-    isDark ? 'text-gray-600' : 'text-gray-400'
-  }`;
+  const helperClass = 'text-[10px] font-mono mt-2 text-[var(--text-muted)]';
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -125,13 +115,7 @@ export default function CreateSkillPage() {
   // Login prompt
   if (ready && !authenticated) {
     return (
-      <div
-        className="min-h-screen atmosphere transition-colors duration-700"
-        style={{
-          background: isDark ? '#0A0A0A' : '#fafaf7',
-          color: isDark ? '#ededed' : '#0a0a0a',
-        }}
-      >
+      <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors duration-700">
         <BackgroundEffect />
         <Navbar />
         <main className="relative pt-32 pb-20 px-6">
@@ -143,37 +127,23 @@ export default function CreateSkillPage() {
               className={`rounded-3xl p-12 border ${glassCard}`}
               style={glassStyle}
             >
-              <div
-                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border mb-6 ${
-                  isDark ? 'border-white/10 bg-white/5' : 'border-black/10 bg-white/60'
-                }`}
-              >
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border mb-6 border-[var(--border)] bg-[var(--card-bg)]">
                 <Sparkles className="w-3 h-3" />
                 <span className="text-[9px] font-bold uppercase tracking-[0.2em]">
                   Become a creator
                 </span>
               </div>
-              <h1
-                className={`font-sans font-semibold text-4xl tracking-[-0.03em] leading-[1.05] mb-4 ${
-                  isDark ? 'text-white' : 'text-black'
-                }`}
-              >
+              <h1 className="font-sans font-semibold text-4xl tracking-[-0.03em] leading-[1.05] mb-4 text-[var(--text)]">
                 Publish a skill.
                 <br />
                 Earn on every call.
               </h1>
-              <p
-                className={`text-sm mb-8 max-w-sm mx-auto leading-relaxed ${
-                  isDark ? 'text-gray-400' : 'text-gray-500'
-                }`}
-              >
+              <p className="text-sm mb-8 max-w-sm mx-auto leading-relaxed text-[var(--text-muted)]">
                 Sign in to publish skills agents can buy. Settled on-chain via ERC-8183 escrow.
               </p>
               <button
                 onClick={login}
-                className={`inline-flex items-center gap-2 px-7 py-4 rounded-full text-xs font-bold uppercase tracking-[0.15em] transition-all hover:scale-[1.02] ${
-                  isDark ? 'bg-white text-black' : 'bg-black text-white'
-                }`}
+                className="inline-flex items-center gap-2 px-7 py-4 rounded-full text-xs font-bold uppercase tracking-[0.15em] transition-all hover:scale-[1.02] bg-[var(--text)] text-[var(--bg)]"
               >
                 Sign in to continue
               </button>
@@ -186,13 +156,7 @@ export default function CreateSkillPage() {
   }
 
   return (
-    <div
-      className="min-h-screen atmosphere transition-colors duration-700"
-      style={{
-        background: isDark ? '#0A0A0A' : '#fafaf7',
-        color: isDark ? '#ededed' : '#0a0a0a',
-      }}
-    >
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors duration-700">
       <BackgroundEffect />
       <Navbar />
 
@@ -200,9 +164,7 @@ export default function CreateSkillPage() {
         <div className="max-w-3xl mx-auto">
           <Link
             href="/"
-            className={`inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] mb-10 transition-opacity hover:opacity-70 ${
-              isDark ? 'text-gray-400' : 'text-gray-500'
-            }`}
+            className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] mb-10 transition-opacity hover:opacity-70 text-[var(--text-muted)]"
           >
             <ArrowLeft className="w-3 h-3" />
             Back to marketplace
@@ -210,30 +172,18 @@ export default function CreateSkillPage() {
 
           {/* Header */}
           <header className="mb-12">
-            <div
-              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border mb-5 ${
-                isDark ? 'border-white/10 bg-white/5' : 'border-black/10 bg-white/60'
-              }`}
-            >
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border mb-5 border-[var(--border)] bg-[var(--card-bg)]">
               <Sparkles className="w-3 h-3" />
               <span className="text-[9px] font-bold uppercase tracking-[0.2em]">
                 Publish a skill
               </span>
             </div>
-            <h1
-              className={`font-sans font-semibold text-4xl md:text-6xl tracking-[-0.03em] leading-[0.95] mb-5 ${
-                isDark ? 'text-white' : 'text-black'
-              }`}
-            >
+            <h1 className="font-sans font-semibold text-4xl md:text-6xl tracking-[-0.03em] leading-[0.95] mb-5 text-[var(--text)]">
               Teach agents
               <br />
               new tricks.
             </h1>
-            <p
-              className={`text-base max-w-xl ${
-                isDark ? 'text-gray-400' : 'text-gray-500'
-              }`}
-            >
+            <p className="text-base max-w-xl text-[var(--text-muted)]">
               Define a skill, set a price per call, and ship. Agents discover it instantly,
               settlement is automatic on PASS.
             </p>
@@ -250,11 +200,7 @@ export default function CreateSkillPage() {
               style={glassStyle}
             >
               <div className={labelClass}>01 — Basics</div>
-              <h2
-                className={`font-sans font-semibold text-xl tracking-[-0.02em] mb-6 ${
-                  isDark ? 'text-white' : 'text-black'
-                }`}
-              >
+              <h2 className="font-sans font-semibold text-xl tracking-[-0.02em] mb-6 text-[var(--text)]">
                 What is the skill?
               </h2>
 
@@ -312,7 +258,7 @@ export default function CreateSkillPage() {
                         <option
                           key={cat}
                           value={cat}
-                          style={{ background: isDark ? '#0A0A0A' : '#fafaf7' }}
+                          style={{ background: 'var(--bg)' }}
                         >
                           {cat}
                         </option>
@@ -328,11 +274,7 @@ export default function CreateSkillPage() {
                       className={`${inputBase} text-left flex items-center gap-3`}
                     >
                       <span className="text-xl">{formData.icon}</span>
-                      <span
-                        className={`text-xs ${
-                          isDark ? 'text-gray-500' : 'text-gray-400'
-                        }`}
-                      >
+                      <span className="text-xs text-[var(--text-muted)]">
                         Click to change
                       </span>
                     </button>
@@ -351,12 +293,8 @@ export default function CreateSkillPage() {
                             }}
                             className={`text-xl p-2 rounded-xl transition-colors ${
                               formData.icon === emoji
-                                ? isDark
-                                  ? 'bg-white/10'
-                                  : 'bg-black/10'
-                                : isDark
-                                ? 'hover:bg-white/5'
-                                : 'hover:bg-black/5'
+                                ? 'bg-[var(--bg-secondary)]'
+                                : 'hover:bg-[var(--bg-secondary)]'
                             }`}
                           >
                             {emoji}
@@ -378,11 +316,7 @@ export default function CreateSkillPage() {
               style={glassStyle}
             >
               <div className={labelClass}>02 — Pricing & discovery</div>
-              <h2
-                className={`font-sans font-semibold text-xl tracking-[-0.02em] mb-6 ${
-                  isDark ? 'text-white' : 'text-black'
-                }`}
-              >
+              <h2 className="font-sans font-semibold text-xl tracking-[-0.02em] mb-6 text-[var(--text)]">
                 Price per call & tags.
               </h2>
 
@@ -390,11 +324,7 @@ export default function CreateSkillPage() {
                 <div>
                   <label className={labelClass}>Price (USDC)</label>
                   <div className="relative">
-                    <span
-                      className={`absolute left-4 top-1/2 -translate-y-1/2 font-mono text-sm ${
-                        isDark ? 'text-gray-500' : 'text-gray-400'
-                      }`}
-                    >
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 font-mono text-sm text-[var(--text-muted)]">
                       $
                     </span>
                     <input
@@ -439,11 +369,7 @@ export default function CreateSkillPage() {
               style={glassStyle}
             >
               <div className={labelClass}>03 — Skill instructions</div>
-              <h2
-                className={`font-sans font-semibold text-xl tracking-[-0.02em] mb-6 ${
-                  isDark ? 'text-white' : 'text-black'
-                }`}
-              >
+              <h2 className="font-sans font-semibold text-xl tracking-[-0.02em] mb-6 text-[var(--text)]">
                 What buyers receive.
               </h2>
 
@@ -456,13 +382,13 @@ export default function CreateSkillPage() {
                     onChange={handleChange}
                     className={`${inputBase} cursor-pointer`}
                   >
-                    <option value="markdown" style={{ background: isDark ? '#0A0A0A' : '#fafaf7' }}>
+                    <option value="markdown" style={{ background: 'var(--bg)' }}>
                       Markdown (.md)
                     </option>
-                    <option value="json" style={{ background: isDark ? '#0A0A0A' : '#fafaf7' }}>
+                    <option value="json" style={{ background: 'var(--bg)' }}>
                       JSON
                     </option>
-                    <option value="text" style={{ background: isDark ? '#0A0A0A' : '#fafaf7' }}>
+                    <option value="text" style={{ background: 'var(--bg)' }}>
                       Plain text
                     </option>
                   </select>
@@ -508,13 +434,7 @@ API keys or settings.`}
               style={glassStyle}
             >
               {error && (
-                <div
-                  className={`mb-6 p-4 rounded-2xl border text-xs font-mono ${
-                    isDark
-                      ? 'border-red-500/20 bg-red-500/5 text-red-400'
-                      : 'border-red-500/20 bg-red-500/5 text-red-600'
-                  }`}
-                >
+                <div className="mb-6 p-4 rounded-2xl border text-xs font-mono border-[var(--error)]/20 bg-[var(--error)]/5 text-[var(--error)]">
                   {error}
                 </div>
               )}
@@ -522,9 +442,7 @@ API keys or settings.`}
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className={`w-full inline-flex items-center justify-center gap-3 px-7 py-4 rounded-full text-xs font-bold uppercase tracking-[0.15em] transition-all hover:scale-[1.01] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 ${
-                  isDark ? 'bg-white text-black' : 'bg-black text-white'
-                }`}
+                className="w-full inline-flex items-center justify-center gap-3 px-7 py-4 rounded-full text-xs font-bold uppercase tracking-[0.15em] transition-all hover:scale-[1.01] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 bg-[var(--text)] text-[var(--bg)]"
               >
                 {isSubmitting ? (
                   <>
@@ -539,11 +457,7 @@ API keys or settings.`}
                 )}
               </button>
 
-              <p
-                className={`text-[10px] font-mono text-center mt-4 ${
-                  isDark ? 'text-gray-600' : 'text-gray-400'
-                }`}
-              >
+              <p className="text-[10px] font-mono text-center mt-4 text-[var(--text-muted)]">
                 By publishing, you agree to the Dojo creator terms.
               </p>
             </motion.section>

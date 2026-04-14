@@ -50,7 +50,7 @@ export function CommandHelpCard() {
                   className={`font-mono text-[11px] ${
                     row.phase2
                       ? "text-[#1a1a1a]/25"
-                      : "font-bold text-[#8b0000]"
+                      : "font-bold text-[#b08d57]"
                   }`}
                 >
                   {row.cmd}

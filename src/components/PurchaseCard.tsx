@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { LogIn } from "lucide-react";
-import { useDarkMode } from "@/app/DarkModeContext";
 import CheckoutCard from "@/components/CheckoutCard";
+import { useEscrowFund, type EscrowStep } from "@/hooks/useEscrowFund";
+import { formatUnits } from "viem";
 
 interface Skill {
   id: string;
@@ -21,13 +22,6 @@ interface Props {
 }
 
 type Step = "idle" | "loading" | "done" | "error";
-
-interface ActiveResult {
-  sessionId: string;
-  budgetTotal: number;
-  gatewayUrl: string;
-  expiresAt: string;
-}
 
 interface PassiveResult {
   content: string;
@@ -81,35 +75,32 @@ async function syncUser(
 
 export default function PurchaseCard({ skill }: Props) {
   const { ready, authenticated, login, user, getAccessToken } = usePrivy();
-  const { isDark } = useDarkMode();
   const [step, setStep] = useState<Step>("idle");
   const [error, setError] = useState<string | null>(null);
-  const [activeResult, setActiveResult] = useState<ActiveResult | null>(null);
   const [passiveResult, setPassiveResult] = useState<PassiveResult | null>(null);
   const [closing, setClosing] = useState(false);
   const [budget, setBudget] = useState<string>(
     skill.pricePerCall ? String(Math.max(1, Math.round(skill.pricePerCall * 20))) : "5"
   );
+  const [faucetLoading, setFaucetLoading] = useState(false);
+  const [faucetMsg, setFaucetMsg] = useState<string | null>(null);
+
+  // Agent self-pay escrow hook
+  const escrow = useEscrowFund();
 
   const isPassive = skill.skillType === "passive";
   const isFree = skill.price === 0;
 
-  // Dark mode tokens
-  const ink = isDark ? "text-white" : "text-[#1a1a1a]";
-  const bg = isDark ? "bg-[#0A0A0A]" : "bg-[#f0ece2]";
-  const muted = isDark ? "text-gray-500" : "text-[#1a1a1a]/60";
-  const faint = isDark ? "text-gray-600" : "text-[#1a1a1a]/40";
-  const fainter = isDark ? "text-gray-700" : "text-[#1a1a1a]/30";
-  const rule = isDark ? "border-white/10" : "border-dotted border-[#1a1a1a]/15";
-  const ruleLight = isDark ? "border-white/[0.06]" : "border-[#1a1a1a]/10";
-  const btnBg = isDark
-    ? "bg-white text-[#0A0A0A] hover:bg-white/90"
-    : "bg-[#1a1a1a] text-[#f0ece2] hover:bg-[#1a1a1a]/80";
-  const inputBorder = isDark ? "border-white/15 bg-white/[0.04]" : "border-[#1a1a1a]/20 bg-[#1a1a1a]/[0.02]";
-  const codeBg = isDark ? "bg-white/[0.04] border-white/[0.06]" : "bg-[#1a1a1a]/[0.03] border-[#1a1a1a]/10";
-  const successBg = isDark
-    ? "text-emerald-400 bg-emerald-400/10 border-emerald-400"
-    : "text-green-800 bg-green-800/10 border-green-800";
+  const ink = "text-[var(--text)]";
+  const muted = "text-[var(--text-secondary)]";
+  const faint = "text-[var(--text-muted)]";
+  const fainter = "text-[var(--text-muted)] opacity-70";
+  const rule = "border-[var(--border)]";
+  const ruleLight = "border-[var(--border-light)]";
+  const btnBg = "bg-[var(--text)] text-[var(--bg)] hover:opacity-80";
+  const inputBorder = "border-[var(--border)] bg-[var(--bg-secondary)]";
+  const codeBg = "bg-[var(--bg-secondary)] border-[var(--border)]";
+  const successBg = "text-[var(--text)] bg-[var(--bg-secondary)] border-[var(--border)]";
 
   // ── Passive purchase ──────────────────────────────────────────────────────
   async function handlePassiveBuy() {
@@ -156,19 +147,18 @@ export default function PurchaseCard({ skill }: Props) {
   }
 
   // ── Active: close session ─────────────────────────────────────────────────
-  async function handleCloseSession() {
-    if (!activeResult) return;
+  async function handleCloseSessionById(sessionId: string) {
     setClosing(true);
     try {
       const token = await getAccessToken();
       if (!token || !user) throw new Error("Not authenticated");
-      await fetch(`/api/sessions/${activeResult.sessionId}/close`, {
+      await fetch(`/api/sessions/${sessionId}/close`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ privyId: user.id }),
       });
+      escrow.reset();
       setStep("idle");
-      setActiveResult(null);
     } catch {
       // silent — session will expire naturally
     } finally {
@@ -176,7 +166,7 @@ export default function PurchaseCard({ skill }: Props) {
     }
   }
 
-  // ── Active: open session ──────────────────────────────────────────────────
+  // ── Active: fund escrow via agent wallet ──────────────────────────────────
   async function handleFundSession() {
     setStep("loading");
     setError(null);
@@ -192,29 +182,51 @@ export default function PurchaseCard({ skill }: Props) {
 
       const agentId = await getOrCreateAgent(user.id, token, user.google?.name ?? undefined, user.wallet?.address ?? undefined);
 
-      const sessionRes = await fetch("/api/sessions/open", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          privyId: user.id,
-          agentId,
-          skillId: skill.id,
-          budgetTotal: parseFloat(budget),
-        }),
+      await escrow.fund({
+        agentId,
+        skillId: skill.id,
+        budgetTotal: parseFloat(budget),
+        gatewaySlug: skill.gatewaySlug || "",
       });
-      const sessionData = await sessionRes.json();
-      if (!sessionRes.ok) throw new Error(sessionData.error || "Failed to open session");
-
-      setActiveResult({
-        sessionId: sessionData.session.id,
-        budgetTotal: sessionData.session.budgetTotal,
-        gatewayUrl: `/api/gateway/skills/${skill.gatewaySlug}/run`,
-        expiresAt: sessionData.session.expiresAt,
-      });
-      setStep("done");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
       setStep("error");
+    }
+  }
+
+  // ── Testnet faucet ──────────────────────────────────────────────────────
+  async function handleFaucet() {
+    setFaucetLoading(true);
+    setFaucetMsg(null);
+    try {
+      const token = await getAccessToken();
+      if (!token || !user) throw new Error("Not authenticated");
+      const res = await fetch("/api/faucet/usdc", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ privyId: user.id, walletAddress: escrow.walletAddress }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Faucet failed");
+      setFaucetMsg(`${data.amount} USDC sent`);
+      escrow.reset(); // triggers balance refetch on next render
+    } catch (err) {
+      setFaucetMsg(err instanceof Error ? err.message : "Faucet error");
+    } finally {
+      setFaucetLoading(false);
+    }
+  }
+
+  // Map escrow step to label
+  function escrowStepLabel(s: EscrowStep): string {
+    switch (s) {
+      case 'preparing': return 'Preparing...';
+      case 'approving': return 'Approve USDC (1/4)...';
+      case 'creating_job': return 'Create Job (2/4)...';
+      case 'setting_budget': return 'Set Budget (3/4)...';
+      case 'funding': return 'Fund Escrow (4/4)...';
+      case 'confirming': return 'Confirming...';
+      default: return 'Fund & Start';
     }
   }
 
@@ -261,7 +273,7 @@ export default function PurchaseCard({ skill }: Props) {
         </button>
         <button
           onClick={() => { setStep("idle"); setPassiveResult(null); }}
-          className={`w-full font-mono text-[10px] ${faint} hover:${ink} transition-colors py-1`}
+          className={`w-full font-mono text-[10px] ${faint} hover:opacity-100 transition-colors py-1`}
         >
           View again
         </button>
@@ -269,24 +281,26 @@ export default function PurchaseCard({ skill }: Props) {
     );
   }
 
-  // ── Done: active ──────────────────────────────────────────────────────────
-  if (step === "done" && !isPassive && activeResult) {
+  // ── Done: active (escrow funded by agent wallet) ──────────────────────────
+  if (escrow.step === "done" && !isPassive && escrow.result) {
+    const ar = escrow.result;
     return (
       <div className="classified" data-label="Session Active">
         <div className={`text-xs font-mono ${successBg} border-l-2 px-2 py-1 mb-4`}>
-          ✓ Session open · ${activeResult.budgetTotal} USD locked
+          ✓ Session open · ${ar.budgetTotal} USD locked (agent-funded)
         </div>
 
         <div className="space-y-0 mb-4">
           {[
-            { label: "Session ID", value: activeResult.sessionId.slice(0, 16) + "…" },
+            { label: "Session ID", value: ar.sessionId.slice(0, 16) + "…" },
             {
               label: "Expires",
-              value: new Date(activeResult.expiresAt).toLocaleDateString("en-US", {
+              value: new Date(ar.expiresAt).toLocaleDateString("en-US", {
                 month: "short", day: "numeric",
               }),
             },
-            { label: "Budget", value: `$${activeResult.budgetTotal} USD` },
+            { label: "Budget", value: `$${ar.budgetTotal} USD` },
+            { label: "On-chain Job", value: `#${ar.onchainJobId}` },
           ].map(({ label, value }) => (
             <div key={label} className={`flex justify-between items-center py-1.5 border-b border-dotted ${ruleLight} last:border-b-0`}>
               <span className={`font-mono text-[10px] ${faint} uppercase tracking-wider`}>{label}</span>
@@ -298,15 +312,18 @@ export default function PurchaseCard({ skill }: Props) {
         <CheckoutCard />
 
         <div className={`font-mono text-[10px] ${faint} ${codeBg} p-2 border mb-3 break-all`}>
-          POST {activeResult.gatewayUrl}
+          POST {ar.gatewayUrl}
         </div>
 
         <p className={`font-mono text-[10px] ${fainter} border-l-2 ${ruleLight} pl-2 mb-4`}>
-          Pass <code>X-Session-Id: {activeResult.sessionId.slice(0, 8)}…</code> in your agent headers.
+          Pass <code>X-Session-Id: {ar.sessionId.slice(0, 8)}…</code> in your agent headers.
         </p>
 
         <button
-          onClick={handleCloseSession}
+          onClick={() => {
+            // Close uses the escrow result's sessionId
+            handleCloseSessionById(ar.sessionId);
+          }}
           disabled={closing}
           className={`w-full font-mono text-[10px] ${faint} hover:opacity-80 transition-colors py-1 border border-dotted ${ruleLight} disabled:opacity-40`}
         >
@@ -321,7 +338,7 @@ export default function PurchaseCard({ skill }: Props) {
     return (
       <div className="classified" data-label="Acquire">
         <div className="mb-3">
-          <span className={`font-serif font-black text-3xl ${ink}`}>
+          <span className={`font-mono font-bold text-3xl ${ink}`}>
             {isFree ? "Free" : `$${skill.price.toFixed(2)}`}
           </span>
         </div>
@@ -349,17 +366,32 @@ export default function PurchaseCard({ skill }: Props) {
     ? Math.floor(parseFloat(budget) / skill.pricePerCall)
     : 0;
 
+  const isEscrowBusy = escrow.step !== 'idle' && escrow.step !== 'done' && escrow.step !== 'error';
+  const formattedBalance = escrow.usdcBalance != null
+    ? parseFloat(formatUnits(escrow.usdcBalance as bigint, 18)).toFixed(2)
+    : null;
+
   return (
     <div className="classified" data-label="Use This Skill">
       <div className="mb-1">
-        <span className={`font-serif font-black text-3xl ${ink}`}>
+        <span className={`font-mono font-bold text-3xl ${ink}`}>
           {skill.pricePerCall ? `$${skill.pricePerCall.toFixed(2)}` : "FREE"}
         </span>
         <span className={`font-mono text-xs ${faint} ml-1`}>/ call</span>
       </div>
       <p className={`font-mono text-[10px] ${muted} mb-4 pb-3 border-b border-dotted ${ruleLight}`}>
-        USD via ERC-8183 on-chain escrow
+        Agent-funded · ERC-8183 on-chain escrow
       </p>
+
+      {/* USDC Balance */}
+      {escrow.walletAddress && (
+        <div className={`flex justify-between items-center mb-3 pb-2 border-b border-dotted ${ruleLight}`}>
+          <span className={`font-mono text-[10px] ${faint} uppercase tracking-wider`}>USDC Balance</span>
+          <span className={`font-mono text-[10px] ${ink} font-bold`}>
+            {formattedBalance != null ? `$${formattedBalance}` : "—"}
+          </span>
+        </div>
+      )}
 
       {/* Budget input */}
       <div className="mb-4">
@@ -374,7 +406,8 @@ export default function PurchaseCard({ skill }: Props) {
             step="0.01"
             value={budget}
             onChange={(e) => setBudget(e.target.value)}
-            className={`flex-1 bg-transparent font-mono text-sm ${ink} py-2 pr-3 outline-none`}
+            disabled={isEscrowBusy}
+            className={`flex-1 bg-transparent font-mono text-sm ${ink} py-2 pr-3 outline-none disabled:opacity-40`}
           />
         </div>
         {estimatedCalls > 0 && (
@@ -384,19 +417,54 @@ export default function PurchaseCard({ skill }: Props) {
         )}
       </div>
 
-      {step === "error" && error && (
-        <p className="font-mono text-[10px] text-red-500 mb-3">{error}</p>
+      {/* Escrow progress */}
+      {isEscrowBusy && (
+        <div className={`mb-3 ${codeBg} border p-2`}>
+          <div className={`font-mono text-[10px] ${ink} mb-1`}>
+            {escrowStepLabel(escrow.step)}
+          </div>
+          <div className="w-full h-1 bg-white/10 overflow-hidden">
+            <div
+              className="h-full bg-current transition-all duration-300"
+              style={{ width: `${(escrow.txCount / escrow.totalTxs) * 100}%` }}
+            />
+          </div>
+          <div className={`font-mono text-[9px] ${fainter} mt-1`}>
+            {escrow.txCount}/{escrow.totalTxs} txs confirmed
+          </div>
+        </div>
+      )}
+
+      {/* Errors */}
+      {(step === "error" || escrow.step === "error") && (error || escrow.error) && (
+        <p className="font-mono text-[10px] text-red-500 mb-3">{escrow.error || error}</p>
       )}
 
       <button
         onClick={handleFundSession}
-        disabled={step === "loading" || !budget || parseFloat(budget) <= 0}
+        disabled={isEscrowBusy || step === "loading" || !budget || parseFloat(budget) <= 0}
         className={`w-full ${btnBg} font-mono text-xs uppercase tracking-wider py-3 transition-colors disabled:opacity-40 mb-2`}
       >
-        {step === "loading" ? "Opening Session…" : "Fund & Start"}
+        {isEscrowBusy ? escrowStepLabel(escrow.step) : "Fund & Start"}
       </button>
 
-      <div className={`text-[10px] font-mono ${fainter} border-l-2 ${ruleLight} pl-2`}>
+      {/* Testnet faucet */}
+      {escrow.walletAddress && (
+        <button
+          onClick={handleFaucet}
+          disabled={faucetLoading}
+          className={`w-full font-mono text-[10px] ${faint} hover:opacity-80 transition-colors py-1.5 border border-dotted ${ruleLight} disabled:opacity-40 mb-1`}
+        >
+          {faucetLoading ? "Sending..." : "Get Test USDC (Testnet)"}
+        </button>
+      )}
+      {faucetMsg && (
+        <p className={`font-mono text-[10px] ${faucetMsg.includes("sent") ? "text-[var(--text)]" : "text-red-500"} mb-1`}>
+          {faucetMsg}
+        </p>
+      )}
+
+      <div className={`text-[10px] font-mono ${fainter} border-l-2 ${ruleLight} pl-2 mt-2`}>
         Session expires in 24h · unused USD refunded
       </div>
     </div>

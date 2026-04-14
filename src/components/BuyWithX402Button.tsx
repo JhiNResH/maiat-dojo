@@ -199,8 +199,8 @@ export default function BuyWithX402Button({
             : isDisabled
             ? 'bg-[#1a1a1a]/50 text-[#f0ece2] cursor-wait'
             : status === 'error'
-            ? 'bg-[#8b0000] text-[#f0ece2] hover:bg-[#1a1a1a]'
-            : 'bg-[#1a1a1a] text-[#f0ece2] hover:bg-[#8b0000]'
+            ? 'bg-[#dc2626] text-[#f0ece2] hover:bg-[#1a1a1a]'
+            : 'bg-[#1a1a1a] text-[#f0ece2] hover:bg-[#b08d57]'
         }`}
       >
         {buttonText()}
@@ -211,7 +211,7 @@ export default function BuyWithX402Button({
         <div className="flex justify-center gap-2 mt-2">
           <span
             className={`font-mono text-[10px] ${
-              status === 'signing' ? 'text-[#8b0000]' : 'text-[#1a1a1a]/30'
+              status === 'signing' ? 'text-[#b08d57]' : 'text-[#1a1a1a]/30'
             }`}
           >
             ① Sign
@@ -219,7 +219,7 @@ export default function BuyWithX402Button({
           <span className="font-mono text-[10px] text-[#1a1a1a]/30">→</span>
           <span
             className={`font-mono text-[10px] ${
-              status === 'verifying' ? 'text-[#8b0000]' : 'text-[#1a1a1a]/30'
+              status === 'verifying' ? 'text-[#b08d57]' : 'text-[#1a1a1a]/30'
             }`}
           >
             ② Verify

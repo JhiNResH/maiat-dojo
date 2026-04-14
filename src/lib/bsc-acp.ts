@@ -106,7 +106,7 @@ const ERC20_ABI = [
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
-function getAcpConfig() {
+export function getAcpConfig() {
   const chain = getBscConfig();
   const contracts = getContracts();
   return {
@@ -149,8 +149,12 @@ export interface CreateJobParams {
  * createJob + fund in one atomic call sequence.
  * Relayer is both client and provider (Phase 1).
  * Returns jobId for DB binding.
+ *
+ * @deprecated Use /api/sessions/prepare + agent wallet txs + /api/sessions/confirm instead.
+ * Kept for backward compat (scripts, old sessions/open endpoint).
  */
 export async function createSessionOnChain(params: CreateJobParams): Promise<AcpResult> {
+  console.warn('[acp] createSessionOnChain is deprecated — use prepare/confirm flow for agent self-pay');
   const config = getAcpConfig();
   const missingConfig = getMissingConfig(config);
   if (missingConfig) return { success: false, error: missingConfig };
