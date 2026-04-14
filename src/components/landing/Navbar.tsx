@@ -158,9 +158,11 @@ export function Navbar() {
 
       <div className="flex items-center gap-3">
         <div
-          className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border border-emerald-500/30 text-emerald-600 bg-emerald-500/5`}
+          className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border ${
+            isDark ? 'border-white/10 text-gray-400' : 'border-black/[0.08] text-gray-500'
+          }`}
         >
-          <span className="w-1.5 h-1.5 rounded-full inline-block animate-pulse bg-emerald-500 shadow-[0_0_6px_rgb(16,185,129)]" />
+          <span className={`w-1.5 h-1.5 rounded-full inline-block animate-pulse ${isDark ? 'bg-white' : 'bg-black'}`} />
           Live on BSC
         </div>
         <button

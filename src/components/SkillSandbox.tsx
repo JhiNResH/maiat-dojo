@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useDarkMode } from '@/app/DarkModeContext';
 
 type Symbol = 'BTC' | 'ETH' | 'BNB';
 type Timeframe = '1h' | '4h' | '24h';
@@ -29,7 +28,6 @@ function formatChange(n: number): string {
 }
 
 export default function SkillSandbox() {
-  const { isDark } = useDarkMode();
   const [symbol, setSymbol] = useState<Symbol>('BTC');
   const [timeframe, setTimeframe] = useState<Timeframe>('1h');
   const [data, setData] = useState<PriceData | null>(null);
@@ -77,15 +75,10 @@ export default function SkillSandbox() {
 
   const changeColor =
     data && data.change_24h > 0
-      ? '#16a34a'
-      : data && data.change_24h < 0
-      ? '#dc2626'
-      : isDark
-      ? '#6b7280'
-      : '#9ca3af';
+      ? 'var(--text)'
+      : 'var(--text-muted)';
 
   const twapLabel = `TWAP ${timeframe.toUpperCase()}`;
-  const borderColor = isDark ? '#ededed' : '#1a1a1a';
 
   function updatedText(): string {
     if (!data) return '—';
@@ -96,27 +89,19 @@ export default function SkillSandbox() {
   return (
     <section
       style={{
-        borderTop: `4px double ${borderColor}`,
-        borderBottom: `4px double ${borderColor}`,
+        borderTop: '4px double var(--text)',
+        borderBottom: '4px double var(--text)',
       }}
       className="py-6"
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
-        <span
-          className={`text-[10px] font-bold uppercase tracking-[0.3em] ${
-            isDark ? 'text-gray-500' : 'text-[#1a1a1a]/50'
-          }`}
-        >
+        <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-[var(--text-muted)]">
           Live Oracle Output
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-          <span
-            className={`text-[9px] font-bold uppercase tracking-[0.15em] ${
-              isDark ? 'text-green-400' : 'text-green-700'
-            }`}
-          >
+          <span className="w-1.5 h-1.5 rounded-full bg-[var(--text)] animate-pulse" />
+          <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-[var(--text-muted)]">
             Live
           </span>
         </span>
@@ -131,10 +116,8 @@ export default function SkillSandbox() {
               onClick={() => setSymbol(s)}
               className={`px-3 py-1 text-[9px] font-bold uppercase tracking-[0.15em] transition-colors ${
                 symbol === s
-                  ? 'bg-[#b08d57] text-white'
-                  : isDark
-                  ? 'text-gray-500 hover:text-gray-300'
-                  : 'text-[#1a1a1a]/50 hover:text-[#1a1a1a]/70'
+                  ? 'bg-[var(--text)] text-[var(--bg)]'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
               }`}
             >
               {s}
@@ -148,10 +131,8 @@ export default function SkillSandbox() {
               onClick={() => setTimeframe(t)}
               className={`px-3 py-1 text-[9px] font-bold uppercase tracking-[0.15em] transition-colors ${
                 timeframe === t
-                  ? 'bg-[#b08d57] text-white'
-                  : isDark
-                  ? 'text-gray-500 hover:text-gray-300'
-                  : 'text-[#1a1a1a]/50 hover:text-[#1a1a1a]/70'
+                  ? 'bg-[var(--text)] text-[var(--bg)]'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
               }`}
             >
               {t}
@@ -162,9 +143,7 @@ export default function SkillSandbox() {
 
       {/* Data */}
       {loading && !data ? (
-        <div
-          className={`font-mono text-[11px] ${isDark ? 'text-gray-600' : 'text-[#1a1a1a]/40'}`}
-        >
+        <div className="font-mono text-[11px] text-[var(--text-muted)]">
           Loading…
         </div>
       ) : data ? (
@@ -172,18 +151,10 @@ export default function SkillSandbox() {
           {/* Primary metrics */}
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
-              <div
-                className={`font-mono text-2xl font-bold tabular-nums ${
-                  isDark ? 'text-white' : 'text-black'
-                }`}
-              >
+              <div className="font-mono text-2xl font-bold tabular-nums text-[var(--text)]">
                 {formatPrice(data.price_usd)}
               </div>
-              <div
-                className={`text-[9px] font-bold uppercase tracking-[0.15em] mt-1 ${
-                  isDark ? 'text-gray-500' : 'text-[#1a1a1a]/50'
-                }`}
-              >
+              <div className="text-[9px] font-bold uppercase tracking-[0.15em] mt-1 text-[var(--text-muted)]">
                 Price (USD)
               </div>
             </div>
@@ -194,11 +165,7 @@ export default function SkillSandbox() {
               >
                 {formatChange(data.change_24h)}
               </div>
-              <div
-                className={`text-[9px] font-bold uppercase tracking-[0.15em] mt-1 ${
-                  isDark ? 'text-gray-500' : 'text-[#1a1a1a]/50'
-                }`}
-              >
+              <div className="text-[9px] font-bold uppercase tracking-[0.15em] mt-1 text-[var(--text-muted)]">
                 Change (24H)
               </div>
             </div>
@@ -207,42 +174,24 @@ export default function SkillSandbox() {
           {/* Secondary metrics */}
           <div className="grid grid-cols-2 gap-4 mb-5">
             <div>
-              <div
-                className={`font-mono text-sm font-bold tabular-nums ${
-                  isDark ? 'text-gray-300' : 'text-[#1a1a1a]/70'
-                }`}
-              >
+              <div className="font-mono text-sm font-bold tabular-nums text-[var(--text-secondary)]">
                 {formatPrice(data.twap_1h)}
               </div>
-              <div
-                className={`text-[9px] font-bold uppercase tracking-[0.15em] mt-1 ${
-                  isDark ? 'text-gray-500' : 'text-[#1a1a1a]/50'
-                }`}
-              >
+              <div className="text-[9px] font-bold uppercase tracking-[0.15em] mt-1 text-[var(--text-muted)]">
                 {twapLabel}
               </div>
             </div>
             <div>
-              <div
-                className={`font-mono text-sm font-bold ${
-                  isDark ? 'text-gray-300' : 'text-[#1a1a1a]/70'
-                }`}
-              >
+              <div className="font-mono text-sm font-bold text-[var(--text-secondary)]">
                 {data.source}
               </div>
-              <div
-                className={`text-[9px] font-bold uppercase tracking-[0.15em] mt-1 ${
-                  isDark ? 'text-gray-500' : 'text-[#1a1a1a]/50'
-                }`}
-              >
+              <div className="text-[9px] font-bold uppercase tracking-[0.15em] mt-1 text-[var(--text-muted)]">
                 Source
               </div>
             </div>
           </div>
 
-          <div
-            className={`text-[9px] font-mono ${isDark ? 'text-gray-600' : 'text-[#1a1a1a]/40'}`}
-          >
+          <div className="text-[9px] font-mono text-[var(--text-muted)]">
             Updated {updatedText()}
           </div>
         </>

@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { LogIn } from "lucide-react";
-import { useDarkMode } from "@/app/DarkModeContext";
 import CheckoutCard from "@/components/CheckoutCard";
 import { useEscrowFund, type EscrowStep } from "@/hooks/useEscrowFund";
 import { formatUnits } from "viem";
@@ -76,7 +75,6 @@ async function syncUser(
 
 export default function PurchaseCard({ skill }: Props) {
   const { ready, authenticated, login, user, getAccessToken } = usePrivy();
-  const { isDark } = useDarkMode();
   const [step, setStep] = useState<Step>("idle");
   const [error, setError] = useState<string | null>(null);
   const [passiveResult, setPassiveResult] = useState<PassiveResult | null>(null);
@@ -93,22 +91,16 @@ export default function PurchaseCard({ skill }: Props) {
   const isPassive = skill.skillType === "passive";
   const isFree = skill.price === 0;
 
-  // Dark mode tokens
-  const ink = isDark ? "text-white" : "text-[#1a1a1a]";
-  const bg = isDark ? "bg-[#0A0A0A]" : "bg-[#f0ece2]";
-  const muted = isDark ? "text-gray-500" : "text-[#1a1a1a]/60";
-  const faint = isDark ? "text-gray-600" : "text-[#1a1a1a]/40";
-  const fainter = isDark ? "text-gray-700" : "text-[#1a1a1a]/30";
-  const rule = isDark ? "border-white/10" : "border-dotted border-[#1a1a1a]/15";
-  const ruleLight = isDark ? "border-white/[0.06]" : "border-[#1a1a1a]/10";
-  const btnBg = isDark
-    ? "bg-white text-[#0A0A0A] hover:bg-white/90"
-    : "bg-[#1a1a1a] text-[#f0ece2] hover:bg-[#1a1a1a]/80";
-  const inputBorder = isDark ? "border-white/15 bg-white/[0.04]" : "border-[#1a1a1a]/20 bg-[#1a1a1a]/[0.02]";
-  const codeBg = isDark ? "bg-white/[0.04] border-white/[0.06]" : "bg-[#1a1a1a]/[0.03] border-[#1a1a1a]/10";
-  const successBg = isDark
-    ? "text-emerald-400 bg-emerald-400/10 border-emerald-400"
-    : "text-green-800 bg-green-800/10 border-green-800";
+  const ink = "text-[var(--text)]";
+  const muted = "text-[var(--text-secondary)]";
+  const faint = "text-[var(--text-muted)]";
+  const fainter = "text-[var(--text-muted)] opacity-70";
+  const rule = "border-[var(--border)]";
+  const ruleLight = "border-[var(--border-light)]";
+  const btnBg = "bg-[var(--text)] text-[var(--bg)] hover:opacity-80";
+  const inputBorder = "border-[var(--border)] bg-[var(--bg-secondary)]";
+  const codeBg = "bg-[var(--bg-secondary)] border-[var(--border)]";
+  const successBg = "text-[var(--text)] bg-[var(--bg-secondary)] border-[var(--border)]";
 
   // ── Passive purchase ──────────────────────────────────────────────────────
   async function handlePassiveBuy() {
@@ -346,7 +338,7 @@ export default function PurchaseCard({ skill }: Props) {
     return (
       <div className="classified" data-label="Acquire">
         <div className="mb-3">
-          <span className={`font-serif font-black text-3xl ${ink}`}>
+          <span className={`font-mono font-bold text-3xl ${ink}`}>
             {isFree ? "Free" : `$${skill.price.toFixed(2)}`}
           </span>
         </div>
@@ -382,7 +374,7 @@ export default function PurchaseCard({ skill }: Props) {
   return (
     <div className="classified" data-label="Use This Skill">
       <div className="mb-1">
-        <span className={`font-serif font-black text-3xl ${ink}`}>
+        <span className={`font-mono font-bold text-3xl ${ink}`}>
           {skill.pricePerCall ? `$${skill.pricePerCall.toFixed(2)}` : "FREE"}
         </span>
         <span className={`font-mono text-xs ${faint} ml-1`}>/ call</span>
@@ -467,7 +459,7 @@ export default function PurchaseCard({ skill }: Props) {
         </button>
       )}
       {faucetMsg && (
-        <p className={`font-mono text-[10px] ${faucetMsg.includes("sent") ? "text-green-600" : "text-red-500"} mb-1`}>
+        <p className={`font-mono text-[10px] ${faucetMsg.includes("sent") ? "text-[var(--text)]" : "text-red-500"} mb-1`}>
           {faucetMsg}
         </p>
       )}

@@ -9,29 +9,26 @@ export function Footer() {
 
   return (
     <footer
-      className={`pt-32 pb-12 px-8 border-t ${
+      className={`pt-32 pb-12 px-8 border-t bg-[var(--bg)] ${
         isDark ? 'border-white/10' : 'border-[#1a1a1a]/15'
       }`}
-      style={{
-        background: isDark ? '#0A0A0A' : '#f0ece2',
-      }}
     >
       <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-16 mb-32">
         <div className="col-span-2">
           <div className="flex items-center gap-3 mb-8">
             <div
-              className={`w-9 h-9 flex items-center justify-center font-mono text-xs font-bold ${
-                isDark ? 'bg-white text-black' : 'bg-[#1a1a1a] text-[#f0ece2]'
+              className={`w-9 h-9 rounded-full flex items-center justify-center font-mono text-xs font-bold ${
+                isDark ? 'bg-white text-black' : 'bg-black text-white'
               }`}
             >
-              道
+              D
             </div>
             <span
-              className={`font-serif text-xl tracking-wide ${
+              className={`font-mono font-bold text-base tracking-widest ${
                 isDark ? 'text-white' : 'text-[#1a1a1a]'
               }`}
             >
-              dojo
+              The Dojo
             </span>
           </div>
           <p className={`mb-8 max-w-xs leading-relaxed ${isDark ? 'text-gray-400' : 'text-[#1a1a1a]/50'}`}>
@@ -42,7 +39,7 @@ export function Footer() {
               href="https://twitter.com/0xmaiat"
               target="_blank"
               rel="noopener noreferrer"
-              className={`p-2 border transition-opacity hover:opacity-70 ${
+              className={`p-2 rounded-full border transition-opacity hover:opacity-70 ${
                 isDark ? 'border-white/10 text-gray-400' : 'border-[#1a1a1a]/10 text-[#1a1a1a]/50'
               }`}
             >
@@ -52,7 +49,7 @@ export function Footer() {
               href="https://github.com/JhiNResH/maiat-dojo"
               target="_blank"
               rel="noopener noreferrer"
-              className={`p-2 border transition-opacity hover:opacity-70 ${
+              className={`p-2 rounded-full border transition-opacity hover:opacity-70 ${
                 isDark ? 'border-white/10 text-gray-400' : 'border-[#1a1a1a]/10 text-[#1a1a1a]/50'
               }`}
             >

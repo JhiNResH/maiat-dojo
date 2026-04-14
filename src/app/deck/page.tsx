@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { usePrivy } from '@privy-io/react-auth';
 import { ArrowLeft, Layers, LogIn, Share2 } from 'lucide-react';
-import { useDarkMode } from '@/app/DarkModeContext';
 import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
 import { BackgroundEffect } from '@/components/landing/BackgroundEffect';
@@ -27,7 +26,6 @@ interface GroupedSkills {
 }
 
 export default function DeckPage() {
-  const { isDark } = useDarkMode();
   const { ready, authenticated, login, getAccessToken } = usePrivy();
   const [skills, setSkills] = useState<PurchasedSkill[]>([]);
   const [loading, setLoading] = useState(true);
@@ -77,9 +75,7 @@ export default function DeckPage() {
     setCopying(true);
     try {
       const skillIds = skills.map((s) => s.id).join(',');
-      const url = `${window.location.origin}/deck/shared?skills=${encodeURIComponent(
-        skillIds
-      )}`;
+      const url = `${window.location.origin}/deck/shared?skills=${encodeURIComponent(skillIds)}`;
       await navigator.clipboard.writeText(url);
       setShareUrl(url);
       setTimeout(() => setShareUrl(null), 3000);
@@ -90,9 +86,7 @@ export default function DeckPage() {
     }
   };
 
-  const glassCard = isDark
-    ? 'border-white/[0.06] bg-white/[0.03]'
-    : 'border-black/[0.06] bg-white/60';
+  const glassCard = 'border border-[var(--border)] bg-[var(--card-bg)]';
 
   const glassStyle = {
     backdropFilter: 'blur(40px) saturate(180%)',
@@ -100,13 +94,7 @@ export default function DeckPage() {
   } as const;
 
   return (
-    <div
-      className="min-h-screen atmosphere transition-colors duration-700"
-      style={{
-        background: isDark ? '#0A0A0A' : '#fafaf7',
-        color: isDark ? '#ededed' : '#0a0a0a',
-      }}
-    >
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors duration-700">
       <BackgroundEffect />
       <Navbar />
 
@@ -114,9 +102,7 @@ export default function DeckPage() {
         <div className="max-w-6xl mx-auto">
           <Link
             href="/"
-            className={`inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] mb-10 transition-opacity hover:opacity-70 ${
-              isDark ? 'text-gray-400' : 'text-gray-500'
-            }`}
+            className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] mb-10 transition-opacity hover:opacity-70 text-[var(--text-muted)]"
           >
             <ArrowLeft className="w-3 h-3" />
             Back to marketplace
@@ -130,33 +116,19 @@ export default function DeckPage() {
               className={`rounded-3xl p-12 border text-center max-w-xl mx-auto ${glassCard}`}
               style={glassStyle}
             >
-              <div
-                className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-6 border ${
-                  isDark ? 'border-white/10 bg-white/5' : 'border-black/10 bg-white/60'
-                }`}
-              >
+              <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-6 border border-[var(--border)] bg-[var(--card-bg)]">
                 <Layers className="w-5 h-5" />
               </div>
-              <h1
-                className={`font-sans font-semibold text-4xl md:text-5xl tracking-[-0.03em] leading-[0.95] mb-4 ${
-                  isDark ? 'text-white' : 'text-black'
-                }`}
-              >
+              <h1 className="font-sans font-semibold text-4xl md:text-5xl tracking-[-0.03em] leading-[0.95] mb-4 text-[var(--text)]">
                 Your deck, locked.
               </h1>
-              <p
-                className={`text-sm leading-relaxed mb-8 max-w-sm mx-auto ${
-                  isDark ? 'text-gray-400' : 'text-gray-500'
-                }`}
-              >
+              <p className="text-sm leading-relaxed mb-8 max-w-sm mx-auto text-[var(--text-muted)]">
                 Sign in to view the skills you&apos;ve collected and share your build
                 with other agents.
               </p>
               <button
                 onClick={login}
-                className={`inline-flex items-center gap-2 px-7 py-4 rounded-full text-xs font-bold uppercase tracking-[0.15em] transition-all hover:scale-[1.02] ${
-                  isDark ? 'bg-white text-black' : 'bg-black text-white'
-                }`}
+                className="inline-flex items-center gap-2 px-7 py-4 rounded-full text-xs font-bold uppercase tracking-[0.15em] transition-all hover:scale-[1.02] bg-[var(--text)] text-[var(--bg)]"
               >
                 <LogIn className="w-3 h-3" />
                 Sign in to view deck
@@ -167,30 +139,16 @@ export default function DeckPage() {
               {/* Header */}
               <header className="flex items-start justify-between gap-6 mb-12">
                 <div>
-                  <div
-                    className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border mb-5 ${
-                      isDark
-                        ? 'border-white/10 bg-white/5'
-                        : 'border-black/10 bg-white/60'
-                    }`}
-                  >
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border mb-5 border-[var(--border)] bg-[var(--card-bg)]">
                     <Layers className="w-3 h-3" />
                     <span className="text-[9px] font-bold uppercase tracking-[0.2em]">
                       My deck
                     </span>
                   </div>
-                  <h1
-                    className={`font-sans font-semibold text-4xl md:text-6xl tracking-[-0.03em] leading-[0.95] mb-3 ${
-                      isDark ? 'text-white' : 'text-black'
-                    }`}
-                  >
+                  <h1 className="font-sans font-semibold text-4xl md:text-6xl tracking-[-0.03em] leading-[0.95] mb-3 text-[var(--text)]">
                     Your collection.
                   </h1>
-                  <p
-                    className={`font-mono text-xs tabular-nums ${
-                      isDark ? 'text-gray-500' : 'text-gray-400'
-                    }`}
-                  >
+                  <p className="font-mono text-xs tabular-nums text-[var(--text-muted)]">
                     {skills.length} skill{skills.length !== 1 ? 's' : ''} collected
                   </p>
                 </div>
@@ -199,9 +157,7 @@ export default function DeckPage() {
                   <button
                     onClick={handleShareDeck}
                     disabled={copying}
-                    className={`shrink-0 inline-flex items-center gap-2 px-5 py-3 rounded-full text-[10px] font-bold uppercase tracking-[0.15em] transition-all hover:scale-[1.02] disabled:opacity-50 ${
-                      isDark ? 'bg-white text-black' : 'bg-black text-white'
-                    }`}
+                    className="shrink-0 inline-flex items-center gap-2 px-5 py-3 rounded-full text-[10px] font-bold uppercase tracking-[0.15em] transition-all hover:scale-[1.02] disabled:opacity-50 bg-[var(--text)] text-[var(--bg)]"
                   >
                     <Share2 className="w-3 h-3" />
                     {shareUrl ? 'Link copied' : 'Share deck'}
@@ -211,11 +167,7 @@ export default function DeckPage() {
 
               {loading && (
                 <div className="text-center py-24">
-                  <p
-                    className={`font-mono text-xs uppercase tracking-[0.2em] animate-pulse ${
-                      isDark ? 'text-gray-500' : 'text-gray-400'
-                    }`}
-                  >
+                  <p className="font-mono text-xs uppercase tracking-[0.2em] animate-pulse text-[var(--text-muted)]">
                     Loading your deck…
                   </p>
                 </div>
@@ -226,7 +178,7 @@ export default function DeckPage() {
                   className={`rounded-3xl p-8 border text-center ${glassCard}`}
                   style={glassStyle}
                 >
-                  <p className="font-mono text-xs text-red-500">{error}</p>
+                  <p className="font-mono text-xs text-[var(--error)]">{error}</p>
                 </div>
               )}
 
@@ -238,34 +190,18 @@ export default function DeckPage() {
                   className={`rounded-3xl p-16 border text-center max-w-xl mx-auto ${glassCard}`}
                   style={glassStyle}
                 >
-                  <div
-                    className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-6 border ${
-                      isDark
-                        ? 'border-white/10 bg-white/5'
-                        : 'border-black/10 bg-white/60'
-                    }`}
-                  >
+                  <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-6 border border-[var(--border)] bg-[var(--card-bg)]">
                     <Layers className="w-5 h-5" />
                   </div>
-                  <h2
-                    className={`font-sans font-semibold text-2xl mb-3 ${
-                      isDark ? 'text-white' : 'text-black'
-                    }`}
-                  >
+                  <h2 className="font-sans font-semibold text-2xl mb-3 text-[var(--text)]">
                     Your deck is empty
                   </h2>
-                  <p
-                    className={`text-sm mb-8 max-w-sm mx-auto ${
-                      isDark ? 'text-gray-400' : 'text-gray-500'
-                    }`}
-                  >
+                  <p className="text-sm mb-8 max-w-sm mx-auto text-[var(--text-muted)]">
                     Browse the marketplace to acquire your first skill cards.
                   </p>
                   <Link
                     href="/"
-                    className={`inline-flex items-center gap-2 px-7 py-4 rounded-full text-xs font-bold uppercase tracking-[0.15em] transition-all hover:scale-[1.02] ${
-                      isDark ? 'bg-white text-black' : 'bg-black text-white'
-                    }`}
+                    className="inline-flex items-center gap-2 px-7 py-4 rounded-full text-xs font-bold uppercase tracking-[0.15em] transition-all hover:scale-[1.02] bg-[var(--text)] text-[var(--bg)]"
                   >
                     Browse skills
                   </Link>
@@ -282,25 +218,13 @@ export default function DeckPage() {
                       transition={{ duration: 0.4, delay: ci * 0.05 }}
                     >
                       <div className="flex items-center gap-3 mb-5">
-                        <div
-                          className={`text-[10px] font-bold uppercase tracking-[0.3em] ${
-                            isDark ? 'text-gray-500' : 'text-gray-400'
-                          }`}
-                        >
+                        <div className="text-[10px] font-bold uppercase tracking-[0.3em] text-[var(--text-muted)]">
                           {category}
                         </div>
-                        <div
-                          className={`font-mono text-[10px] tabular-nums ${
-                            isDark ? 'text-gray-600' : 'text-gray-500'
-                          }`}
-                        >
+                        <div className="font-mono text-[10px] tabular-nums text-[var(--text-muted)]">
                           {groupedSkills[category].length}
                         </div>
-                        <div
-                          className={`flex-1 border-b ${
-                            isDark ? 'border-white/[0.06]' : 'border-black/[0.06]'
-                          }`}
-                        />
+                        <div className="flex-1 border-b border-[var(--border-light)]" />
                       </div>
 
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
@@ -313,25 +237,13 @@ export default function DeckPage() {
                           >
                             <Link
                               href={`/skill/${skill.id}`}
-                              className={`block rounded-2xl p-4 border transition-all hover:scale-[1.02] ${
-                                isDark
-                                  ? 'border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04]'
-                                  : 'border-black/[0.06] bg-white/40 hover:bg-white/70'
-                              }`}
+                              className="block rounded-2xl p-4 border transition-all hover:opacity-80 border-[var(--border-light)] bg-[var(--bg-secondary)]"
                             >
                               <div className="text-2xl mb-3">{skill.icon}</div>
-                              <div
-                                className={`font-sans font-semibold text-xs truncate ${
-                                  isDark ? 'text-white' : 'text-black'
-                                }`}
-                              >
+                              <div className="font-sans font-semibold text-xs truncate text-[var(--text)]">
                                 {skill.name}
                               </div>
-                              <div
-                                className={`font-mono text-[9px] uppercase tracking-[0.15em] mt-1 ${
-                                  isDark ? 'text-gray-500' : 'text-gray-400'
-                                }`}
-                              >
+                              <div className="font-mono text-[9px] uppercase tracking-[0.15em] mt-1 text-[var(--text-muted)]">
                                 {skill.category}
                               </div>
                             </Link>

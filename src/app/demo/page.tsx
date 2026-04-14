@@ -4,7 +4,6 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ArrowLeft, PlayCircle, Sparkles } from 'lucide-react';
-import { useDarkMode } from '@/app/DarkModeContext';
 import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
 import { BackgroundEffect } from '@/components/landing/BackgroundEffect';
@@ -49,7 +48,6 @@ const STEPS = [
 ];
 
 export default function DemoPage() {
-  const { isDark } = useDarkMode();
   const [results, setResults] = useState<StepResult[]>(
     STEPS.map(() => ({ status: 'idle' as const }))
   );
@@ -224,9 +222,7 @@ export default function DemoPage() {
 
   const runners = [runStep1, runStep2, runStep3, runStep4, runStep5, runStep6];
 
-  const glassCard = isDark
-    ? 'border-white/[0.06] bg-white/[0.03]'
-    : 'border-black/[0.06] bg-white/60';
+  const glassCard = 'border border-[var(--border)] bg-[var(--card-bg)]';
 
   const glassStyle = {
     backdropFilter: 'blur(40px) saturate(180%)',
@@ -234,31 +230,14 @@ export default function DemoPage() {
   } as const;
 
   const statusStyle = (s: StepResult['status']) => {
-    if (s === 'success')
-      return isDark
-        ? 'text-emerald-400 border-emerald-400/30 bg-emerald-500/10'
-        : 'text-emerald-700 border-emerald-500/30 bg-emerald-500/10';
-    if (s === 'error')
-      return isDark
-        ? 'text-red-400 border-red-400/30 bg-red-500/10'
-        : 'text-red-700 border-red-500/30 bg-red-500/10';
-    if (s === 'running')
-      return isDark
-        ? 'text-blue-400 border-blue-400/30 bg-blue-500/10'
-        : 'text-blue-700 border-blue-500/30 bg-blue-500/10';
-    return isDark
-      ? 'text-gray-500 border-white/10 bg-white/5'
-      : 'text-gray-500 border-black/10 bg-white/40';
+    if (s === 'success') return 'text-[var(--text)] border-[var(--border)] bg-[var(--bg-secondary)]';
+    if (s === 'error') return 'text-[var(--text-muted)] border-[var(--border)] bg-[var(--bg-secondary)]';
+    if (s === 'running') return 'text-[var(--text-secondary)] border-[var(--border)] bg-[var(--bg-secondary)]';
+    return 'text-[var(--text-muted)] border-[var(--border-light)] bg-[var(--bg-secondary)]';
   };
 
   return (
-    <div
-      className="min-h-screen atmosphere transition-colors duration-700"
-      style={{
-        background: isDark ? '#0A0A0A' : '#fafaf7',
-        color: isDark ? '#ededed' : '#0a0a0a',
-      }}
-    >
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors duration-700">
       <BackgroundEffect />
       <Navbar />
 
@@ -266,9 +245,7 @@ export default function DemoPage() {
         <div className="max-w-4xl mx-auto">
           <Link
             href="/"
-            className={`inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] mb-10 transition-opacity hover:opacity-70 ${
-              isDark ? 'text-gray-400' : 'text-gray-500'
-            }`}
+            className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] mb-10 transition-opacity hover:opacity-70 text-[var(--text-muted)]"
           >
             <ArrowLeft className="w-3 h-3" />
             Back to marketplace
@@ -276,28 +253,16 @@ export default function DemoPage() {
 
           {/* Header */}
           <header className="mb-12 text-center">
-            <div
-              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border mb-5 ${
-                isDark ? 'border-white/10 bg-white/5' : 'border-black/10 bg-white/60'
-              }`}
-            >
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[var(--border)] bg-[var(--card-bg)] mb-5">
               <Sparkles className="w-3 h-3" />
               <span className="text-[9px] font-bold uppercase tracking-[0.2em]">
                 Live walkthrough
               </span>
             </div>
-            <h1
-              className={`font-sans font-semibold text-4xl md:text-6xl tracking-[-0.03em] leading-[0.95] mb-5 ${
-                isDark ? 'text-white' : 'text-black'
-              }`}
-            >
+            <h1 className="font-sans font-semibold text-4xl md:text-6xl tracking-[-0.03em] leading-[0.95] mb-5 text-[var(--text)]">
               Watch it settle.
             </h1>
-            <p
-              className={`text-base max-w-xl mx-auto ${
-                isDark ? 'text-gray-400' : 'text-gray-500'
-              }`}
-            >
+            <p className="text-base max-w-xl mx-auto text-[var(--text-muted)]">
               Six steps. Real API calls. The full agent-to-skill lifecycle — from KYA-0
               mint to on-chain settlement.
             </p>
@@ -317,37 +282,21 @@ export default function DemoPage() {
                   style={glassStyle}
                 >
                   <div className="flex items-start gap-4">
-                    <div
-                      className={`w-10 h-10 rounded-2xl flex items-center justify-center border font-mono text-xs font-bold shrink-0 ${
-                        isDark
-                          ? 'border-white/10 bg-white/5 text-gray-300'
-                          : 'border-black/10 bg-white/60 text-gray-600'
-                      }`}
-                    >
+                    <div className="w-10 h-10 rounded-2xl flex items-center justify-center border font-mono text-xs font-bold shrink-0 border-[var(--border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
                       {step.num}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3
-                        className={`font-sans font-semibold text-base mb-1 ${
-                          isDark ? 'text-white' : 'text-black'
-                        }`}
-                      >
+                      <h3 className="font-sans font-semibold text-base mb-1 text-[var(--text)]">
                         {step.title}
                       </h3>
-                      <p
-                        className={`text-sm leading-relaxed ${
-                          isDark ? 'text-gray-400' : 'text-gray-500'
-                        }`}
-                      >
+                      <p className="text-sm leading-relaxed text-[var(--text-muted)]">
                         {step.desc}
                       </p>
                     </div>
                     <button
                       onClick={runners[i]}
                       disabled={r.status === 'running'}
-                      className={`shrink-0 inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-[10px] font-bold uppercase tracking-[0.15em] transition-all hover:scale-[1.02] disabled:opacity-40 ${
-                        isDark ? 'bg-white text-black' : 'bg-black text-white'
-                      }`}
+                      className="shrink-0 inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-[10px] font-bold uppercase tracking-[0.15em] transition-all hover:scale-[1.02] disabled:opacity-40 bg-[var(--text)] text-[var(--bg)]"
                     >
                       <PlayCircle className="w-3 h-3" />
                       {r.status === 'running' ? 'Running…' : 'Run step'}
@@ -355,11 +304,7 @@ export default function DemoPage() {
                   </div>
 
                   {r.status !== 'idle' && (
-                    <div
-                      className={`mt-4 pt-4 border-t ${
-                        isDark ? 'border-white/[0.06]' : 'border-black/[0.06]'
-                      }`}
-                    >
+                    <div className="mt-4 pt-4 border-t border-[var(--border)]">
                       <div className="flex items-center gap-2 mb-3">
                         <span
                           className={`inline-flex items-center text-[9px] font-bold uppercase tracking-[0.2em] px-2 py-1 rounded-full border ${statusStyle(
@@ -369,23 +314,13 @@ export default function DemoPage() {
                           {r.status}
                         </span>
                         {r.error && (
-                          <span
-                            className={`font-mono text-[10px] ${
-                              isDark ? 'text-red-400' : 'text-red-600'
-                            }`}
-                          >
+                          <span className="font-mono text-[10px] text-[var(--text-muted)]">
                             {r.error}
                           </span>
                         )}
                       </div>
                       {r.data != null && (
-                        <pre
-                          className={`font-mono text-[11px] rounded-2xl p-4 overflow-x-auto max-h-48 overflow-y-auto whitespace-pre-wrap ${
-                            isDark
-                              ? 'bg-black/40 text-gray-300 border border-white/[0.04]'
-                              : 'bg-black/[0.04] text-gray-700 border border-black/[0.04]'
-                          }`}
-                        >
+                        <pre className="font-mono text-[11px] rounded-2xl p-4 overflow-x-auto max-h-48 overflow-y-auto whitespace-pre-wrap bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--border)]">
                           {JSON.stringify(r.data, null, 2)}
                         </pre>
                       )}
@@ -396,11 +331,7 @@ export default function DemoPage() {
             })}
           </div>
 
-          <p
-            className={`text-[10px] font-bold uppercase tracking-[0.2em] text-center mt-8 ${
-              isDark ? 'text-gray-600' : 'text-gray-400'
-            }`}
-          >
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-center mt-8 text-[var(--text-muted)]">
             Maiat protocol · BSC testnet · Live API
           </p>
         </div>

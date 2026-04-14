@@ -3,375 +3,537 @@
 @tailwind utilities;
 
 /* ═══════════════════════════════════════════════════════════════════
-   Design System — Newspaper Tokens
-   Three core tokens: paper, ink, accent (gold).
-   See DESIGN.md for full system documentation.
+   Design System — Liquid Glass (synced with app.maiat.io)
+   Canonical token naming uses app.maiat.io naming convention.
+   Dojo short-name aliases kept for backward compat.
 ═══════════════════════════════════════════════════════════════════ */
 
+@layer base {
+  .font-mono {
+    font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+  }
+}
+
 :root {
-  --paper: #f0ece2;
-  --ink: #1a1a1a;
-  --accent: #b08d57;
-  --error: #dc2626;
+  /* ─── Core tokens (app.maiat.io canonical naming) ─── */
+  --bg-color: #FDFDFB;
+  --text-color: #000000;
+  --border-color: rgba(0, 0, 0, 0.08);
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --glass-shadow:
+    0 20px 50px rgba(0, 0, 0, 0.05),
+    0 2px 4px rgba(0, 0, 0, 0.02);
+
+  /* ─── Atmosphere / gradient tokens ─── */
+  --atmosphere-opacity: 0.6;
+  --atmosphere-gradient-1: rgba(16, 185, 129, 0.08);
+  --atmosphere-gradient-2: rgba(59, 130, 246, 0.08);
+  --text-gradient: linear-gradient(to bottom, #000 0%, #6b7280 100%);
+  --rail-color: rgba(0, 0, 0, 0.3);
+  --marquee-border: rgba(0, 0, 0, 0.05);
+  --mesh-color: rgba(0, 0, 0, 0.03);
+
+  /* ─── Aliases (Dojo short names — backward compat) ─── */
+  --bg: #FDFDFB;
+  --bg-secondary: #f5f5f5;
+  --text: #000000;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
+  --border: rgba(0, 0, 0, 0.08);
+  --border-light: rgba(0, 0, 0, 0.05);
+  --accent: #000000;
+  --accent-hover: #2d2d2d;
+  --card-bg: rgba(255, 255, 255, 0.65);
+  --card-border: rgba(0, 0, 0, 0.08);
+  --glass-shadow-hover: 0 8px 32px rgba(0, 0, 0, 0.09);
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --error: #ef4444;
+  --success: #22c55e;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
 }
 
 .dark {
-  --paper: #0A0A0A;
-  --ink: #ffffff;
-  --accent: #c9a96e;
+  /* ─── Core tokens (dark) ─── */
+  --bg-color: #0A0A0A;
+  --text-color: #ffffff;
+  --border-color: rgba(255, 255, 255, 0.05);
+  --glass-bg: rgba(20, 20, 20, 0.4);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-shadow:
+    inset 0 0 30px rgba(255, 255, 255, 0.02),
+    0 30px 100px rgba(0, 0, 0, 0.3);
+
+  /* ─── Atmosphere (dark) ─── */
+  --atmosphere-opacity: 0.4;
+  --atmosphere-gradient-1: rgba(16, 185, 129, 0.1);
+  --atmosphere-gradient-2: rgba(59, 130, 246, 0.1);
+  --text-gradient: linear-gradient(to bottom, #fff 0%, #6b7280 100%);
+  --rail-color: rgba(255, 255, 255, 0.2);
+  --marquee-border: rgba(255, 255, 255, 0.05);
+  --mesh-color: rgba(255, 255, 255, 0.02);
+
+  /* ─── Aliases (dark) ─── */
+  --bg: #0a0a0a;
+  --bg-secondary: #111111;
+  --text: #ffffff;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-light: rgba(255, 255, 255, 0.05);
+  --accent: #ffffff;
+  --accent-hover: #d1d5db;
+  --card-bg: rgba(17, 17, 17, 0.6);
+  --card-border: rgba(255, 255, 255, 0.06);
+  --glass-shadow-hover: 0 8px 40px rgba(0, 0, 0, 0.45);
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.06);
   --error: #f87171;
+  --success: #4ade80;
 }
 
 body {
-  background-color: var(--paper);
-  color: var(--ink);
-  font-family: var(--font-sans), system-ui, sans-serif;
-  transition: background-color 0.7s ease, color 0.7s ease;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Newspaper grain — fractal noise overlay with multiply blend so the dark
-   specks actually bite into the paper, not float on top. Fixed-position +
-   pointer-events: none so it never blocks interactivity. Two layers:
-   1. Fine high-frequency grain (fibers in the paper stock)
-   2. Coarser low-frequency grain (uneven ink coverage) */
-body::before {
-  content: '';
+/* ─── Scrollbar ─── */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   app.maiat.io Core Classes
+═══════════════════════════════════════════════════════════════════ */
+
+/* Frosted glass surface — main card style from app.maiat.io */
+.liquid-glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(60px) saturate(180%);
+  -webkit-backdrop-filter: blur(60px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  transition: background 0.5s ease, border 0.5s ease, box-shadow 0.5s ease;
+}
+
+/* Fixed background gradient — replaces glass-ambient */
+.atmosphere {
   position: fixed;
   inset: 0;
+  z-index: -2;
+  background:
+    radial-gradient(circle at 50% 30%, var(--atmosphere-gradient-1) 0%, transparent 60%),
+    radial-gradient(circle at 10% 80%, var(--atmosphere-gradient-2) 0%, transparent 50%);
+  filter: blur(80px);
+  opacity: var(--atmosphere-opacity);
   pointer-events: none;
-  z-index: 1000;
-  mix-blend-mode: multiply;
-  background-image:
-    url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.3' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.18'/%3E%3C/svg%3E"),
-    url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.08'/%3E%3C/svg%3E");
+  transition: opacity 0.5s ease, background 0.5s ease;
 }
 
-/* ── Atmosphere (compat shim for pages not yet migrated to newspaper) ── */
-.atmosphere {
-  background-color: var(--paper);
-}
-
-/* ═══════════════════════════════════════════════════════════════════
-   EDITORIAL MICRO-MOTION — newspaper animation system
-   spec: specs/2026-04-09-chat-first-ui.md (editorial polish §Motion)
-═══════════════════════════════════════════════════════════════════ */
-
-/* Letterpress hover — text sinks 0.5px with a paper-colored highlight on
-   top and an ink shadow beneath, mimicking a pressed lead type character.
-   Apply sparingly to interactive text (nav links, button labels, etc.) */
-.letterpress {
-  transition: transform 180ms ease, text-shadow 180ms ease;
-}
-.letterpress:hover {
-  transform: translateY(0.5px);
-  text-shadow:
-    0 -0.5px 0 rgba(240, 236, 226, 0.9),
-    0 1px 1.5px rgba(26, 26, 26, 0.22);
-}
-
-/* Ink-pen underline — reveals a hand-drawn wavy line beneath the text on
-   hover, left-to-right, with a pen-ease cubic-bezier so it accelerates
-   slightly at the end like a real stroke. Inline SVG data URI = no extra
-   HTTP request. Encoded color: %231a1a1a = #1a1a1a. */
-.ink-underline {
-  background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 6' preserveAspectRatio='none'%3E%3Cpath d='M1,3 Q20,1 40,3 T80,3 T119,3' stroke='%231a1a1a' stroke-width='1.3' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: 0 100%;
-  background-size: 0% 5px;
-  padding-bottom: 4px;
-  transition: background-size 460ms cubic-bezier(0.22, 0.61, 0.36, 1);
-}
-.ink-underline:hover,
-.ink-underline:focus-visible {
-  background-size: 100% 5px;
-}
-
-/* Typewriter reveal — rows fade-and-rise into place with a per-item
-   stagger. Parent passes `style={{ animationDelay }}` with the index.
-   Respects prefers-reduced-motion. */
-@keyframes reveal-row {
-  from {
-    opacity: 0;
-    transform: translateY(5px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .reveal-row {
-    animation: reveal-row 420ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
-  }
-}
-
-/* Editorial pull quote — oversized italic serif with a hanging opening
-   quote and a thick ink rule on the left. Drop cap is handled inline via
-   ::first-letter. Hanging-punctuation pulls the leading " outside the
-   block in browsers that support it (Safari, mobile) and degrades
-   silently elsewhere. */
-.editorial-pull-quote {
-  font-family: 'Playfair Display', Georgia, serif;
-  font-style: italic;
-  font-weight: 400;
-  font-size: 1.5rem;
-  line-height: 1.4;
-  color: var(--ink);
-  padding: 0.25rem 0 0.25rem 1.25rem;
-  border-left: 3px solid var(--ink);
-  hanging-punctuation: first last;
-  text-wrap: balance;
-  position: relative;
-}
-.editorial-pull-quote::first-letter {
-  font-family: 'Playfair Display', Georgia, serif;
-  font-size: 3.25rem;
-  line-height: 0.85;
-  float: left;
-  padding-right: 0.35rem;
-  padding-top: 0.2rem;
+/* Gradient hero text */
+.atmosphere-text {
   font-weight: 900;
-}
-.editorial-pull-quote::before {
-  content: '\201C'; /* opening curly quote */
-  position: absolute;
-  left: -0.45em;
-  top: -0.15em;
-  font-size: 2.5rem;
-  font-weight: 900;
-  color: rgba(26, 26, 26, 0.25);
-  line-height: 1;
-}
-
-/* ═══════════════════════════════════════════════════════════════════
-   LANDING PAGE — "Opening a Newspaper"
-   Masthead rules, section brackets, fold lines, entrance animations.
-═══════════════════════════════════════════════════════════════════ */
-
-/* Masthead rule — 2px ink line used between masthead sections.
-   Was referenced 5x in page.tsx but never defined → rendered invisible. */
-.masthead-rule {
-  height: 2px;
-  background-color: rgba(26, 26, 26, 0.85);
+  letter-spacing: -0.06em;
+  line-height: 1.0;
+  font-size: clamp(3rem, 12vw, 10rem);
+  background: var(--text-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  transition: background 0.5s ease;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
-/* Section bracket — JetBrains Mono 9px uppercase tracked label.
-   Reused across landing page + skill page for consistent editorial headers. */
-.section-bracket {
-  font-family: var(--font-mono), 'JetBrains Mono', monospace;
-  font-size: 9px;
+/* Vertical decorative text */
+.rail-text {
+  writing-mode: vertical-rl;
+  font-size: 10px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.2em;
-  color: rgba(26, 26, 26, 0.4);
+  letter-spacing: 0.3em;
+  color: var(--rail-color);
+  user-select: none;
+  transition: color 0.5s ease;
 }
 
-/* Newspaper fold — dashed separator with gradient-mask faded edges,
-   mimicking where the broadsheet creases. */
-.newspaper-fold {
-  border: none;
-  height: 1px;
-  background: repeating-linear-gradient(
-    90deg,
-    rgba(26, 26, 26, 0.35) 0px,
-    rgba(26, 26, 26, 0.35) 6px,
-    transparent 6px,
-    transparent 12px
-  );
-  mask-image: linear-gradient(90deg, transparent, black 15%, black 85%, transparent);
-  -webkit-mask-image: linear-gradient(90deg, transparent, black 15%, black 85%, transparent);
-}
-
-/* Ink wash — page mount fade (opacity 0→1, subtle rise). */
-.ink-wash {
-  animation: ink-wash 300ms ease-out both;
-}
-
-@keyframes ink-wash {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Unfold down — content rises from the fold with a slight Y-squash
-   relaxing to 1.0, like paper unfolding toward the reader. */
-@keyframes unfold-down {
-  from {
-    opacity: 0;
-    transform: translateY(12px) scaleY(0.97);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scaleY(1);
-  }
-}
-
-/* Headline reveal — letter-spacing compresses from wide to tight
-   with fade, like a broadsheet title snapping into focus. */
-@keyframes headline-reveal {
-  from {
-    opacity: 0;
-    letter-spacing: 0.15em;
-  }
-  to {
-    opacity: 1;
-    letter-spacing: -0.02em;
-  }
-}
-
-/* Fade up scatter — items rise 24px with a CSS-variable-driven rotation,
-   like classified ads settling onto the page from above. */
-@keyframes fade-up-scatter {
-  from {
-    opacity: 0;
-    transform: translateY(24px) rotate(var(--scatter-rot, 0deg));
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) rotate(0deg);
-  }
-}
-
-/* Column rule — vertical ink line between classified columns on desktop.
-   Applied to the grid container; positioned via pseudo-element at col-8.
-   Hidden on mobile where columns stack. */
-.column-rule {
-  position: relative;
-}
-.column-rule::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: calc(58.333% + 0.5rem); /* 7/12 = 58.333%, nudged right into the gutter */
-  width: 1px;
-  background: repeating-linear-gradient(
-    180deg,
-    rgba(26, 26, 26, 0.25) 0px,
-    rgba(26, 26, 26, 0.25) 4px,
-    transparent 4px,
-    transparent 8px
-  );
-}
-@media (max-width: 767px) {
-  .column-rule::after {
-    display: none;
-  }
-}
-
-/* Sidebar box — bordered inset box for trending/aside columns.
-   Dashed top + bottom borders, tight padding, old-newspaper classified feel. */
-.sidebar-box {
-  border-top: 2px solid rgba(26, 26, 26, 0.2);
-  border-bottom: 2px solid rgba(26, 26, 26, 0.2);
+/* Marquee ticker — app.maiat.io naming */
+.marquee-container {
+  overflow: hidden;
+  white-space: nowrap;
   padding-top: 1rem;
   padding-bottom: 1rem;
+  border-top: 1px solid var(--marquee-border);
+  border-bottom: 1px solid var(--marquee-border);
+  transition: border 0.5s ease;
 }
 
-/* Skill card — zero-radius card with ink border, newspaper DNA.
-   Hover lifts slightly with darker border + soft shadow. */
-.skill-card {
-  border: 1px solid rgba(26, 26, 26, 0.12);
+.marquee-content {
+  display: inline-block;
+  min-width: 100%;
+  animation: marquee 30s linear infinite;
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* Smooth hover lift — 0.7s spring */
+.hover-lift {
+  transition: all 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.hover-lift:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 40px 80px rgba(0, 0, 0, 0.08);
+  border-color: rgba(255, 255, 255, 0.8);
+}
+
+/* Subtle grid mesh background */
+.mesh-grid {
+  background-image:
+    linear-gradient(var(--mesh-color) 1px, transparent 1px),
+    linear-gradient(90deg, var(--mesh-color) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Ambient gradient (legacy — kept for backward compat)
+   New code: use .atmosphere instead
+═══════════════════════════════════════════════════════════════════ */
+
+.glass-ambient {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.glass-ambient::before,
+.glass-ambient::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.35;
+}
+.glass-ambient::before {
+  width: 700px;
+  height: 700px;
+  background: radial-gradient(circle, rgba(220, 218, 210, 0.5), transparent 70%);
+  top: -150px;
+  right: -150px;
+}
+.glass-ambient::after {
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(210, 215, 205, 0.4), transparent 70%);
+  bottom: 15%;
+  left: -100px;
+}
+.dark .glass-ambient::before {
+  background: radial-gradient(circle, rgba(60, 60, 80, 0.3), transparent 70%);
+  opacity: 0.5;
+}
+.dark .glass-ambient::after {
+  background: radial-gradient(circle, rgba(40, 50, 70, 0.25), transparent 70%);
+  opacity: 0.5;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Glass Components
+═══════════════════════════════════════════════════════════════════ */
+
+/* Floating pill navbar */
+.glass-nav {
+  background: var(--card-bg);
+  backdrop-filter: blur(20px) saturate(1.15);
+  -webkit-backdrop-filter: blur(20px) saturate(1.15);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  box-shadow: var(--glass-shadow);
+}
+
+/* Glass card — frosted, translucent, depth through blur */
+.glass-card {
+  background: var(--card-bg);
+  backdrop-filter: blur(16px) saturate(1.1);
+  -webkit-backdrop-filter: blur(16px) saturate(1.1);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
   transition: border-color 200ms ease, box-shadow 200ms ease, transform 200ms ease;
 }
-.skill-card:hover {
-  border-color: rgba(26, 26, 26, 0.35);
-  box-shadow: 0 2px 12px rgba(26, 26, 26, 0.06);
+.glass-card:hover {
+  border-color: var(--glass-border);
+  box-shadow: var(--glass-shadow-hover), var(--glass-highlight);
+  transform: translateY(-2px);
+}
+
+/* Stat card */
+.stat-card {
+  background: var(--card-bg);
+  backdrop-filter: blur(16px) saturate(1.1);
+  -webkit-backdrop-filter: blur(16px) saturate(1.1);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+  transition: box-shadow 200ms ease, transform 200ms ease;
+}
+.stat-card:hover {
+  box-shadow: var(--glass-shadow-hover), var(--glass-highlight);
   transform: translateY(-1px);
 }
 
-/* Trust bar — horizontal ink fill showing trust score 0-100. */
-.trust-bar {
-  height: 3px;
-  background: rgba(26, 26, 26, 0.06);
+/* Pill button — dark filled */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--accent);
+  color: var(--bg);
+  border-radius: var(--radius-full);
+  padding: 10px 24px;
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  transition: background-color 150ms ease, transform 150ms ease;
+  border: none;
+  cursor: pointer;
 }
-.trust-bar-fill {
-  height: 100%;
-  background: rgba(26, 26, 26, 0.5);
-  transition: width 800ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-.trust-bar-fill-accent {
-  height: 100%;
-  background: rgba(176, 141, 87, 0.5);
-  transition: width 800ms cubic-bezier(0.16, 1, 0.3, 1);
+.btn-primary:hover {
+  background: var(--accent-hover);
+  transform: scale(1.02);
 }
 
-/* Price pill — bordered inline pill for pricing display. */
-.price-pill {
-  display: inline-block;
-  border: 1px solid rgba(26, 26, 26, 0.15);
-  padding: 1px 7px;
-  font-family: var(--font-mono), monospace;
-  font-size: 9px;
+/* Pill button — outline glass */
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--card-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: var(--text);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-full);
+  padding: 10px 24px;
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  box-shadow: var(--glass-highlight);
+  transition: border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+  cursor: pointer;
+}
+.btn-outline:hover {
+  border-color: var(--glass-border);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+
+/* Filter pill */
+.filter-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: rgba(26, 26, 26, 0.5);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+.filter-pill:hover {
+  border-color: var(--text-muted);
+}
+.filter-pill-active {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
 }
 
-/* Wire feed — live protocol activity log (anti-template: data IS the hero). */
-.wire-feed {
-  display: flex;
-  flex-direction: column;
-}
-
-.wire-event {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  padding: 7px 0;
-  border-bottom: 1px dotted rgba(26, 26, 26, 0.1);
+/* Trust badge */
+.trust-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
   font-family: var(--font-mono), monospace;
   font-size: 11px;
-}
-.wire-event:last-child {
-  border-bottom: none;
-}
-
-.wire-event-type {
-  flex-shrink: 0;
-  width: 52px;
-  font-size: 9px;
-  font-weight: 700;
+  font-weight: 600;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: rgba(26, 26, 26, 0.4);
+}
+.trust-badge-verified {
+  background: var(--bg-secondary);
+  color: var(--text);
+}
+.trust-badge-score {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
 }
 
-.wire-event-type-accent {
-  color: rgba(176, 141, 87, 0.6);
+/* ═══════════════════════════════════════════════════════════════════
+   Typography
+═══════════════════════════════════════════════════════════════════ */
+
+.heading-xl {
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: clamp(48px, 8vw, 80px);
+  font-weight: 900;
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+  color: var(--text);
 }
 
-.wire-event-desc {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: rgba(26, 26, 26, 0.7);
+.heading-xl-muted {
+  color: var(--text-muted);
 }
 
-.wire-event-time {
-  flex-shrink: 0;
-  font-size: 9px;
-  color: rgba(26, 26, 26, 0.25);
+.heading-lg {
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
 }
 
-/* Live dot — pulsing red indicator. */
-.live-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #b08d57;
+.label-sm {
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Animations
+═══════════════════════════════════════════════════════════════════ */
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.3; }
+}
+
+@keyframes glass-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Glass shimmer highlight */
+.glass-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.glass-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    120deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.08) 50%,
+    transparent 70%
+  );
+  background-size: 200% 100%;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .glass-shimmer::after {
+    animation: glass-shimmer 6s ease-in-out infinite;
+  }
+}
+.dark .glass-shimmer::after {
+  background: linear-gradient(
+    120deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.03) 50%,
+    transparent 70%
+  );
+  background-size: 200% 100%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .animate-fade-in-up {
+    animation: fade-in-up 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .animate-fade-in {
+    animation: fade-in 400ms ease both;
+  }
+  .animate-slide-in {
+    animation: slide-in-right 500ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+}
+
+.live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text);
+}
+.live-dot-inverted {
+  background: var(--bg);
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -380,86 +542,211 @@ body::before {
   }
 }
 
-/* Protocol stat — big serif number + mono label. */
+/* ═══════════════════════════════════════════════════════════════════
+   Horizontal scroll ticker (Dojo implementation)
+═══════════════════════════════════════════════════════════════════ */
+
+.ticker-scroll {
+  display: flex;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+  mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+}
+
+.ticker-track {
+  display: flex;
+  gap: 0;
+  animation: marquee-scroll 40s linear infinite;
+  will-change: transform;
+}
+
+@keyframes marquee-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticker-track {
+    animation: none;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+}
+
+.ticker-card {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+.ticker-card:hover {
+  background: var(--card-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-color: var(--border);
+}
+.ticker-card::after {
+  content: "·";
+  color: var(--border);
+  font-size: 16px;
+  margin-left: 8px;
+  flex-shrink: 0;
+}
+
+.ticker-scroll:hover .ticker-track {
+  animation-play-state: paused;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Code block
+═══════════════════════════════════════════════════════════════════ */
+
+.code-block {
+  background: rgba(0, 0, 0, 0.03);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  font-family: var(--font-mono), monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  overflow-x: auto;
+}
+.dark .code-block {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Legacy compat — keep so existing pages don't break
+═══════════════════════════════════════════════════════════════════ */
+
+.masthead-rule {
+  height: 1px;
+  background-color: var(--border);
+}
+
+.newspaper-fold {
+  height: 1px;
+  background: var(--border);
+}
+
+.section-bracket {
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.price-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: var(--radius-full);
+  background: var(--bg-secondary);
+  font-family: var(--font-mono), monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
 .protocol-stat {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: 20px 8px;
-  border: 1px solid rgba(26, 26, 26, 0.1);
-  transition: border-color 200ms ease;
+  padding: 20px 24px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-lg);
 }
-.protocol-stat:hover {
-  border-color: rgba(26, 26, 26, 0.25);
-}
-
 .protocol-stat-value {
-  font-family: var(--font-serif), serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
   font-size: 36px;
   font-weight: 900;
   line-height: 1;
-  color: #1a1a1a;
+  color: var(--text);
 }
-
 .protocol-stat-label {
   margin-top: 8px;
-  font-family: var(--font-mono), monospace;
-  font-size: 9px;
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.15em;
-  color: rgba(26, 26, 26, 0.35);
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
 }
 
-/* Wire sidebar — single-line stock ticker rows. */
+.skill-card {
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-lg);
+  transition: border-color 200ms ease, box-shadow 200ms ease, transform 200ms ease;
+}
+.skill-card:hover {
+  border-color: var(--text-muted);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  transform: translateY(-2px);
+}
+
+.trust-bar {
+  height: 4px;
+  background: var(--border-light);
+  border-radius: var(--radius-full);
+}
+.trust-bar-fill,
+.trust-bar-fill-accent {
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: var(--text);
+  transition: width 800ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 .wire-ticker-row {
   display: flex;
   align-items: baseline;
-  gap: 6px;
-  padding: 5px 0;
-  border-bottom: 1px dotted rgba(26, 26, 26, 0.08);
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border-light);
 }
-.wire-ticker-row:last-child {
-  border-bottom: none;
-}
+.wire-ticker-row:last-child { border-bottom: none; }
 .wire-ticker-desc {
   flex: 1;
   min-width: 0;
   font-family: var(--font-mono), monospace;
-  font-size: 9px;
-  line-height: 1.2;
-  color: rgba(26, 26, 26, 0.4);
+  font-size: 11px;
+  color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
 .wire-sidebar-type {
   font-family: var(--font-mono), monospace;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: rgba(26, 26, 26, 0.35);
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
 }
-.wire-sidebar-type-accent {
-  color: rgba(176, 141, 87, 0.55);
-}
-
+.wire-sidebar-type-accent { color: var(--text); }
 .wire-sidebar-time {
   font-family: var(--font-mono), monospace;
-  font-size: 8px;
-  color: rgba(26, 26, 26, 0.2);
-  margin-top: 2px;
+  font-size: 10px;
+  color: var(--text-muted);
 }
 
-/* Column rule — vertical dashed line between newspaper columns (desktop only). */
 .col-rule-right {
-  border-right: 1px dashed rgba(26, 26, 26, 0.15);
-  padding-right: 0.75rem;
+  border-right: 1px solid var(--border-light);
+  padding-right: 1rem;
 }
 .col-rule-left {
-  border-left: 1px dashed rgba(26, 26, 26, 0.15);
-  padding-left: 0.75rem;
+  border-left: 1px solid var(--border-light);
+  padding-left: 1rem;
 }
 @media (max-width: 767px) {
   .col-rule-right,
@@ -470,15 +757,10 @@ body::before {
   }
 }
 
-/* Respect prefers-reduced-motion for all landing animations. */
-@media (prefers-reduced-motion: no-preference) {
-  .headline-reveal {
-    animation: headline-reveal 1000ms cubic-bezier(0.16, 1, 0.3, 1) both;
-  }
-  .unfold-down {
-    animation: unfold-down 800ms cubic-bezier(0.16, 1, 0.3, 1) both;
-  }
-  .fade-up-scatter {
-    animation: fade-up-scatter 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
-  }
-}
+.ink-underline { text-decoration: none; }
+.ink-underline:hover { text-decoration: underline; }
+.letterpress { transition: opacity 150ms ease; }
+.letterpress:hover { opacity: 0.7; }
+.ink-wash { animation: fade-in-up 400ms ease both; }
+.unfold-down { animation: fade-in-up 500ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+.headline-reveal { animation: fade-in 800ms ease both; }

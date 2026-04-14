@@ -1,22 +1,20 @@
 "use client";
 
 /**
- * LandingHero — anti-template broadsheet layout.
+ * LandingHero — marketplace skills grid.
  *
- * Three-column newspaper:
- *   Left sidebar:  Market Wire (calls + settlements) + Trending
- *   Center:        Headline skill (lead story) + Skills directory grid + CTA
- *   Right sidebar: Trust Ledger (attestations + new listings)
+ * Layout (matching app.maiat.io):
+ *   - Protocol stats row (3 stat-cards)
+ *   - Horizontal activity ticker (scrolling event cards)
+ *   - Category filter pills
+ *   - Full-width skills grid (3-col desktop, 2-col tablet, 1-col mobile)
  *
- * Protocol stats span full width above the columns like a masthead ticker.
- * Mock events drip in every ~12s. Replace with `/api/activity` in production.
- *
+ * No sidebars. No editorial hierarchy. Just a marketplace grid.
  */
 
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { type SkillRankItem } from "./SkillRankList";
-import { Trending } from "./Trending";
 
 export interface LandingHeroProps {
   pending?: boolean;
@@ -45,8 +43,6 @@ const SEED_EVENTS: ActivityEvent[] = [
   { id: "e06", type: "attest", agent: "0xb91...2d7", trust: 92, verdict: "PASS", ts: Date.now() - 48000 },
   { id: "e07", type: "list", skill: "Code Review Agent", ts: Date.now() - 65000 },
   { id: "e08", type: "call", agent: "0x1a8...f90", skill: "Echo Test", ts: Date.now() - 80000 },
-  { id: "e09", type: "settle", agent: "0xe33...a01", skill: "Sentiment Analyzer", amount: "0.022", ts: Date.now() - 95000 },
-  { id: "e10", type: "attest", agent: "0x1a8...f90", trust: 64, verdict: "PASS", ts: Date.now() - 130000 },
 ];
 
 const DRIP_POOL: Omit<ActivityEvent, "id" | "ts">[] = [
@@ -62,6 +58,7 @@ const DRIP_POOL: Omit<ActivityEvent, "id" | "ts">[] = [
 
 /* ── Helpers ── */
 function formatAge(ts: number, now: number) {
+  if (now === 0) return "";
   const sec = Math.floor((now - ts) / 1000);
   if (sec < 5) return "now";
   if (sec < 60) return `${sec}s`;
@@ -69,124 +66,49 @@ function formatAge(ts: number, now: number) {
   return `${Math.floor(sec / 3600)}h`;
 }
 
-function sidebarDesc(event: ActivityEvent): string {
-  switch (event.type) {
-    case "call":
-      return `${event.agent} \u2192 ${event.skill}`;
-    case "settle":
-      return `${event.agent} \u00b7 ${event.amount} USDC`;
-    case "attest":
-      return `${event.agent} \u00b7 ${event.verdict} \u00b7 trust ${event.trust}`;
-    case "list":
-      return `${event.skill}`;
-  }
-}
-
-function sidebarLabel(type: ActivityEvent["type"]): { label: string; accent: boolean } {
+function tickerLabel(type: ActivityEvent["type"]): string {
   switch (type) {
-    case "call":
-      return { label: "CALL", accent: false };
-    case "settle":
-      return { label: "SETTLE", accent: true };
-    case "attest":
-      return { label: "ATTEST", accent: false };
-    case "list":
-      return { label: "NEW", accent: true };
+    case "call": return "CALL";
+    case "settle": return "SETTLE";
+    case "attest": return "ATTEST";
+    case "list": return "NEW";
   }
 }
 
-/* ── Sidebar wire event (single-line stock ticker) ── */
-function SidebarEvent({ event, now }: { event: ActivityEvent; now: number }) {
-  const { label, accent } = sidebarLabel(event.type);
+function tickerDetail(event: ActivityEvent): string {
+  switch (event.type) {
+    case "call": return event.skill ?? "";
+    case "settle": return `${event.amount} USDC`;
+    case "attest": return `${event.verdict} \u00b7 ${event.trust}`;
+    case "list": return event.skill ?? "";
+  }
+}
+
+/* ── Ticker card — compact horizontal strip ── */
+function TickerCard({ event, now }: { event: ActivityEvent; now: number }) {
+  const isAccent = event.type === "settle" || event.type === "list";
   return (
-    <div className="wire-ticker-row unfold-down">
-      <span className={`wire-sidebar-type ${accent ? "wire-sidebar-type-accent" : ""}`}>
-        {label}
+    <div className="ticker-card">
+      <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
+        {tickerLabel(event.type)}
       </span>
-      <span className="wire-ticker-desc">{sidebarDesc(event)}</span>
-      <span className="wire-sidebar-time">{formatAge(event.ts, now)}</span>
+      <span
+        className={`font-mono text-[11px] ${
+          isAccent ? "font-semibold text-[var(--text)]" : "text-[var(--text-secondary)]"
+        }`}
+      >
+        {event.agent ?? event.skill ?? ""}
+      </span>
+      {event.amount && (
+        <span className="font-mono text-[11px] text-[var(--text)]">{event.amount} USDC</span>
+      )}
+      {event.verdict && (
+        <span className="font-mono text-[10px] text-[var(--text-secondary)]">{event.verdict} · {event.trust}</span>
+      )}
+      <span className="font-mono text-[10px] text-[var(--text-muted)]">
+        {formatAge(event.ts, now)}
+      </span>
     </div>
-  );
-}
-
-/* ── Sidebar section ── */
-function WireSidebar({
-  title,
-  meta,
-  events,
-  now,
-}: {
-  title: string;
-  meta?: string;
-  events: ActivityEvent[];
-  now: number;
-}) {
-  return (
-    <div>
-      <div className="mb-2 border-b-[2px] border-double border-[#1a1a1a]/50 pb-1">
-        <span className="font-mono text-[8px] font-bold uppercase tracking-[0.2em] text-[#1a1a1a]/60">
-          {title}
-        </span>
-        {meta && (
-          <span className="ml-2 font-mono text-[8px] text-[#1a1a1a]/25">{meta}</span>
-        )}
-      </div>
-      {events.map((e) => (
-        <SidebarEvent key={e.id} event={e} now={now} />
-      ))}
-    </div>
-  );
-}
-
-/* ── Protocol stats bar ── */
-function ProtocolStats({ skillCount }: { skillCount: number }) {
-  return (
-    <div className="grid grid-cols-3 gap-4">
-      <div className="protocol-stat">
-        <span className="protocol-stat-value">{skillCount || "\u2014"}</span>
-        <span className="protocol-stat-label">Skills Listed</span>
-      </div>
-      <div className="protocol-stat">
-        <span className="protocol-stat-value">0.142</span>
-        <span className="protocol-stat-label">USDC Settled</span>
-      </div>
-      <div className="protocol-stat">
-        <span className="protocol-stat-value">139</span>
-        <span className="protocol-stat-label">BAS Attestations</span>
-      </div>
-    </div>
-  );
-}
-
-/* ── Trust bar ── */
-function TrustBar({ score, accent }: { score: number; accent?: boolean }) {
-  const pct = Math.min(100, Math.max(0, score));
-  return (
-    <div>
-      <div className="trust-bar">
-        <div
-          className={accent ? "trust-bar-fill-accent" : "trust-bar-fill"}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-      <div className="mt-1 flex items-baseline justify-between">
-        <span className="font-mono text-[8px] uppercase tracking-wider text-[#1a1a1a]/25">
-          Trust
-        </span>
-        <span className="font-mono text-[9px] font-bold text-[#1a1a1a]/45">
-          {score > 0 ? `${Math.round(score)}\u2605` : "\u2014"}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-/* ── Price pill ── */
-function PricePill({ price }: { price?: number | null }) {
-  return (
-    <span className="price-pill">
-      {price != null && price > 0 ? `$${price.toFixed(3)}` : "Free"}
-    </span>
   );
 }
 
@@ -195,8 +117,9 @@ function PricePill({ price }: { price?: number | null }) {
 ══════════════════════════════════════════════════════════════════ */
 export function LandingHero(_props: LandingHeroProps) {
   const [skills, setSkills] = useState<SkillRankItem[] | null>(null);
-  const [events, setEvents] = useState<ActivityEvent[]>(SEED_EVENTS);
-  const [now, setNow] = useState(Date.now());
+  const [events, setEvents] = useState<ActivityEvent[]>([]);
+  const [now, setNow] = useState(0);
+  const [filter, setFilter] = useState("all");
   const dripIndex = useRef(0);
 
   useEffect(() => {
@@ -215,6 +138,9 @@ export function LandingHero(_props: LandingHeroProps) {
   }, []);
 
   useEffect(() => {
+    // Seed events client-side only to avoid SSR/hydration timestamp mismatch
+    setEvents(SEED_EVENTS);
+    setNow(Date.now());
     const tick = setInterval(() => setNow(Date.now()), 5000);
     return () => clearInterval(tick);
   }, []);
@@ -229,169 +155,127 @@ export function LandingHero(_props: LandingHeroProps) {
         ts: Date.now(),
       };
       dripIndex.current++;
-      setEvents((prev) => [evt, ...prev].slice(0, 15));
+      setEvents((prev) => [evt, ...prev].slice(0, 12));
       timeout = setTimeout(drip, 10000 + Math.random() * 5000);
     };
     timeout = setTimeout(drip, 12000);
     return () => clearTimeout(timeout);
   }, []);
 
-  const featured = skills && skills.length > 0 ? skills[0] : null;
-  const rest = skills ? skills.slice(1) : [];
   const skillCount = skills?.length ?? 0;
 
-  /* Split events by column */
-  const marketEvents = events.filter((e) => e.type === "call" || e.type === "settle");
-  const trustEvents = events.filter((e) => e.type === "attest" || e.type === "list");
+  /* Derive categories from loaded skills */
+  const categories = skills
+    ? ["all", ...Array.from(new Set(skills.map((s) => s.category ?? "misc")))]
+    : ["all"];
+
+  const filtered =
+    skills === null
+      ? null
+      : filter === "all"
+        ? skills
+        : skills.filter((s) => (s.category ?? "misc") === filter);
 
   return (
-    <div className="flex w-full flex-col py-6">
-      {/* ═══ LIVE INDICATOR ═══ */}
-      <div
-        className="unfold-down mb-5 flex items-center gap-2 border-b border-[#1a1a1a]/10 pb-3"
-        style={{ animationDelay: "100ms" }}
-      >
-        <span className="live-dot" />
-        <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-[#1a1a1a]/40">
-          Protocol Activity
-        </span>
-        <span className="ml-auto font-mono text-[9px] tracking-wider text-[#1a1a1a]/20">
-          BSC Testnet &middot; ERC-8183 &middot; BAS
-        </span>
-      </div>
-
-      {/* ═══ PROTOCOL STATS (full width) ═══ */}
-      <div
-        className="unfold-down mb-8"
-        style={{ animationDelay: "200ms" }}
-      >
-        <ProtocolStats skillCount={skillCount} />
-      </div>
-
-      {/* ═══ LEAD STORY (full-width, above the fold) ═══ */}
-      {featured && (
-        <Link
-          href={`/skill/${featured.id}`}
-          className="skill-card unfold-down group mb-8 block border-l-[4px] border-l-[#b08d57] p-5 md:p-6"
-          style={{ animationDelay: "300ms" }}
-        >
-          <div className="flex items-baseline justify-between gap-4">
-            <span className="section-bracket">Lead Story</span>
-            <PricePill price={featured.pricePerCall} />
-          </div>
-          <h2 className="mt-3 font-serif text-[32px] font-black leading-[0.92] text-[#1a1a1a] transition-colors group-hover:text-[#b08d57] md:text-[42px]">
-            {featured.name}
-          </h2>
-          {featured.description && (
-            <p className="mt-3 max-w-2xl font-serif text-[15px] italic leading-relaxed text-[#1a1a1a]/45">
-              {featured.description}
-            </p>
-          )}
-          <div className="mt-5 flex flex-wrap items-end gap-x-8 gap-y-2">
-            <div className="w-full max-w-[220px]">
-              <TrustBar score={featured.trustScore ?? 0} accent />
-            </div>
-            <span className="font-mono text-[9px] uppercase tracking-wider text-[#1a1a1a]/30">
-              {featured.category ?? "misc"}
-            </span>
-            <span className="ml-auto font-mono text-[10px] font-bold uppercase tracking-wider text-[#b08d57]/50 transition-colors group-hover:text-[#b08d57]">
-              View Skill &rarr;
-            </span>
-          </div>
-        </Link>
-      )}
-
-      <div className="newspaper-fold mb-6" />
-
-      {/* ═══ THREE-COLUMN BROADSHEET ═══ */}
-      <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-[240px_1fr_240px]">
-
-        {/* ── LEFT SIDEBAR: Market Wire + Trending ── */}
-        <div className="col-rule-right order-2 md:order-1">
-          <WireSidebar
-            title="Market Wire"
-            meta="calls & settlements"
-            events={marketEvents}
-            now={now}
-          />
-
-          {/* Trending below the wire */}
-          <div className="mt-6">
-            <div className="newspaper-fold mb-4" />
-            <Trending limit={5} />
-          </div>
+    <div className="flex w-full flex-col gap-12">
+      {/* ═══ PROTOCOL STATS ═══ */}
+      <div className="animate-fade-in-up grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="stat-card glass-shimmer">
+          <span className="text-[32px] font-bold leading-none text-[var(--text)]">
+            {skillCount || "\u2014"}
+          </span>
+          <span className="label-sm mt-2">Skills Listed</span>
         </div>
+        <div className="stat-card glass-shimmer">
+          <span className="text-[32px] font-bold leading-none text-[var(--text)]">
+            0.142
+          </span>
+          <span className="label-sm mt-2">USDC Settled</span>
+        </div>
+        <div className="stat-card glass-shimmer">
+          <span className="text-[32px] font-bold leading-none text-[var(--text)]">
+            139
+          </span>
+          <span className="label-sm mt-2">BAS Attestations</span>
+        </div>
+      </div>
 
-        {/* ── CENTER: Skills Grid + CTA ── */}
-        <div className="order-1 md:order-2">
-          {/* Skills directory header */}
-          <div className="mb-4 flex items-baseline justify-between border-b-[3px] border-double border-[#1a1a1a]/60 pb-1">
-            <span className="border-l-[3px] border-[#1a1a1a] pl-3 font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-[#1a1a1a]/70">
-              All Skills
-            </span>
-            <span className="font-mono text-[9px] text-[#1a1a1a]/30">
-              by trust
-            </span>
-          </div>
-
-          {/* Skills classified listing */}
-          {skills === null ? (
-            <p className="font-serif text-[13px] italic text-[#1a1a1a]/30">
-              Loading&hellip;
-            </p>
-          ) : rest.length === 0 ? (
-            <p className="font-serif text-[13px] italic text-[#1a1a1a]/30">
-              No other skills listed yet.
-            </p>
-          ) : (
-            <div className="columns-1 gap-x-8 sm:columns-2">
-              {rest.map((s, i) => (
-                <Link
-                  key={s.id}
-                  href={`/skill/${s.id}`}
-                  className="unfold-down group block break-inside-avoid border-b border-dotted border-[#1a1a1a]/15 py-3 last:border-b-0"
-                  style={{ animationDelay: `${450 + i * 60}ms` }}
-                >
-                  <div className="flex items-baseline gap-2">
-                    <span className="w-4 shrink-0 text-right font-serif text-[16px] font-black leading-none text-[#1a1a1a]/12">
-                      {String(i + 2).padStart(2, "0")}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-baseline justify-between gap-2">
-                        <h3 className="ink-underline truncate font-serif text-[14px] font-bold leading-tight text-[#1a1a1a]">
-                          {s.name}
-                        </h3>
-                        <PricePill price={s.pricePerCall} />
-                      </div>
-                      <div className="mt-1 flex items-baseline justify-between gap-2">
-                        <span className="font-mono text-[9px] uppercase tracking-wider text-[#1a1a1a]/30">
-                          {s.category ?? "misc"}
-                        </span>
-                        <span className="font-mono text-[9px] font-bold text-[#1a1a1a]/40">
-                          {s.trustScore != null && s.trustScore > 0
-                            ? `${Math.round(s.trustScore)}\u2605`
-                            : "\u2014"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
+      {/* ═══ MARQUEE ACTIVITY TICKER ═══ */}
+      {events.length > 0 && (
+        <div className="animate-fade-in -mx-6 border-y border-[var(--border)]">
+          <div className="ticker-scroll py-1">
+            {/* Duplicate for seamless loop */}
+            <div className="ticker-track" aria-hidden="false">
+              {[...events, ...events].map((e, i) => (
+                <TickerCard key={`${e.id}-${i}`} event={e} now={now} />
               ))}
             </div>
-          )}
-
+          </div>
         </div>
+      )}
 
-        {/* ── RIGHT SIDEBAR: Trust Ledger ── */}
-        <div className="col-rule-left order-3">
-          <WireSidebar
-            title="Trust Ledger"
-            meta="attestations"
-            events={trustEvents}
-            now={now}
-          />
-        </div>
+      {/* ═══ CATEGORY FILTER PILLS ═══ */}
+      <div className="flex flex-wrap items-center gap-2">
+        {categories.map((cat) => (
+          <button
+            key={cat}
+            onClick={() => setFilter(cat)}
+            className={`filter-pill ${filter === cat ? "filter-pill-active" : ""}`}
+          >
+            {cat}
+          </button>
+        ))}
       </div>
+
+      {/* ═══ SKILLS GRID — full width, no sidebar ═══ */}
+      {filtered === null ? (
+        <p className="text-center text-[14px] text-[var(--text-muted)]">
+          Loading&hellip;
+        </p>
+      ) : filtered.length === 0 ? (
+        <p className="text-center text-[14px] text-[var(--text-muted)]">
+          No skills found.
+        </p>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {filtered.map((s) => (
+            <Link
+              key={s.id}
+              href={`/skill/${s.id}`}
+              className="glass-card group block p-5"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <h3 className="text-[15px] font-semibold leading-snug text-[var(--text)]">
+                  {s.name}
+                </h3>
+                <span className="shrink-0 rounded-full border border-[var(--card-border)] bg-[var(--card-bg)] px-2.5 py-0.5 font-mono text-[11px] font-semibold text-[var(--text-secondary)] backdrop-blur-sm">
+                  {s.pricePerCall != null && s.pricePerCall > 0
+                    ? `$${s.pricePerCall.toFixed(3)}`
+                    : "Free"}
+                </span>
+              </div>
+              {s.description && (
+                <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-[var(--text-muted)]">
+                  {s.description}
+                </p>
+              )}
+              <div className="mt-3 flex items-center gap-2">
+                <span className="rounded-full border border-[var(--card-border)] bg-[var(--card-bg)] px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-[var(--text-muted)] backdrop-blur-sm">
+                  {s.category ?? "misc"}
+                </span>
+                {s.trustScore != null && s.trustScore > 0 && (
+                  <span className="trust-badge trust-badge-verified">
+                    {Math.round(s.trustScore)}\u2605
+                  </span>
+                )}
+                <span className="ml-auto text-[12px] text-[var(--text-muted)] opacity-0 transition-opacity group-hover:opacity-100">
+                  View &rarr;
+                </span>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

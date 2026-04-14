@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { ArrowLeft, Calendar, Network, ShieldCheck, Tag, Wallet, Zap } from 'lucide-react';
-import { useDarkMode } from '@/app/DarkModeContext';
 import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
 import { BackgroundEffect } from '@/components/landing/BackgroundEffect';
@@ -81,23 +80,10 @@ export default function SkillPageClient({
   heatmap,
   attestations,
 }: Props) {
-  const { isDark } = useDarkMode();
   const trustScore = skill.evaluationScore ?? 0;
 
-  const ink = isDark ? 'text-white' : 'text-[#1a1a1a]';
-  const muted = isDark ? 'text-gray-500' : 'text-[#1a1a1a]/60';
-  const faint = isDark ? 'text-gray-600' : 'text-[#1a1a1a]/40';
-  const panel = isDark ? 'border-white/10' : 'border-[#1a1a1a]/10';
-  const accent = 'text-[#b08d57]';
-
   return (
-    <div
-      className="min-h-screen atmosphere transition-colors duration-700"
-      style={{
-        background: isDark ? '#0A0A0A' : '#f0ece2',
-        color: isDark ? '#ededed' : '#0a0a0a',
-      }}
-    >
+    <div className="min-h-screen bg-[var(--bg)]">
       <BackgroundEffect />
       <Navbar />
 
@@ -105,7 +91,7 @@ export default function SkillPageClient({
         <div className="max-w-6xl mx-auto">
           <Link
             href="/"
-            className={`inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] mb-10 transition-opacity hover:opacity-70 ${muted}`}
+            className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] mb-10 transition-opacity hover:opacity-70 text-[var(--text-muted)]"
           >
             <ArrowLeft className="w-3 h-3" />
             Back to marketplace
@@ -114,22 +100,16 @@ export default function SkillPageClient({
           {/* Header */}
           <header className="mb-12">
             {skill.category && (
-              <span
-                className={`inline-block font-mono text-[9px] uppercase tracking-[0.15em] px-3 py-1.5 border mb-5 ${panel} ${muted}`}
-              >
+              <span className="inline-block font-mono text-[10px] uppercase tracking-widest px-3 py-0.5 rounded-full border border-[var(--card-border)] bg-[var(--card-bg)] backdrop-blur-sm text-[var(--text-muted)] mb-5">
                 {skill.category}
               </span>
             )}
-            <h1
-              className={`font-serif text-4xl md:text-6xl tracking-[-0.03em] leading-[0.95] mb-5 ${ink}`}
-            >
+            <h1 className="text-[40px] md:text-[56px] font-bold tracking-tight leading-tight mb-5 text-[var(--text)]">
               {skill.name}
             </h1>
-            <div
-              className={`flex items-center gap-2 text-sm ${muted}`}
-            >
+            <div className="flex items-center gap-2 text-[14px] text-[var(--text-muted)]">
               <span>by</span>
-              <span className={ink}>
+              <span className="text-[var(--text)]">
                 {skill.creator.displayName || truncateAddress(skill.creator.walletAddress)}
               </span>
               <span>·</span>
@@ -148,18 +128,11 @@ export default function SkillPageClient({
               { label: 'Sessions', value: totalSessions.toLocaleString() },
               { label: 'Trust score', value: trustScore.toString() },
             ].map((stat) => (
-              <div
-                key={stat.label}
-                className={`p-5 border transition-colors duration-700 ${panel}`}
-              >
-                <div
-                  className={`font-mono text-2xl font-bold tabular-nums ${ink}`}
-                >
+              <div key={stat.label} className="glass-card p-5">
+                <div className="font-mono text-2xl font-bold tabular-nums text-[var(--text)]">
                   {stat.value}
                 </div>
-                <div
-                  className={`text-[9px] font-bold uppercase tracking-[0.2em] mt-1 ${muted}`}
-                >
+                <div className="text-[9px] font-bold uppercase tracking-[0.2em] mt-1 text-[var(--text-muted)]">
                   {stat.label}
                 </div>
               </div>
@@ -170,19 +143,11 @@ export default function SkillPageClient({
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6">
             {/* Left column */}
             <div className="space-y-6">
-              <section
-                className={`p-8 border transition-colors duration-700 ${panel}`}
-              >
-                <div
-                  className={`font-mono text-[9px] uppercase tracking-[0.15em] mb-5 ${muted}`}
-                >
+              <section className="glass-card p-8">
+                <div className="font-mono text-[9px] uppercase tracking-[0.15em] mb-5 text-[var(--text-muted)]">
                   About this skill
                 </div>
-                <div
-                  className={`text-base leading-relaxed space-y-4 ${
-                    isDark ? 'text-gray-300' : 'text-[#1a1a1a]/70'
-                  }`}
-                >
+                <div className="text-base leading-relaxed space-y-4 text-[var(--text-secondary)]">
                   {(skill.longDescription || skill.description || 'No description provided.')
                     .split('\n\n')
                     .map((p, i) => (
@@ -228,12 +193,8 @@ export default function SkillPageClient({
                 }}
               />
 
-              <div
-                className={`p-7 border transition-colors duration-700 ${panel}`}
-              >
-                <div
-                  className={`font-mono text-[9px] uppercase tracking-[0.15em] mb-5 ${muted}`}
-                >
+              <div className="glass-card p-7">
+                <div className="font-mono text-[9px] uppercase tracking-[0.15em] mb-5 text-[var(--text-muted)]">
                   Specification
                 </div>
                 <div className="space-y-3">
@@ -245,19 +206,12 @@ export default function SkillPageClient({
                     { icon: Calendar, label: 'Listed', value: formatDate(skill.createdAt) },
                     { icon: Zap, label: 'Updated', value: formatDate(skill.updatedAt) },
                   ].map(({ icon: Icon, label, value }) => (
-                    <div
-                      key={label}
-                      className="flex items-center justify-between"
-                    >
-                      <div
-                        className={`flex items-center gap-2 text-[11px] font-medium uppercase tracking-wider ${muted}`}
-                      >
+                    <div key={label} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
                         <Icon className="w-3 h-3" />
                         {label}
                       </div>
-                      <span
-                        className={`font-mono text-xs font-semibold tabular-nums ${ink}`}
-                      >
+                      <span className="font-mono text-xs font-semibold tabular-nums text-[var(--text)]">
                         {value}
                       </span>
                     </div>
@@ -265,12 +219,8 @@ export default function SkillPageClient({
                 </div>
               </div>
 
-              <div
-                className={`p-7 border transition-colors duration-700 ${panel}`}
-              >
-                <div
-                  className={`font-mono text-[9px] uppercase tracking-[0.15em] mb-5 ${muted}`}
-                >
+              <div className="glass-card p-7">
+                <div className="font-mono text-[9px] uppercase tracking-[0.15em] mb-5 text-[var(--text-muted)]">
                   Creator
                 </div>
                 <div className="flex items-center gap-3">
@@ -285,14 +235,10 @@ export default function SkillPageClient({
                     {(skill.creator.displayName || '?')[0].toUpperCase()}
                   </div>
                   <div className="min-w-0">
-                    <div
-                      className={`font-serif text-sm truncate ${ink}`}
-                    >
+                    <div className="text-[14px] font-semibold truncate text-[var(--text)]">
                       {skill.creator.displayName || 'Anonymous'}
                     </div>
-                    <div
-                      className={`font-mono text-[10px] tabular-nums ${muted}`}
-                    >
+                    <div className="font-mono text-[10px] tabular-nums text-[var(--text-muted)]">
                       {truncateAddress(skill.creator.walletAddress)}
                     </div>
                   </div>
