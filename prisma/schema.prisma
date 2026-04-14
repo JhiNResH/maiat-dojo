@@ -28,6 +28,10 @@ model User {
   veteranVerifiedAt   DateTime?
   pendingMint         Boolean   @default(false)
 
+  // --- API access (Phase 1 REST API) ---
+  apiKey        String?   @unique   // dojo_sk_xxx — used for /api/v1/* endpoints
+  creditBalance Float     @default(0) // USDC credits for pay-per-call
+
   // Relations
   reviews       Review[]
   purchases     Purchase[]
