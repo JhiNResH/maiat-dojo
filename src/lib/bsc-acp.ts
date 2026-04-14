@@ -67,6 +67,18 @@ const ACP_ABI = [
     stateMutability: 'nonpayable',
   },
   {
+    type: 'function', name: 'closeAndSettle',
+    inputs: [
+      { name: 'jobId',            type: 'uint256' },
+      { name: 'finalScore',       type: 'uint8' },
+      { name: 'callCount',        type: 'uint16' },
+      { name: 'passRate',         type: 'uint8' },
+      { name: 'gatewaySignature', type: 'bytes' },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
     type: 'event', name: 'JobCreated',
     inputs: [
       { name: 'jobId',     type: 'uint256', indexed: true },
@@ -143,6 +155,7 @@ export interface CreateJobParams {
   description: string;
   expiredAt: bigint;       // unix timestamp
   budgetUsdc: bigint;      // USDC amount (18 dec on BSC)
+  provider?: `0x${string}`;  // real creator wallet. Falls back to relayer if omitted.
 }
 
 /**
@@ -170,15 +183,17 @@ export async function createSessionOnChain(params: CreateJobParams): Promise<Acp
       const client = createBscPublicClient();
       const relayer = wallet.account.address;
 
-      // 1. createJob (relayer = client = provider)
+      // 1. createJob — provider = real creator wallet (or relayer fallback)
+      // msg.sender (relayer) becomes the on-chain client.
       // Phase 1: hook = address(0) — relayer has no trust score, TrustGateACPHook
       // would revert if wired. Phase 2: switch to config.hookAddress when agents
       // have registered trust scores.
+      const providerAddr = params.provider || relayer;
       const createHash = await wallet.writeContract({
         address: config.acpAddress,
         abi: ACP_ABI,
         functionName: 'createJob',
-        args: [relayer, config.evaluatorAddress, params.expiredAt, params.description, ZERO],
+        args: [providerAddr, config.evaluatorAddress, params.expiredAt, params.description, ZERO],
       });
       const createReceipt = await client.waitForTransactionReceipt({ hash: createHash, confirmations: 1, timeout: 15_000 });
       if (createReceipt.status !== 'success') return { success: false, txHash: createHash, error: 'createJob reverted' };
@@ -278,6 +293,57 @@ export async function settleSessionOnChain(params: SettleJobParams): Promise<Acp
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
       console.error('[acp] settleSessionOnChain failed:', message);
+      return { success: false, error: message };
+    }
+  });
+}
+
+// ─── closeAndSettleOnChain ─────────────────────────────────────────────────────
+
+export interface CloseAndSettleParams {
+  jobId: bigint;
+  finalScore: number;    // 0-100
+  callCount: number;
+  passRate: number;      // 0-100
+  gatewaySignature: `0x${string}`;
+}
+
+/**
+ * Call closeAndSettle() — atomic settlement with gateway-signed evaluation proof.
+ * Handles PASS (pay provider 95%, treasury 5%) and FAIL (refund client 100%).
+ * AfterAction hooks fire attestation + trust update in the same tx.
+ *
+ * Anyone can call — relayer submits tx, gateway signature proves evaluation.
+ */
+export async function closeAndSettleOnChain(params: CloseAndSettleParams): Promise<AcpResult> {
+  const config = getAcpConfig();
+  const missingConfig = getMissingConfig(config);
+  if (missingConfig) return { success: false, error: missingConfig };
+
+  return withRelayerLock(async () => {
+    try {
+      const wallet = createBscWalletClient();
+      const client = createBscPublicClient();
+
+      const hash = await wallet.writeContract({
+        address: config.acpAddress,
+        abi: ACP_ABI,
+        functionName: 'closeAndSettle',
+        args: [params.jobId, params.finalScore, params.callCount, params.passRate, params.gatewaySignature],
+      });
+      const receipt = await client.waitForTransactionReceipt({ hash, confirmations: 1, timeout: 20_000 });
+      if (receipt.status !== 'success') return { success: false, txHash: hash, error: 'closeAndSettle reverted' };
+
+      console.log('[acp] closeAndSettle:', {
+        jobId: params.jobId.toString(),
+        finalScore: params.finalScore,
+        passRate: params.passRate,
+        txHash: hash,
+      });
+      return { success: true, jobId: params.jobId.toString(), txHash: hash };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      console.error('[acp] closeAndSettleOnChain failed:', message);
       return { success: false, error: message };
     }
   });

@@ -1,27 +1,25 @@
 /**
- * Settlement Pipeline — extracted from sessions/[id]/close/route.ts
+ * Settlement Pipeline — ERC-8183 closeAndSettle()
  *
  * Reusable module for settling sessions from any caller:
  *   - POST /api/sessions/[id]/close  (Privy JWT auth)
  *   - POST /api/v1/run               (auto-close on budget exhaustion)
  *   - POST /api/v1/close             (API key auth, manual close)
  *
- * Pipeline (sequential, fire-and-forget from caller):
+ * Pipeline:
  *   1. Load session + relations
  *   2. Aggregate SkillCall scores → passRate → PASS/FAIL
- *   3. On-chain bind (if onchainJobId null) → createSessionOnChain
- *   4. On-chain settle (if PASS + jobId) → settleSessionOnChain
+ *   3. On-chain bind (if onchainJobId null) → createSessionOnChain (with real provider)
+ *   4. Gateway-signed closeAndSettle → atomic settlement + attestation + trust
  *   5. DB close → settled | refunded
- *   6. BAS attestation → store uid
- *   7. Trust update → cumulative passRate → DojoTrustScore
  *
- * Phase 1: relayer = client = provider. USDC is circular.
+ * AfterAction hooks (AttestationHook + TrustUpdateHook) fire atomically
+ * in the closeAndSettle tx — no separate relayer calls needed.
  */
 
 import { prisma } from '@/lib/prisma';
-import { createSessionOnChain, settleSessionOnChain } from '@/lib/bsc-acp';
-import { attestSessionClose } from '@/lib/bas';
-import { updateCreatorTrustScore } from '@/lib/trust-oracle';
+import { createSessionOnChain, closeAndSettleOnChain, getAcpConfig } from '@/lib/bsc-acp';
+import { signEvaluationProof } from '@/lib/gateway-signer';
 
 const PASS_THRESHOLD = 80; // ≥80% of calls must pass
 
@@ -36,10 +34,10 @@ export interface SettleResult {
 }
 
 /**
- * Settle a session end-to-end: score → on-chain → DB close → BAS → trust.
+ * Settle a session end-to-end: score → on-chain bind → closeAndSettle → DB close.
  *
  * Idempotent: returns early if session is already in a terminal state.
- * Graceful degradation: on-chain/BAS/trust failures are logged, never thrown.
+ * Graceful degradation: on-chain failures are logged, never thrown.
  */
 export async function settleSession(sessionId: string): Promise<SettleResult> {
   // 1. Load session with agent (+ owner) + skill (+ creator)
@@ -108,6 +106,9 @@ export async function settleSession(sessionId: string): Promise<SettleResult> {
     isPASS,
   });
 
+  // Resolve real addresses for 3-party separation
+  const providerAddress = session.skill?.creator?.walletAddress as `0x${string}` | undefined;
+
   // 3. On-chain bind (if onchainJobId is null)
   // Budget = amount actually spent (not the pre-funded session budget)
   let onchainJobId = session.onchainJobId;
@@ -125,6 +126,7 @@ export async function settleSession(sessionId: string): Promise<SettleResult> {
           description: `dojo:${session.id}`,
           expiredAt,
           budgetUsdc,
+          provider: providerAddress,
         });
 
         if (bindResult.success && bindResult.jobId) {
@@ -148,23 +150,41 @@ export async function settleSession(sessionId: string): Promise<SettleResult> {
     console.warn('[settle] DOJO_RELAYER_PRIVATE_KEY not set — skipping on-chain bind');
   }
 
-  // 4. On-chain settle (PASS only + jobId exists)
-  if (isPASS && onchainJobId) {
+  // 4. closeAndSettle — gateway-signed atomic settlement
+  // Handles PASS (pay provider 95%, treasury 5%) and FAIL (refund client 100%).
+  // AfterAction hooks fire attestation + trust update in the same tx.
+  if (onchainJobId && process.env.DOJO_RELAYER_PRIVATE_KEY) {
     try {
-      const settleResult = await settleSessionOnChain({
-        jobId: onchainJobId,
-        sessionId: session.id,
-        callCount: session.callCount,
+      const config = getAcpConfig();
+      const jobId = BigInt(onchainJobId);
+
+      const gatewaySignature = await signEvaluationProof({
+        chainId: config.chain.id,
+        contractAddress: config.acpAddress,
+        jobId,
+        finalScore,
+        callCount: totalCalls,
+        passRate,
       });
-      console.log('[settle] on-chain settle:', {
+
+      const settleResult = await closeAndSettleOnChain({
+        jobId,
+        finalScore,
+        callCount: totalCalls,
+        passRate,
+        gatewaySignature,
+      });
+
+      console.log('[settle] closeAndSettle:', {
         sessionId: session.id,
         onchainJobId,
+        isPASS,
         success: settleResult.success,
         txHash: settleResult.txHash,
         error: settleResult.error,
       });
     } catch (err) {
-      console.error('[settle] on-chain settle exception (non-fatal):', err);
+      console.error('[settle] closeAndSettle exception (non-fatal):', err);
     }
   }
 
@@ -206,83 +226,12 @@ export async function settleSession(sessionId: string): Promise<SettleResult> {
     callCount: session.callCount,
   });
 
-  // 6. BAS attestation + 7. Trust update — sequential, fire-and-forget
-  let basAttestationUid: string | null = null;
-
-  try {
-    const agentAddress = session.agent.walletAddress as `0x${string}` | null;
-    const creatorAddress = session.skill.creator.walletAddress as `0x${string}` | null;
-
-    if (!agentAddress || !creatorAddress) {
-      console.warn('[settle] skipping attestation — missing wallet address:', {
-        sessionId: session.id,
-        agentHasWallet: !!agentAddress,
-        creatorHasWallet: !!creatorAddress,
-      });
-    } else {
-      const attestResult = await attestSessionClose({
-        sessionId: session.id,
-        finalScore,
-        callCount: session.callCount,
-        passRate,
-        creatorAddress,
-        agentAddress,
-      });
-
-      if (attestResult.success && attestResult.uid) {
-        basAttestationUid = attestResult.uid;
-        await prisma.session.update({
-          where: { id: session.id },
-          data: { basAttestationUid },
-        });
-        console.log('[settle] attestation stored:', { sessionId: session.id, uid: basAttestationUid });
-      }
-    }
-
-    // Trust oracle update — cumulative passRate across all terminal sessions
-    const creatorWallet = session.skill.creator.walletAddress;
-    if (creatorWallet) {
-      const [allCalls, sessionCount] = await Promise.all([
-        prisma.skillCall.findMany({
-          where: {
-            session: {
-              skillId: session.skillId,
-              status: { in: ['settled', 'refunded'] },
-            },
-          },
-          select: { score: true },
-        }),
-        prisma.session.count({
-          where: {
-            skillId: session.skillId,
-            status: { in: ['settled', 'refunded'] },
-          },
-        }),
-      ]);
-
-      const totalCumCalls = allCalls.length;
-      const passedCumCalls = allCalls.filter((c) => c.score > 0.5).length;
-      const cumulativePassRate =
-        totalCumCalls > 0 ? Math.round((passedCumCalls / totalCumCalls) * 100) : passRate;
-
-      await updateCreatorTrustScore({
-        creatorAddress: creatorWallet,
-        passRate: cumulativePassRate,
-        sessionCount,
-      });
-    } else {
-      console.warn('[settle] creator has no wallet — skipping trust update:', session.id);
-    }
-  } catch (err) {
-    console.error('[settle] BAS/trust fire-and-forget failed:', err);
-  }
-
   return {
     success: true,
     status: newStatus,
     passRate,
     totalCalls,
     onchainJobId,
-    basAttestationUid,
+    basAttestationUid: null, // Now handled by AttestationHook in closeAndSettle tx
   };
 }
