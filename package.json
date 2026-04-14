@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "seed": "tsx prisma/seed.ts"
+    "seed": "tsx prisma/seed.ts",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
@@ -18,6 +21,7 @@
     "@x402/evm": "^2.9.0",
     "clsx": "^2.1.1",
     "framer-motion": "^12.0.0",
+    "gray-matter": "^4.0.3",
     "lucide-react": "^0.563.0",
     "next": "14.2.21",
     "prisma": "^5.22.0",
@@ -26,7 +30,8 @@
     "swr": "^2.4.1",
     "tailwind-merge": "^3.4.0",
     "viem": "^2.47.6",
-    "wagmi": "^3.6.0"
+    "wagmi": "^3.6.0",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

@@ -1,15 +1,22 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { ArrowLeft, Upload, Loader2 } from "lucide-react";
-import { usePrivy } from "@privy-io/react-auth";
-import { useAutoCreateUser } from "@/hooks/useAutoCreateUser";
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { ArrowLeft, Upload, Loader2, Sparkles } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { usePrivy } from '@privy-io/react-auth';
+import { useAutoCreateUser } from '@/hooks/useAutoCreateUser';
+import { Navbar } from '@/components/landing/Navbar';
+import { Footer } from '@/components/landing/Footer';
+import { BackgroundEffect } from '@/components/landing/BackgroundEffect';
 
-const CATEGORIES = ["Trading", "Security", "Content", "DeFi", "Analytics", "Infra", "Social"];
+const CATEGORIES = ['Trading', 'Security', 'Content', 'DeFi', 'Analytics', 'Infra', 'Social'];
 
-const EMOJI_OPTIONS = ["⚡", "🔍", "🛡️", "📊", "🎯", "🔒", "⛽", "🐦", "🤖", "💹", "🧠", "🔮", "🦅", "🥷", "💎", "🚀"];
+const EMOJI_OPTIONS = [
+  '⚡', '🔍', '🛡️', '📊', '🎯', '🔒', '⛽', '🐦',
+  '🤖', '💹', '🧠', '🔮', '🦅', '🥷', '💎', '🚀',
+];
 
 export default function CreateSkillPage() {
   const router = useRouter();
@@ -17,20 +24,35 @@ export default function CreateSkillPage() {
   useAutoCreateUser();
 
   const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    longDescription: "",
-    category: "Trading",
-    icon: "⚡",
-    price: "",
-    tags: "",
-    fileContent: "",
-    fileType: "markdown",
+    name: '',
+    description: '',
+    longDescription: '',
+    category: 'Trading',
+    icon: '⚡',
+    price: '',
+    tags: '',
+    fileContent: '',
+    fileType: 'markdown',
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+
+  const glassCard = 'border border-[var(--border)] bg-[var(--card-bg)]';
+
+  const glassStyle = {
+    backdropFilter: 'blur(40px) saturate(180%)',
+    WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+  } as const;
+
+  const inputBase =
+    'w-full bg-transparent border rounded-2xl px-4 py-3 font-sans text-sm focus:outline-none transition-colors placeholder:opacity-30 border-[var(--border)] text-[var(--text)] focus:border-[var(--text-secondary)] placeholder:text-[var(--text)]';
+
+  const labelClass =
+    'block text-[10px] font-bold uppercase tracking-[0.2em] mb-2 text-[var(--text-muted)]';
+
+  const helperClass = 'text-[10px] font-mono mt-2 text-[var(--text-muted)]';
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -44,26 +66,26 @@ export default function CreateSkillPage() {
     setError(null);
 
     if (!authenticated || !user) {
-      setError("You must be signed in to create a skill.");
+      setError('You must be signed in to create a skill.');
       return;
     }
 
     if (!formData.name.trim() || !formData.description.trim()) {
-      setError("Name and description are required.");
+      setError('Name and description are required.');
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      const response = await fetch("/api/skills/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/skills/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           privyId: user.id,
           email: user.email?.address,
           walletAddress: user.wallet?.address,
-          displayName: user.google?.name ?? user.email?.address?.split("@")[0],
+          displayName: user.google?.name ?? user.email?.address?.split('@')[0],
           name: formData.name.trim(),
           description: formData.description.trim(),
           longDescription: formData.longDescription.trim() || undefined,
@@ -78,260 +100,313 @@ export default function CreateSkillPage() {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || "Failed to create skill");
+        throw new Error(data.error || 'Failed to create skill');
       }
 
       const skill = await response.json();
       router.push(`/skill/${skill.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Show login prompt if not authenticated
+  // Login prompt
   if (ready && !authenticated) {
     return (
-      <div className="min-h-screen bg-[#f0ece2]">
-        <div className="max-w-2xl mx-auto px-8 py-12">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-sm font-mono text-[#8b0000] hover:underline mb-8"
-          >
-            <ArrowLeft size={14} />
-            Back to Dojo
-          </Link>
-
-          <div className="text-center py-16">
-            <h1 className="font-serif font-black text-4xl text-[#1a1a1a] mb-4">
-              Become a Sensei
-            </h1>
-            <p className="font-serif text-lg text-[#1a1a1a]/60 mb-8 max-w-md mx-auto">
-              Sign in to create and publish skills for AI agents. Earn 85% of every sale.
-            </p>
-            <button
-              onClick={login}
-              className="bg-[#1a1a1a] text-[#f0ece2] font-mono text-sm px-8 py-3 hover:bg-[#1a1a1a]/80 transition-colors tracking-[0.2em]"
+      <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors duration-700">
+        <BackgroundEffect />
+        <Navbar />
+        <main className="relative pt-32 pb-20 px-6">
+          <div className="max-w-xl mx-auto text-center">
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className={`rounded-3xl p-12 border ${glassCard}`}
+              style={glassStyle}
             >
-              SIGN IN TO CONTINUE
-            </button>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border mb-6 border-[var(--border)] bg-[var(--card-bg)]">
+                <Sparkles className="w-3 h-3" />
+                <span className="text-[9px] font-bold uppercase tracking-[0.2em]">
+                  Become a creator
+                </span>
+              </div>
+              <h1 className="font-sans font-semibold text-4xl tracking-[-0.03em] leading-[1.05] mb-4 text-[var(--text)]">
+                Publish a skill.
+                <br />
+                Earn on every call.
+              </h1>
+              <p className="text-sm mb-8 max-w-sm mx-auto leading-relaxed text-[var(--text-muted)]">
+                Sign in to publish skills agents can buy. Settled on-chain via ERC-8183 escrow.
+              </p>
+              <button
+                onClick={login}
+                className="inline-flex items-center gap-2 px-7 py-4 rounded-full text-xs font-bold uppercase tracking-[0.15em] transition-all hover:scale-[1.02] bg-[var(--text)] text-[var(--bg)]"
+              >
+                Sign in to continue
+              </button>
+            </motion.div>
           </div>
-        </div>
+        </main>
+        <Footer />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#f0ece2]">
-      <div className="max-w-2xl mx-auto px-8 py-12">
-        {/* Back link */}
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 text-sm font-mono text-[#8b0000] hover:underline mb-8"
-        >
-          <ArrowLeft size={14} />
-          Back to Dojo
-        </Link>
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors duration-700">
+      <BackgroundEffect />
+      <Navbar />
 
-        {/* Header */}
-        <div className="mb-8">
-          <div className="rule-ornament mb-4">✦ PUBLISH ✦</div>
-          <h1 className="font-serif font-black text-5xl text-[#1a1a1a] mb-2">
-            Create a Skill
-          </h1>
-          <p className="font-serif italic text-[#1a1a1a]/50">
-            Teach AI agents new capabilities. Earn 85% on every purchase.
-          </p>
-        </div>
+      <main className="relative pt-32 pb-20 px-6">
+        <div className="max-w-3xl mx-auto">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] mb-10 transition-opacity hover:opacity-70 text-[var(--text-muted)]"
+          >
+            <ArrowLeft className="w-3 h-3" />
+            Back to marketplace
+          </Link>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Name */}
-          <div>
-            <label className="block text-xs font-mono uppercase tracking-wider text-[#1a1a1a]/50 mb-2">
-              Skill Name *
-            </label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              placeholder="e.g. DeFi Yield Optimizer"
-              className="w-full bg-transparent border-2 border-[#1a1a1a]/20 px-4 py-3 font-serif text-lg focus:border-[#1a1a1a] focus:outline-none transition-colors placeholder:text-[#1a1a1a]/20"
-              maxLength={100}
-              required
-            />
-          </div>
-
-          {/* Short Description */}
-          <div>
-            <label className="block text-xs font-mono uppercase tracking-wider text-[#1a1a1a]/50 mb-2">
-              Short Description *
-            </label>
-            <textarea
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              placeholder="Brief description of what this skill does (1-2 sentences)"
-              rows={2}
-              className="w-full bg-transparent border-2 border-[#1a1a1a]/20 px-4 py-3 font-serif focus:border-[#1a1a1a] focus:outline-none transition-colors placeholder:text-[#1a1a1a]/20 resize-none"
-              maxLength={300}
-              required
-            />
-          </div>
-
-          {/* Long Description */}
-          <div>
-            <label className="block text-xs font-mono uppercase tracking-wider text-[#1a1a1a]/50 mb-2">
-              Detailed Description
-            </label>
-            <textarea
-              name="longDescription"
-              value={formData.longDescription}
-              onChange={handleChange}
-              placeholder="Provide a detailed explanation of the skill's capabilities, use cases, and how it works..."
-              rows={6}
-              className="w-full bg-transparent border-2 border-[#1a1a1a]/20 px-4 py-3 font-serif focus:border-[#1a1a1a] focus:outline-none transition-colors placeholder:text-[#1a1a1a]/20 resize-none"
-            />
-          </div>
-
-          {/* Category & Icon Row */}
-          <div className="grid grid-cols-2 gap-4">
-            {/* Category */}
-            <div>
-              <label className="block text-xs font-mono uppercase tracking-wider text-[#1a1a1a]/50 mb-2">
-                Category *
-              </label>
-              <select
-                name="category"
-                value={formData.category}
-                onChange={handleChange}
-                className="w-full bg-transparent border-2 border-[#1a1a1a]/20 px-4 py-3 font-mono focus:border-[#1a1a1a] focus:outline-none transition-colors cursor-pointer"
-              >
-                {CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Icon */}
-            <div className="relative">
-              <label className="block text-xs font-mono uppercase tracking-wider text-[#1a1a1a]/50 mb-2">
-                Icon
-              </label>
-              <button
-                type="button"
-                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                className="w-full bg-transparent border-2 border-[#1a1a1a]/20 px-4 py-3 text-left font-mono focus:border-[#1a1a1a] focus:outline-none transition-colors flex items-center gap-3"
-              >
-                <span className="text-2xl">{formData.icon}</span>
-                <span className="text-[#1a1a1a]/40 text-sm">Click to change</span>
-              </button>
-              {showEmojiPicker && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-[#f0ece2] border-2 border-[#1a1a1a]/20 p-3 grid grid-cols-8 gap-2 z-10">
-                  {EMOJI_OPTIONS.map((emoji) => (
-                    <button
-                      key={emoji}
-                      type="button"
-                      onClick={() => {
-                        setFormData((prev) => ({ ...prev, icon: emoji }));
-                        setShowEmojiPicker(false);
-                      }}
-                      className={`text-2xl p-2 hover:bg-[#1a1a1a]/10 transition-colors ${
-                        formData.icon === emoji ? "bg-[#1a1a1a]/10" : ""
-                      }`}
-                    >
-                      {emoji}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Price */}
-          <div>
-            <label className="block text-xs font-mono uppercase tracking-wider text-[#1a1a1a]/50 mb-2">
-              Price (USD)
-            </label>
-            <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 font-mono text-[#1a1a1a]/40">
-                $
+          {/* Header */}
+          <header className="mb-12">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border mb-5 border-[var(--border)] bg-[var(--card-bg)]">
+              <Sparkles className="w-3 h-3" />
+              <span className="text-[9px] font-bold uppercase tracking-[0.2em]">
+                Publish a skill
               </span>
-              <input
-                type="number"
-                name="price"
-                value={formData.price}
-                onChange={handleChange}
-                placeholder="0.00"
-                min="0"
-                step="0.01"
-                className="w-full bg-transparent border-2 border-[#1a1a1a]/20 pl-8 pr-4 py-3 font-mono focus:border-[#1a1a1a] focus:outline-none transition-colors placeholder:text-[#1a1a1a]/20"
-              />
             </div>
-            <p className="text-xs font-mono text-[#1a1a1a]/35 mt-1">
-              Leave empty or 0 for free skills
+            <h1 className="font-sans font-semibold text-4xl md:text-6xl tracking-[-0.03em] leading-[0.95] mb-5 text-[var(--text)]">
+              Teach agents
+              <br />
+              new tricks.
+            </h1>
+            <p className="text-base max-w-xl text-[var(--text-muted)]">
+              Define a skill, set a price per call, and ship. Agents discover it instantly,
+              settlement is automatic on PASS.
             </p>
-          </div>
+          </header>
 
-          {/* Tags */}
-          <div>
-            <label className="block text-xs font-mono uppercase tracking-wider text-[#1a1a1a]/50 mb-2">
-              Tags
-            </label>
-            <input
-              type="text"
-              name="tags"
-              value={formData.tags}
-              onChange={handleChange}
-              placeholder="e.g. yield, farming, apy, defi, optimization"
-              className="w-full bg-transparent border-2 border-[#1a1a1a]/20 px-4 py-3 font-mono focus:border-[#1a1a1a] focus:outline-none transition-colors placeholder:text-[#1a1a1a]/20"
-            />
-            <p className="text-xs font-mono text-[#1a1a1a]/35 mt-1">
-              Comma-separated keywords to help agents find your skill
-            </p>
-          </div>
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Basics card */}
+            <motion.section
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45 }}
+              className={`rounded-3xl p-8 border ${glassCard}`}
+              style={glassStyle}
+            >
+              <div className={labelClass}>01 — Basics</div>
+              <h2 className="font-sans font-semibold text-xl tracking-[-0.02em] mb-6 text-[var(--text)]">
+                What is the skill?
+              </h2>
 
-          {/* Skill Content Section */}
-          <div className="border-t-2 border-double border-[#1a1a1a]/20 pt-6">
-            <div className="rule-ornament mb-4">✦ SKILL INSTRUCTIONS ✦</div>
+              <div className="space-y-5">
+                <div>
+                  <label className={labelClass}>Skill name *</label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    placeholder="e.g. Token Price Oracle"
+                    className={inputBase}
+                    maxLength={100}
+                    required
+                  />
+                </div>
 
-            {/* File Type */}
-            <div className="mb-4">
-              <label className="block text-xs font-mono uppercase tracking-wider text-[#1a1a1a]/50 mb-2">
-                Content Type
-              </label>
-              <select
-                name="fileType"
-                value={formData.fileType}
-                onChange={handleChange}
-                className="w-full bg-transparent border-2 border-[#1a1a1a]/20 px-4 py-3 font-mono focus:border-[#1a1a1a] focus:outline-none transition-colors cursor-pointer"
-              >
-                <option value="markdown">Markdown (.md)</option>
-                <option value="json">JSON</option>
-                <option value="text">Plain Text</option>
-              </select>
-            </div>
+                <div>
+                  <label className={labelClass}>Short description *</label>
+                  <textarea
+                    name="description"
+                    value={formData.description}
+                    onChange={handleChange}
+                    placeholder="One sentence. What does this skill do?"
+                    rows={2}
+                    className={`${inputBase} resize-none`}
+                    maxLength={300}
+                    required
+                  />
+                </div>
 
-            {/* File Content */}
-            <div>
-              <label className="block text-xs font-mono uppercase tracking-wider text-[#1a1a1a]/50 mb-2">
-                Skill Instructions
-              </label>
-              <textarea
-                name="fileContent"
-                value={formData.fileContent}
-                onChange={handleChange}
-                placeholder={`# ${formData.name || "Skill Name"}
+                <div>
+                  <label className={labelClass}>Long description</label>
+                  <textarea
+                    name="longDescription"
+                    value={formData.longDescription}
+                    onChange={handleChange}
+                    placeholder="Capabilities, use cases, how it works…"
+                    rows={5}
+                    className={`${inputBase} resize-none`}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className={labelClass}>Category *</label>
+                    <select
+                      name="category"
+                      value={formData.category}
+                      onChange={handleChange}
+                      className={`${inputBase} cursor-pointer`}
+                    >
+                      {CATEGORIES.map((cat) => (
+                        <option
+                          key={cat}
+                          value={cat}
+                          style={{ background: 'var(--bg)' }}
+                        >
+                          {cat}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="relative">
+                    <label className={labelClass}>Icon</label>
+                    <button
+                      type="button"
+                      onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                      className={`${inputBase} text-left flex items-center gap-3`}
+                    >
+                      <span className="text-xl">{formData.icon}</span>
+                      <span className="text-xs text-[var(--text-muted)]">
+                        Click to change
+                      </span>
+                    </button>
+                    {showEmojiPicker && (
+                      <div
+                        className={`absolute top-full left-0 right-0 mt-2 rounded-2xl border p-3 grid grid-cols-8 gap-1 z-20 ${glassCard}`}
+                        style={glassStyle}
+                      >
+                        {EMOJI_OPTIONS.map((emoji) => (
+                          <button
+                            key={emoji}
+                            type="button"
+                            onClick={() => {
+                              setFormData((prev) => ({ ...prev, icon: emoji }));
+                              setShowEmojiPicker(false);
+                            }}
+                            className={`text-xl p-2 rounded-xl transition-colors ${
+                              formData.icon === emoji
+                                ? 'bg-[var(--bg-secondary)]'
+                                : 'hover:bg-[var(--bg-secondary)]'
+                            }`}
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </motion.section>
+
+            {/* Pricing card */}
+            <motion.section
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, delay: 0.05 }}
+              className={`rounded-3xl p-8 border ${glassCard}`}
+              style={glassStyle}
+            >
+              <div className={labelClass}>02 — Pricing & discovery</div>
+              <h2 className="font-sans font-semibold text-xl tracking-[-0.02em] mb-6 text-[var(--text)]">
+                Price per call & tags.
+              </h2>
+
+              <div className="space-y-5">
+                <div>
+                  <label className={labelClass}>Price (USDC)</label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 font-mono text-sm text-[var(--text-muted)]">
+                      $
+                    </span>
+                    <input
+                      type="number"
+                      name="price"
+                      value={formData.price}
+                      onChange={handleChange}
+                      placeholder="0.00"
+                      min="0"
+                      step="0.01"
+                      className={`${inputBase} pl-8 font-mono tabular-nums`}
+                    />
+                  </div>
+                  <p className={helperClass}>
+                    Settled in USDC on BNB Smart Chain. Leave 0 for free skills.
+                  </p>
+                </div>
+
+                <div>
+                  <label className={labelClass}>Tags</label>
+                  <input
+                    type="text"
+                    name="tags"
+                    value={formData.tags}
+                    onChange={handleChange}
+                    placeholder="yield, defi, optimization, btc"
+                    className={inputBase}
+                  />
+                  <p className={helperClass}>
+                    Comma-separated keywords agents use to discover the skill.
+                  </p>
+                </div>
+              </div>
+            </motion.section>
+
+            {/* Instructions card */}
+            <motion.section
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, delay: 0.1 }}
+              className={`rounded-3xl p-8 border ${glassCard}`}
+              style={glassStyle}
+            >
+              <div className={labelClass}>03 — Skill instructions</div>
+              <h2 className="font-sans font-semibold text-xl tracking-[-0.02em] mb-6 text-[var(--text)]">
+                What buyers receive.
+              </h2>
+
+              <div className="space-y-5">
+                <div>
+                  <label className={labelClass}>Content type</label>
+                  <select
+                    name="fileType"
+                    value={formData.fileType}
+                    onChange={handleChange}
+                    className={`${inputBase} cursor-pointer`}
+                  >
+                    <option value="markdown" style={{ background: 'var(--bg)' }}>
+                      Markdown (.md)
+                    </option>
+                    <option value="json" style={{ background: 'var(--bg)' }}>
+                      JSON
+                    </option>
+                    <option value="text" style={{ background: 'var(--bg)' }}>
+                      Plain text
+                    </option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className={labelClass}>Instructions</label>
+                  <textarea
+                    name="fileContent"
+                    value={formData.fileContent}
+                    onChange={handleChange}
+                    placeholder={`# ${formData.name || 'Skill Name'}
 
 ## Overview
-Describe what this skill does and how an agent should use it.
+What this skill does and how an agent should use it.
 
 ## Instructions
-Step-by-step instructions for the AI agent to follow.
+Step-by-step instructions.
 
 ## Examples
 \`\`\`
@@ -339,50 +414,58 @@ Example input/output pairs
 \`\`\`
 
 ## Configuration
-Any required API keys or settings.`}
-                rows={12}
-                className="w-full bg-transparent border-2 border-[#1a1a1a]/20 px-4 py-3 font-mono text-sm focus:border-[#1a1a1a] focus:outline-none transition-colors placeholder:text-[#1a1a1a]/20 resize-none"
-              />
-              <p className="text-xs font-mono text-[#1a1a1a]/35 mt-1">
-                The actual instructions buyers will receive. This is delivered after purchase.
-              </p>
-            </div>
-          </div>
-
-          {/* Divider */}
-          <div className="border-t-2 border-double border-[#1a1a1a]/20 pt-6">
-            {/* Error */}
-            {error && (
-              <div className="mb-4 p-4 border-2 border-[#8b0000]/30 bg-[#8b0000]/5">
-                <p className="text-sm font-mono text-[#8b0000]">{error}</p>
+API keys or settings.`}
+                    rows={14}
+                    className={`${inputBase} font-mono text-xs resize-none`}
+                  />
+                  <p className={helperClass}>
+                    Delivered to the buyer after each successful call.
+                  </p>
+                </div>
               </div>
-            )}
+            </motion.section>
 
-            {/* Submit */}
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full bg-[#1a1a1a] text-[#f0ece2] font-mono text-sm px-8 py-4 hover:bg-[#1a1a1a]/80 transition-colors tracking-[0.2em] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+            {/* Submit card */}
+            <motion.section
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, delay: 0.15 }}
+              className={`rounded-3xl p-8 border ${glassCard}`}
+              style={glassStyle}
             >
-              {isSubmitting ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" />
-                  PUBLISHING...
-                </>
-              ) : (
-                <>
-                  <Upload size={16} />
-                  PUBLISH SKILL
-                </>
+              {error && (
+                <div className="mb-6 p-4 rounded-2xl border text-xs font-mono border-[var(--error)]/20 bg-[var(--error)]/5 text-[var(--error)]">
+                  {error}
+                </div>
               )}
-            </button>
 
-            <p className="text-xs font-mono text-[#1a1a1a]/35 text-center mt-4">
-              By publishing, you agree to the Dojo Creator Terms
-            </p>
-          </div>
-        </form>
-      </div>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full inline-flex items-center justify-center gap-3 px-7 py-4 rounded-full text-xs font-bold uppercase tracking-[0.15em] transition-all hover:scale-[1.01] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 bg-[var(--text)] text-[var(--bg)]"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Publishing…
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-3.5 h-3.5" />
+                    Publish skill
+                  </>
+                )}
+              </button>
+
+              <p className="text-[10px] font-mono text-center mt-4 text-[var(--text-muted)]">
+                By publishing, you agree to the Dojo creator terms.
+              </p>
+            </motion.section>
+          </form>
+        </div>
+      </main>
+
+      <Footer />
     </div>
   );
 }

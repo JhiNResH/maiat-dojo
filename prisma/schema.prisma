@@ -28,6 +28,10 @@ model User {
   veteranVerifiedAt   DateTime?
   pendingMint         Boolean   @default(false)
 
+  // --- API access (Phase 1 REST API) ---
+  apiKey        String?   @unique   // dojo_sk_xxx — used for /api/v1/* endpoints
+  creditBalance Float     @default(0) // USDC credits for pay-per-call
+
   // Relations
   reviews       Review[]
   purchases     Purchase[]
@@ -66,6 +70,22 @@ model Skill {
   creatorHmacSecret       String?                        // gateway→creator auth
   pricePerCall            Float?                         // active skill per-call price (USDC)
   expectedCallsPerSession Int?                           // rate-limit cap basis
+
+  // --- Profile-driven renderer fields — 2026-04-09 ---
+  // See: specs/2026-04-09-chat-first-ui.md
+  // SQLite has no Json type → JSON stored as String, parsed at runtime via lib/skill-profile.ts
+  executionKind     String   @default("sync")    // sync | async | stream | download | stateful | hitl
+  inputShape        String   @default("form")    // form | file | custom
+  outputShape       String   @default("json")    // json | text | image | audio | file | html | stream
+  estLatencyMs      Int      @default(2000)
+  sandboxable       Boolean  @default(true)
+  authRequired      Boolean  @default(false)
+  inputSchema       String?                       // JSON Schema (stringified)
+  outputSchema      String?                       // JSON Schema (stringified)
+  exampleInput      String?                       // example object (stringified)
+  exampleOutput     String?                       // example object (stringified)
+  mcpManifest       String?                       // Phase 3: MCP tool descriptor (stringified)
+  customRendererUrl String?                       // Phase 3: iframe URL
 
   // Creator
   creatorId   String
@@ -202,6 +222,8 @@ model Session {
 
   @@index([status, expiresAt])
   @@index([payerAgentId])
+  @@index([payerAgentId, status])
+  @@index([skillId])
 }
 
 // --- SkillCall (per-call log, Gateway writes) — 2026-04-05 ---

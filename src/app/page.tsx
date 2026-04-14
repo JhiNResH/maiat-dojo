@@ -1,13 +1,36 @@
 "use client";
 
-import { useState, useEffect } from "react";
+/**
+ * Dojo home — marketplace-first landing (matching app.maiat.io layout).
+ *
+ * Vertical stack, no sidebars:
+ *   - Floating glass navbar
+ *   - Centered hero + CTAs
+ *   - LandingHero (stats → ticker → filters → grid)
+ *   - For Developers (API quick-start)
+ *   - Multi-column footer
+ */
+
 import Link from "next/link";
-import { LogIn, User } from "lucide-react";
 import { usePrivy } from "@privy-io/react-auth";
+import { Moon, Sun } from "lucide-react";
+import { LandingHero } from "@/components/landing/LandingHero";
+import { useDarkMode } from "@/app/DarkModeContext";
 
-// --- Auth ---
+function DarkToggle() {
+  const { isDark, toggleDark } = useDarkMode();
+  return (
+    <button
+      onClick={toggleDark}
+      aria-label="Toggle theme"
+      className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--card-bg)] text-[var(--text-secondary)] transition-all hover:text-[var(--text)] active:scale-90"
+    >
+      {isDark ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+    </button>
+  );
+}
 
-function AuthButton() {
+function WalletPill() {
   const { ready, authenticated, login, logout, user } = usePrivy();
   if (!ready) return null;
 
@@ -16,20 +39,20 @@ function AuthButton() {
       user.email?.address?.split("@")[0] ||
       user.google?.name ||
       (user.wallet?.address
-        ? user.wallet.address.slice(0, 6) + "..." + user.wallet.address.slice(-4)
+        ? `${user.wallet.address.slice(0, 6)}…${user.wallet.address.slice(-4)}`
         : "Agent");
 
     return (
       <div className="flex items-center gap-3">
-        <span className="text-xs font-mono text-[#1a1a1a]/50">
-          <User size={12} className="inline mr-1" />
+        <span className="flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg)] px-3 py-1.5 font-mono text-[11px] text-[var(--text-secondary)]">
+          <span className="h-1.5 w-1.5 rounded-full bg-[var(--text)]" />
           {displayName}
         </span>
         <button
           onClick={logout}
-          className="text-xs font-mono text-[#1a1a1a]/30 hover:text-[#1a1a1a] transition-colors underline underline-offset-2"
+          className="text-[12px] text-[var(--text-muted)] transition-colors hover:text-[var(--text)]"
         >
-          Sign Out
+          Sign out
         </button>
       </div>
     );
@@ -38,238 +61,274 @@ function AuthButton() {
   return (
     <button
       onClick={login}
-      className="flex items-center gap-2 bg-[#1a1a1a] text-[#f0ece2] font-mono text-xs px-4 py-2 hover:bg-[#1a1a1a]/80 transition-colors tracking-wider"
+      className="flex items-center gap-1.5 rounded-full bg-[var(--text)] px-4 py-1.5 text-[11px] font-semibold uppercase tracking-widest text-[var(--bg)] transition-opacity hover:opacity-80"
     >
-      <LogIn size={12} />
-      CONNECT WALLET
+      <span className="text-[10px]">⬡</span>
+      Connect
     </button>
   );
 }
 
-// --- Types ---
-
-interface Skill {
-  id: string;
-  name: string;
-  description: string | null;
-  pricePerCall: number | null;
-  category: string | null;
-  gatewaySlug: string | null;
-  callCount?: number;
-  trustScore?: number;
-}
-
-// --- Main Page ---
-
-export default function DojoPage() {
-  const [skills, setSkills] = useState<Skill[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetch("/api/skills?limit=20")
-      .then((r) => r.json())
-      .then((data) => setSkills(data.skills || []))
-      .catch(() => setSkills([]))
-      .finally(() => setLoading(false));
-  }, []);
-
-  const today = new Date().toLocaleDateString("en-US", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-
+/* ── API step for developer section ── */
+function ApiStep({
+  step,
+  method,
+  path,
+  desc,
+  code,
+}: {
+  step: string;
+  method: string;
+  path: string;
+  desc: string;
+  code: string;
+}) {
   return (
-    <div className="min-h-screen bg-[#f0ece2]">
-      <div className="max-w-4xl mx-auto px-6 py-8 page-container">
-        {/* ═══ MASTHEAD ═══ */}
-        <header className="mb-10">
-          <div className="flex items-center justify-between mb-3">
-            <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-[#1a1a1a]/30">
-              {today}
-            </span>
-            <div className="flex items-center gap-4">
-              <Link href="/demo" className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#1a1a1a]/30 hover:text-[#1a1a1a] transition-colors">
-                Demo
-              </Link>
-              <Link href="/dashboard" className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#1a1a1a]/30 hover:text-[#1a1a1a] transition-colors">
-                Dashboard
-              </Link>
-              <Link href="/leaderboard" className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#1a1a1a]/30 hover:text-[#1a1a1a] transition-colors">
-                Leaderboard
-              </Link>
-              <AuthButton />
-            </div>
-          </div>
-
-          <div className="masthead-rule mb-2" />
-          <div className="text-center py-3">
-            <h1 className="font-serif font-black text-6xl md:text-7xl tracking-tight text-[#1a1a1a] leading-none">
-              THE DOJO
-            </h1>
-            <p className="font-mono text-[10px] uppercase tracking-[0.4em] text-[#1a1a1a]/40 mt-2">
-              Skill Marketplace for AI Agents &middot; Powered by Maiat Protocol &middot; Built on BSC
-            </p>
-          </div>
-          <div className="masthead-rule mb-1" />
-          <div className="h-[1px] bg-[#1a1a1a]/20 mb-1" />
-          <div className="masthead-rule" />
-        </header>
-
-        {/* ═══ HEADLINE ═══ */}
-        <section className="mb-10 text-center">
-          <h2 className="font-serif font-black text-3xl md:text-4xl text-[#1a1a1a] leading-tight mb-3">
-            Your agent deserves skills it can trust.
-          </h2>
-          <p className="font-serif text-base text-[#1a1a1a]/50 max-w-lg mx-auto leading-relaxed">
-            Every skill on Dojo has an on-chain trust score built from real
-            transactions. Pay per call. No subscriptions. No guessing.
-          </p>
-        </section>
-
-        {/* ═══ SKILLS SECTION ═══ */}
-        <section className="mb-12">
-          <div className="section-header">
-            <span className="font-mono text-xs font-bold uppercase tracking-[0.2em] text-[#1a1a1a]/60">
-              Skills
-            </span>
-            <span className="font-mono text-[10px] text-[#1a1a1a]/30">
-              {skills.length} listed
-            </span>
-          </div>
-
-          {loading ? (
-            <p className="font-mono text-xs text-[#1a1a1a]/40 text-center py-12 animate-pulse">
-              Loading skills...
-            </p>
-          ) : skills.length === 0 ? (
-            <div className="text-center py-16">
-              <p className="font-serif italic text-lg text-[#1a1a1a]/30 mb-2">
-                No skills listed yet.
-              </p>
-              <p className="font-mono text-xs text-[#1a1a1a]/30">
-                Be the first creator to list a skill on the Dojo.
-              </p>
-            </div>
-          ) : (
-            <div>
-              {skills.map((skill, i) => (
-                <Link
-                  key={skill.id}
-                  href={`/skill/${skill.id}`}
-                  className="block py-5 border-b border-dotted border-[#1a1a1a]/15 hover:bg-[#1a1a1a]/[0.02] -mx-3 px-3 transition-colors"
-                >
-                  <div className="flex items-start justify-between gap-6">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-baseline gap-3 mb-1">
-                        <span className="font-serif font-black text-2xl text-[#1a1a1a]/10 leading-none">
-                          {String(i + 1).padStart(2, "0")}
-                        </span>
-                        <h3 className="font-serif font-bold text-xl text-[#1a1a1a]">
-                          {skill.name}
-                        </h3>
-                      </div>
-                      {skill.description && (
-                        <p className="font-serif text-sm text-[#1a1a1a]/50 leading-relaxed mb-2 ml-10">
-                          {skill.description}
-                        </p>
-                      )}
-                      <div className="flex items-center gap-4 text-xs font-mono text-[#1a1a1a]/40 ml-10">
-                        {skill.category && (
-                          <span className="uppercase tracking-wider">{skill.category}</span>
-                        )}
-                        <span>{(skill.callCount ?? 0).toLocaleString()} calls</span>
-                      </div>
-                    </div>
-                    <div className="text-right shrink-0 pt-1">
-                      <div className="font-mono text-sm font-bold text-[#1a1a1a] mb-1.5">
-                        {skill.pricePerCall
-                          ? `$${skill.pricePerCall.toFixed(2)}`
-                          : "FREE"}
-                        <span className="text-xs font-normal text-[#1a1a1a]/40 ml-0.5">
-                          /call
-                        </span>
-                      </div>
-                      <TrustBar score={skill.trustScore ?? 0} />
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* ═══ HOW IT WORKS ═══ */}
-        <section className="mb-12">
-          <div className="section-header">
-            <span className="font-mono text-xs font-bold uppercase tracking-[0.2em] text-[#1a1a1a]/60">
-              How It Works
-            </span>
-          </div>
-          <div className="grid grid-cols-2 gap-x-10 gap-y-6 mt-4">
-            {[
-              { step: "I", title: "Pick a skill", desc: "Browse skills rated by on-chain trust scores from real transactions." },
-              { step: "II", title: "Agent pays USD", desc: "Funds lock in on-chain escrow via ERC-8183. No middleman." },
-              { step: "III", title: "Get the result", desc: "Dojo forwards your request to the creator, returns the result." },
-              { step: "IV", title: "Trust grows", desc: "Score updates on-chain after every session for everyone to see." },
-            ].map((item) => (
-              <div key={item.step} className="flex gap-4">
-                <span className="font-serif font-black text-3xl text-[#1a1a1a]/10 leading-none shrink-0 w-10 text-right">
-                  {item.step}
-                </span>
-                <div>
-                  <p className="font-serif font-bold text-sm text-[#1a1a1a] mb-0.5">{item.title}</p>
-                  <p className="font-serif text-sm text-[#1a1a1a]/50 leading-relaxed">{item.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* ═══ PULL QUOTE ═══ */}
-        <div className="pull-quote mb-12">
-          &ldquo;Trust, not promises.&rdquo;
-        </div>
-
-        {/* ═══ FOOTER ═══ */}
-        <footer>
-          <div className="masthead-rule mb-1" />
-          <div className="h-[1px] bg-[#1a1a1a]/20 mb-1" />
-          <div className="masthead-rule mb-3" />
-          <div className="flex justify-between items-center py-2">
-            <span className="font-mono text-[10px] text-[#1a1a1a]/25 tracking-wider uppercase">
-              The Dojo &copy; 2026 &middot; Maiat Protocol &middot; BSC
-            </span>
-            <span className="font-serif italic text-xs text-[#1a1a1a]/25">
-              dojo.maiat.io
-            </span>
-          </div>
-        </footer>
+    <div className="border-b border-[var(--border-light)] py-5 last:border-b-0">
+      <div className="flex items-center gap-2">
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--bg-secondary)] font-mono text-[11px] font-semibold text-[var(--text-muted)]">
+          {step}
+        </span>
+        {method && (
+          <span className="rounded-md bg-[var(--bg-secondary)] px-2 py-0.5 font-mono text-[11px] font-semibold text-[var(--text-secondary)]">
+            {method}
+          </span>
+        )}
+        <span className="font-mono text-[12px] text-[var(--text-muted)]">
+          {path}
+        </span>
       </div>
+      <p className="mt-2 text-[14px] leading-relaxed text-[var(--text-secondary)]">
+        {desc}
+      </p>
+      <pre className="code-block mt-3">{code}</pre>
     </div>
   );
 }
 
-// --- Trust Score Bar ---
-
-function TrustBar({ score }: { score: number }) {
-  const clamped = Math.min(100, Math.max(0, score));
-  const filled = Math.round(clamped / 10);
-
+export default function DojoPage() {
   return (
-    <div className="flex items-center gap-1.5">
-      <div className="flex gap-[2px]">
-        {Array.from({ length: 10 }).map((_, i) => (
-          <div
-            key={i}
-            className={`w-[5px] h-3 ${
-              i < filled ? "bg-[#1a1a1a]" : "bg-[#1a1a1a]/10"
-            }`}
-          />
-        ))}
+    <div className="flex min-h-screen flex-col bg-[var(--bg)]">
+      {/* ═══ AMBIENT GRADIENT MESH ═══ */}
+      <div className="atmosphere" />
+
+      {/* ═══ FLOATING PILL NAVBAR ═══ */}
+      <div className="fixed left-0 right-0 top-0 z-50 flex justify-center px-6 pt-4">
+        <nav className="glass-nav flex w-full max-w-4xl items-center justify-between px-5 py-2.5">
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-2.5">
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--text)]">
+              <span className="text-[11px] font-black text-[var(--bg)]">D</span>
+            </span>
+            <span className="text-[14px] font-bold tracking-tight text-[var(--text)]">
+              The Dojo
+            </span>
+          </Link>
+          {/* Center links */}
+          <div className="hidden items-center gap-6 md:flex">
+            <Link href="/demo" className="text-[11px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] transition-colors hover:text-[var(--text)]">
+              Markets
+            </Link>
+            <Link href="/leaderboard" className="text-[11px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] transition-colors hover:text-[var(--text)]">
+              Leaderboard
+            </Link>
+            <Link href="/dashboard" className="text-[11px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] transition-colors hover:text-[var(--text)]">
+              Dashboard
+            </Link>
+            <a href="#developers" className="text-[11px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] transition-colors hover:text-[var(--text)]">
+              Docs
+            </a>
+          </div>
+          {/* Right: dark mode + connect */}
+          <div className="flex items-center gap-2">
+            <DarkToggle />
+            <WalletPill />
+          </div>
+        </nav>
       </div>
-      <span className="text-[10px] font-mono text-[#1a1a1a]/40">{clamped}</span>
+
+      <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-1 flex-col px-6 pb-16 pt-24">
+        {/* ═══ HERO ═══ */}
+        <section className="animate-fade-in-up mb-24 text-center">
+          {/* Dark badge pill — matches app.maiat.io */}
+          <div className="mb-8 inline-flex items-center gap-2 rounded-full bg-[var(--text)] px-4 py-1.5">
+            <span className="live-dot live-dot-inverted" />
+            <span className="font-mono text-[11px] font-semibold uppercase tracking-wider text-[var(--bg)]">
+              Mainnet Live
+            </span>
+          </div>
+          {/* Two-tone heading — first line dark, second line muted */}
+          <h1 className="heading-xl">
+            Skill Marketplace
+            <br />
+            <span className="heading-xl-muted">for AI Agents.</span>
+          </h1>
+          <p className="mx-auto mt-8 max-w-md text-[16px] leading-relaxed text-[var(--text-secondary)]">
+            List your API as a skill. Agents pay per call. Every call is
+            evaluated, attested on BAS, and builds on-chain trust.
+          </p>
+          <div className="mt-10 flex items-center justify-center gap-3">
+            <Link href="/create" className="btn-primary">
+              List a Skill →
+            </Link>
+            <a href="#developers" className="btn-outline">
+              REST API Docs
+            </a>
+          </div>
+        </section>
+
+        {/* ═══ MARKETPLACE (stats → ticker → filters → grid) ═══ */}
+        <main className="mb-20">
+          <LandingHero />
+        </main>
+
+        {/* ═══ FOR DEVELOPERS ═══ */}
+        <section id="developers" className="mb-20">
+          <div className="mb-8 text-center">
+            <span className="label-sm">For Developers</span>
+            <h2 className="heading-lg mt-3 text-[var(--text)]">
+              One HTTP call per skill.
+            </h2>
+            <p className="mx-auto mt-3 max-w-lg text-[15px] leading-relaxed text-[var(--text-secondary)]">
+              Your agent doesn&apos;t need a wallet, sessions, or nonces. Get an
+              API key, pick a skill, and call it.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            <div className="glass-card p-6">
+              <ApiStep
+                step="01"
+                method="GET"
+                path="/api/v1/skills"
+                desc="Browse available skills and their prices."
+                code={`curl https://dojo.maiat.io/api/v1/skills`}
+              />
+              <ApiStep
+                step="02"
+                method="GET"
+                path="/api/v1/balance"
+                desc="Check your remaining credits."
+                code={`curl https://dojo.maiat.io/api/v1/balance \\
+  -H "Authorization: Bearer YOUR_API_KEY"`}
+              />
+            </div>
+            <div className="glass-card p-6">
+              <ApiStep
+                step="03"
+                method="POST"
+                path="/api/v1/run"
+                desc="Call a skill. One request = find, execute, evaluate, return."
+                code={`curl -X POST https://dojo.maiat.io/api/v1/run \\
+  -H "Authorization: Bearer YOUR_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{"skill":"web-scraper","input":{"url":"…"}}'`}
+              />
+              <ApiStep
+                step="04"
+                method=""
+                path="Response"
+                desc="Result, cost, balance, and trust score in one response."
+                code={`{
+  "result": { "content": "..." },
+  "cost": 0.003,
+  "balance": 9.997,
+  "score": 1.0,
+  "session_id": "cls...",
+  "latency_ms": 842
+}`}
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* ═══ FOOTER ═══ */}
+        <footer className="mt-auto border-t border-[var(--border)] pt-10">
+          <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
+            <div>
+              <span className="text-[15px] font-bold text-[var(--text)]">
+                The Dojo
+              </span>
+              <p className="mt-2 text-[13px] leading-relaxed text-[var(--text-muted)]">
+                Skill marketplace for the
+                <br />
+                agent economy.
+              </p>
+            </div>
+            <div>
+              <span className="label-sm">Product</span>
+              <ul className="mt-3 space-y-2">
+                <li>
+                  <Link
+                    href="/leaderboard"
+                    className="text-[13px] text-[var(--text-secondary)] transition-colors hover:text-[var(--text)]"
+                  >
+                    Leaderboard
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/dashboard"
+                    className="text-[13px] text-[var(--text-secondary)] transition-colors hover:text-[var(--text)]"
+                  >
+                    Dashboard
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/demo"
+                    className="text-[13px] text-[var(--text-secondary)] transition-colors hover:text-[var(--text)]"
+                  >
+                    Demo
+                  </Link>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <span className="label-sm">Developers</span>
+              <ul className="mt-3 space-y-2">
+                <li>
+                  <a
+                    href="#developers"
+                    className="text-[13px] text-[var(--text-secondary)] transition-colors hover:text-[var(--text)]"
+                  >
+                    REST API
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="https://github.com/maiat-protocol"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[13px] text-[var(--text-secondary)] transition-colors hover:text-[var(--text)]"
+                  >
+                    GitHub
+                  </a>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <span className="label-sm">Get Started</span>
+              <div className="mt-3 flex flex-col gap-2">
+                <Link href="/create" className="btn-primary w-full justify-center text-[12px]">
+                  List a Skill
+                </Link>
+                <a href="#developers" className="btn-outline w-full justify-center text-[12px]">
+                  View Docs
+                </a>
+              </div>
+            </div>
+          </div>
+          <div className="mt-10 flex items-center justify-between border-t border-[var(--border)] py-4">
+            <span className="text-[12px] text-[var(--text-muted)]">
+              &copy; 2026 Maiat Protocol. All rights reserved.
+            </span>
+            <span className="text-[12px] text-[var(--text-muted)]">
+              BSC Mainnet
+            </span>
+          </div>
+        </footer>
+      </div>
     </div>
   );
 }

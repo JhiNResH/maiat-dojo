@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { verifyPrivyAuth } from "@/lib/privy-server";
 
@@ -45,6 +46,17 @@ export async function POST(req: NextRequest) {
       gatewaySlug,
       pricePerCall,
       endpointUrl,
+      // Wizard profile fields
+      executionKind,
+      inputShape,
+      outputShape,
+      estLatencyMs,
+      sandboxable,
+      authRequired,
+      inputSchema,
+      outputSchema,
+      exampleInput,
+      exampleOutput,
     } = body;
 
     // Validate required fields
@@ -118,9 +130,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validate active skill requirements
-    if (skillType === 'active') {
-      if (!gatewaySlug) {
+    // Validate active skill requirements.
+    // Wizard-created: endpointUrl provided but gatewaySlug not (slug is auto-generated).
+    // This is detected server-side from payload shape — no client flag trusted.
+    const isWizardCreated = !!endpointUrl && !gatewaySlug;
+    const effectiveSkillType = isWizardCreated ? 'active' : (skillType ?? 'passive');
+
+    if (effectiveSkillType === 'active') {
+      // Wizard-created skills auto-generate gatewaySlug; manual creation requires it
+      if (!isWizardCreated && !gatewaySlug) {
         return NextResponse.json(
           { error: "gatewaySlug is required for active skills" },
           { status: 400 }
@@ -134,6 +152,91 @@ export async function POST(req: NextRequest) {
         );
       }
     }
+
+    // Auto-generate gatewaySlug for wizard-created skills: kebab-case name + 6-char hex
+    let finalSlug = gatewaySlug ?? null;
+    if (isWizardCreated && !finalSlug) {
+      const base = name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
+      // Retry up to 3 times on unique constraint collision
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const suffix = randomBytes(3).toString('hex');
+        const candidate = `${base}-${suffix}`;
+        const existing = await prisma.skill.findUnique({
+          where: { gatewaySlug: candidate },
+          select: { id: true },
+        });
+        if (!existing) {
+          finalSlug = candidate;
+          break;
+        }
+      }
+      if (!finalSlug) {
+        return NextResponse.json(
+          { error: 'Failed to generate unique slug after 3 attempts' },
+          { status: 500 }
+        );
+      }
+    }
+
+    // Auto-generate HMAC secret for wizard-created skills
+    const finalHmacSecret = isWizardCreated
+      ? randomBytes(32).toString('hex')
+      : undefined;
+
+    // SSRF guard — reject private/internal addresses at write time.
+    // The gateway fires this URL on every agent call; blocking here is
+    // defence-in-depth over the per-request check in the gateway/run route.
+    if (endpointUrl) {
+      let parsedEndpoint: URL;
+      try {
+        parsedEndpoint = new URL(endpointUrl as string);
+      } catch {
+        return NextResponse.json(
+          { error: 'endpointUrl is not a valid URL' },
+          { status: 400 }
+        );
+      }
+      const isProduction = process.env.NODE_ENV === 'production';
+      if (
+        parsedEndpoint.protocol !== 'https:' &&
+        !(parsedEndpoint.protocol === 'http:' && !isProduction)
+      ) {
+        return NextResponse.json(
+          { error: 'endpointUrl must use https' },
+          { status: 400 }
+        );
+      }
+      if (isProduction) {
+        const h = parsedEndpoint.hostname.toLowerCase();
+        const BLOCKED_PATTERNS = [
+          /^localhost$/,
+          /^127\./,
+          /^10\./,
+          /^172\.(1[6-9]|2\d|3[01])\./,
+          /^192\.168\./,
+          /^169\.254\./,
+          /^::1$/,
+          /^fc00:/,
+          /^fd/,
+          /^fe[89ab][0-9a-f]:/i,
+        ];
+        if (BLOCKED_PATTERNS.some((rx) => rx.test(h))) {
+          return NextResponse.json(
+            { error: 'endpointUrl targets a private or internal address' },
+            { status: 400 }
+          );
+        }
+      }
+    }
+
+    // Stringify schema/example fields if passed as objects
+    const stringify = (v: unknown): string | null => {
+      if (v === undefined || v === null) return null;
+      return typeof v === 'string' ? v : JSON.stringify(v);
+    };
 
     // Create the skill
     const skill = await prisma.skill.create({
@@ -150,10 +253,22 @@ export async function POST(req: NextRequest) {
         fileType: fileType ?? null,
         isGated: parsedPrice > 0,
         creatorId: user.id,
-        skillType: skillType ?? 'passive',
-        gatewaySlug: gatewaySlug ?? null,
+        skillType: effectiveSkillType,
+        gatewaySlug: finalSlug,
         pricePerCall: pricePerCall ? Number(pricePerCall) : null,
         endpointUrl: endpointUrl ?? null,
+        creatorHmacSecret: finalHmacSecret ?? null,
+        // Profile fields
+        executionKind: executionKind ?? null,
+        inputShape: inputShape ?? null,
+        outputShape: outputShape ?? null,
+        estLatencyMs: estLatencyMs ? Number(estLatencyMs) : undefined,
+        sandboxable: sandboxable ?? null,
+        authRequired: authRequired ?? null,
+        inputSchema: stringify(inputSchema),
+        outputSchema: stringify(outputSchema),
+        exampleInput: stringify(exampleInput),
+        exampleOutput: stringify(exampleOutput),
       },
       include: {
         creator: true,

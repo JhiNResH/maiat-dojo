@@ -5,9 +5,6 @@ import {
   computeRarity,
   RARITY_COLORS,
   RARITY_LABELS,
-  RARITY_TEXT_COLORS,
-  RARITY_BG_COLORS,
-  getCategoryColor,
   type Rarity,
 } from "@/lib/rarity";
 
@@ -77,7 +74,6 @@ export function SkillCard({
 }: SkillCardProps) {
   const rarity: Rarity = computeRarity(skill.installs, skill.rating);
   const rarityColor = RARITY_COLORS[rarity];
-  const categoryColor = getCategoryColor(skill.category);
   const config = SIZE_CONFIG[size];
 
   const isLegendary = rarity === "legendary";
@@ -85,14 +81,13 @@ export function SkillCard({
   const cardContent = (
     <div
       className={`
-        relative bg-[#f8f5ef] transition-all duration-200
+        relative bg-[var(--card-bg)] border border-[var(--card-border)] transition-all duration-200
         hover:scale-[1.02] hover:shadow-lg
         ${config.card} ${className}
         ${isLegendary ? "legendary-shimmer" : ""}
       `}
       style={{
-        border: `1px solid #b8a990`,
-        borderTop: `3px solid ${rarity === "common" ? "#b8a990" : rarityColor}`,
+        borderTop: `3px solid ${rarity === "common" ? "var(--border)" : rarityColor}`,
         boxShadow: isLegendary
           ? `0 0 8px ${rarityColor}30`
           : `0 1px 3px rgba(0,0,0,0.04)`,
@@ -104,28 +99,26 @@ export function SkillCard({
 
       {/* Name */}
       <h3
-        className={`font-serif font-bold text-[#1a1a1a] text-center ${config.name}`}
+        className={`font-mono font-bold text-[var(--text)] text-center ${config.name}`}
       >
         {skill.name}
       </h3>
 
       {/* Category bar */}
       <div
-        className={`w-full ${config.categoryBar}`}
-        style={{ backgroundColor: categoryColor }}
+        className={`w-full bg-[var(--border)] ${config.categoryBar}`}
       />
       <p
-        className={`font-mono uppercase tracking-wider text-center ${config.categoryText}`}
-        style={{ color: categoryColor }}
+        className={`font-mono uppercase tracking-wider text-center text-[var(--text-muted)] ${config.categoryText}`}
       >
         {skill.category}
       </p>
 
       {/* Rating + installs */}
       <div
-        className={`font-mono text-[#1a1a1a]/50 text-center ${config.stats}`}
+        className={`font-mono text-[var(--text-muted)] text-center ${config.stats}`}
       >
-        <span className="text-[#8b0000]">★ {skill.rating.toFixed(1)}</span>
+        <span className="text-[var(--text-secondary)]">★ {skill.rating.toFixed(1)}</span>
         <span className="mx-1">·</span>
         <span>{skill.installs.toLocaleString()}</span>
       </div>
@@ -133,7 +126,7 @@ export function SkillCard({
       {/* Price */}
       {showPrice && (
         <p
-          className={`font-mono font-bold text-center text-[#1a1a1a] ${config.price}`}
+          className={`font-mono font-bold text-center text-[var(--text)] ${config.price}`}
         >
           {skill.price === 0 ? "FREE" : `$${skill.price.toFixed(0)}`}
         </p>
@@ -143,7 +136,7 @@ export function SkillCard({
       <div
         className={`font-mono font-bold uppercase tracking-wider text-center ${config.badge}`}
         style={{
-          color: rarity === "legendary" ? rarityColor : "#1a1a1a",
+          color: rarity === "legendary" ? rarityColor : "var(--text)",
           opacity: rarity === "common" ? 0.35 : 0.7,
         }}
       >

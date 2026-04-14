@@ -18,4 +18,5 @@ tsconfig.tsbuildinfo
 contracts/broadcast/
 contracts/cache/
 .gstack/
-DIFFERENTIAL_REVIEW_*.md
+*DIFFERENTIAL_REVIEW_*.md
+DESIGN.md
