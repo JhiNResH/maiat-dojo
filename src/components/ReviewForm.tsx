@@ -54,7 +54,7 @@ export default function ReviewForm({
               key={n}
               onClick={() => setRating(n)}
               className={`text-xl transition-colors ${
-                n <= rating ? "text-[#8b0000]" : "text-[#1a1a1a]/20"
+                n <= rating ? "text-[#b08d57]" : "text-[#1a1a1a]/20"
               }`}
             >
               ★
@@ -67,12 +67,12 @@ export default function ReviewForm({
         onChange={(e) => setComment(e.target.value)}
         placeholder="Share your experience..."
         rows={3}
-        className="w-full bg-transparent border border-[#1a1a1a]/20 p-3 font-mono text-sm text-[#1a1a1a] placeholder:text-[#1a1a1a]/30 focus:outline-none focus:border-[#8b0000]/50 resize-none"
+        className="w-full bg-transparent border border-[#1a1a1a]/20 p-3 font-mono text-sm text-[#1a1a1a] placeholder:text-[#1a1a1a]/30 focus:outline-none focus:border-[#b08d57]/50 resize-none"
       />
       <button
         onClick={submit}
         disabled={submitting || !comment.trim()}
-        className="mt-3 bg-[#1a1a1a] text-[#f0ece2] font-mono text-xs uppercase tracking-widest px-6 py-2.5 hover:bg-[#8b0000] transition-colors disabled:opacity-40"
+        className="mt-3 bg-[#1a1a1a] text-[#f0ece2] font-mono text-xs uppercase tracking-widest px-6 py-2.5 hover:bg-[#b08d57] transition-colors disabled:opacity-40"
       >
         {submitting ? "Submitting..." : "Submit Review"}
       </button>

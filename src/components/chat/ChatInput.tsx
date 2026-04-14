@@ -157,7 +157,7 @@ export function ChatInput({
             type="button"
             onClick={send}
             disabled={!canSend}
-            className="letterpress flex items-center gap-1.5 border border-[#1a1a1a] bg-[#1a1a1a] px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-[#f0ece2] transition-colors hover:border-[#8b0000] hover:bg-[#8b0000] disabled:cursor-not-allowed disabled:opacity-25"
+            className="letterpress flex items-center gap-1.5 border border-[#1a1a1a] bg-[#1a1a1a] px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-[#f0ece2] transition-colors hover:border-[#b08d57] hover:bg-[#b08d57] disabled:cursor-not-allowed disabled:opacity-25"
           >
             Send
             <CornerDownLeft size={11} />

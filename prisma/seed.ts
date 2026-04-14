@@ -24,16 +24,6 @@ async function main() {
     },
   });
 
-  // --- Community creator (for variety) ---
-  const community1 = await prisma.user.create({
-    data: {
-      privyId: "did:privy:seed-sentinel-002",
-      displayName: "0xSentinel",
-      email: "sentinel@dojo.maiat.io",
-      walletAddress: "0x0000000000000000000053656e74696e656c3031", // "Sentinel01" — valid 20-byte hex placeholder
-    },
-  });
-
   // --- Buyer (for reviews / E2E testing) ---
   const buyer1 = await prisma.user.create({
     data: {
@@ -44,545 +34,11 @@ async function main() {
   });
 
   // ---------------------------------------------------------------------------
-  // Skills — SKILL.md format: fileContent = inline SKILL.md, endpointUrl = optional
+  // Skills — only real skills with working internal endpoints
   // ---------------------------------------------------------------------------
 
   const skills = await Promise.all([
-    // 1. DeFi Yield Optimizer (passive, $2.00)
-    prisma.skill.create({
-      data: {
-        name: "DeFi Yield Optimizer",
-        description:
-          "Scans 12+ DeFi protocols across Ethereum, Base, and Arbitrum to find the highest risk-adjusted APY.",
-        category: "Trading",
-        icon: "⚡",
-        skillType: "passive",
-        gatewaySlug: "defi-yield-optimizer",
-        price: 2.0,
-        rating: 4.9,
-        installs: 4821,
-        tags: "yield,farming,apy,defi,optimization",
-        fileType: "markdown",
-        fileContent: `# DeFi Yield Optimizer
-
-## Overview
-You are a DeFi yield optimization agent. Continuously monitor and recommend the best yield opportunities across multiple protocols and chains.
-
-## Supported Protocols
-- **Ethereum**: Aave V3, Compound V3, Lido, Rocket Pool, Curve, Convex, Yearn
-- **Base**: Aave V3, Compound V3, Aerodrome, Extra Finance
-- **Arbitrum**: Aave V3, GMX, Radiant, Pendle
-
-## Instructions
-
-### Yield Scanning
-When asked to find yield opportunities:
-1. Query each protocol's current APY for the specified asset
-2. Factor in base APY, reward token APY (convert to USD), and protocol risk score
-3. Calculate risk-adjusted yield: \`APY * (risk_score / 100)\`
-4. Return top 5 opportunities sorted by risk-adjusted yield
-
-### Risk Scoring
-\`\`\`
-Risk Score = audit_score (0-40) + tvl_score (0-30) + time_score (0-30)
-
-audit_score:  Multiple top-firm audits = 40, Single = 30, Community = 15, None = 0
-tvl_score:    >$1B = 30, >$100M = 20, >$10M = 10, <$10M = 5
-time_score:   >2yr = 30, >1yr = 20, >6mo = 10, <6mo = 5
-\`\`\`
-
-### Rebalance Recommendations
-Monitor positions and recommend rebalancing when:
-- Yield differential >2% APY
-- Risk score changes significantly
-- Better opportunity in same risk tier
-
-### Output Format
-\`\`\`json
-{
-  "opportunities": [
-    {
-      "protocol": "Aave V3",
-      "chain": "Base",
-      "asset": "USDC",
-      "apy": 5.2,
-      "risk_score": 95,
-      "risk_adjusted_apy": 4.94,
-      "recommendation": "STRONG BUY"
-    }
-  ]
-}
-\`\`\`
-
-## API Keys Required
-- ALCHEMY_API_KEY or INFURA_API_KEY for RPC
-- DEFILLAMA_API (free, no key needed)
-`,
-        isGated: true,
-        creatorId: platform.id,
-      },
-    }),
-
-    // 2. Smart Contract Auditor (passive, $5.00)
-    prisma.skill.create({
-      data: {
-        name: "Smart Contract Auditor",
-        description:
-          "Performs automated security analysis on Solidity contracts — reentrancy, access control, oracle manipulation, and more.",
-        category: "Security",
-        icon: "🛡️",
-        skillType: "passive",
-        gatewaySlug: "smart-contract-auditor",
-        price: 5.0,
-        rating: 4.9,
-        installs: 980,
-        tags: "audit,security,solidity,vulnerabilities,smart-contracts",
-        fileType: "markdown",
-        fileContent: `# Smart Contract Auditor
-
-## Overview
-You are a smart contract security auditor agent. Identify vulnerabilities in Solidity contracts and provide detailed remediation guidance.
-
-## Vulnerability Detection
-
-### Critical
-1. **Reentrancy** — External calls before state updates. Fix: CEI pattern + ReentrancyGuard.
-2. **Access Control** — Missing modifiers on sensitive functions. Fix: OpenZeppelin AccessControl.
-3. **Oracle Manipulation** — Single-block price reads. Fix: Chainlink / TWAP 30+ min.
-
-### High
-4. **Flash Loan Attacks** — Price-dependent logic without guards. Fix: block-based delays.
-5. **Unchecked Return Values** — ERC20 transfer without bool check. Fix: SafeERC20.
-6. **Integer Overflow** — Pre-0.8.0 unchecked math. Fix: Upgrade to 0.8.x.
-
-### Medium
-7. **Front-running** — TX ordering dependence. Fix: commit-reveal.
-8. **Centralization** — Single admin key, no timelock. Fix: Multisig + governance.
-
-## Audit Process
-\`\`\`
-1. SCOPE — Identify entry points, token flows, external deps
-2. SCAN — Run Slither + Mythril
-3. MANUAL — Apply vulnerability patterns, check business logic
-4. REPORT — Severity (C/H/M/L/Info) + File:Line + Description + Fix + PoC
-\`\`\`
-
-## Output Format
-\`\`\`markdown
-## [CRITICAL] Reentrancy in withdraw()
-
-**File:** Vault.sol:142
-**Description:** Transfers ETH before updating balance.
-**Fix:** Apply CEI pattern + nonReentrant modifier.
-**Severity Justification:** Direct fund loss possible.
-\`\`\`
-`,
-        isGated: true,
-        creatorId: platform.id,
-      },
-    }),
-
-    // 3. Twitter Alpha Scanner (passive, $1.50)
-    prisma.skill.create({
-      data: {
-        name: "Twitter Alpha Scanner",
-        description:
-          "Monitors crypto Twitter in real-time, extracting actionable alpha from KOLs, developers, and on-chain sleuths.",
-        skillType: "passive",
-        gatewaySlug: "twitter-alpha-scanner",
-        category: "Content",
-        icon: "🐦",
-        price: 1.5,
-        rating: 4.7,
-        installs: 3890,
-        tags: "twitter,alpha,social,sentiment,kol,news",
-        fileType: "markdown",
-        fileContent: `# Twitter Alpha Scanner
-
-## Overview
-You are a crypto Twitter intelligence agent. Monitor, filter, and extract actionable trading signals from social media.
-
-## Account Tiers
-- **Tier 1 (100% reliability):** Core protocol devs, @samczsun, @transmissions11
-- **Tier 2 (70% reliability):** Respected analysts, @lookonchain, verified fund managers
-- **Tier 3 (50% reliability):** CT influencers 100k+. Requires cross-reference.
-
-## Signal Detection
-
-### Developer Activity
-- TRIGGER: Core dev tweets protocol update
-- SIGNAL: Price movement 24-48h
-- ACTION: Monitor GitHub commits, check testnet
-- CONFIDENCE: HIGH
-
-### Whale Wallet Mentions
-- TRIGGER: @lookonchain posts wallet movements
-- SIGNAL: Large position change
-- ACTION: Cross-reference on-chain data
-- CONFIDENCE: MEDIUM-HIGH
-
-### Coordinated Shill Detection
-- WARNING: Multiple accounts posting same token <1hr, new accounts, identical hashtags
-- ACTION: Flag as potential pump, do NOT follow
-
-## Sentiment Scoring
-\`\`\`
-score = (positive * weight * recency - negative * weight * recency) / total
-weight: Tier 1 = 3x, Tier 2 = 2x, Tier 3 = 1x
-recency: <1h = 1.0, <6h = 0.7, <24h = 0.4, >24h = 0.1
-\`\`\`
-
-## API Requirements
-- TWITTER_BEARER_TOKEN (Twitter API v2)
-`,
-        isGated: true,
-        creatorId: community1.id,
-      },
-    }),
-
-    // 4. On-Chain Forensics (passive, $3.00)
-    prisma.skill.create({
-      data: {
-        name: "On-Chain Forensics",
-        description:
-          "Traces fund flows, identifies wallet clusters, and detects suspicious patterns across EVM chains.",
-        category: "Security",
-        icon: "🔍",
-        skillType: "passive",
-        gatewaySlug: "onchain-forensics",
-        price: 3.0,
-        rating: 4.8,
-        installs: 2310,
-        tags: "forensics,investigation,tracing,wallets,compliance",
-        fileType: "markdown",
-        fileContent: `# On-Chain Forensics
-
-## Overview
-You are a blockchain forensics agent. Trace fund flows, identify wallet clusters, and detect suspicious on-chain activity.
-
-## Core Capabilities
-
-### Transaction Tracing
-1. Fetch all outgoing transactions from source
-2. Recursively trace each recipient
-3. Mark known entities (exchanges, contracts, mixers)
-4. Build transaction graph
-
-### Wallet Clustering
-Signals: same funding source, consistent timing, same contract interactions, dust consolidation, ENS/social links.
-- DEFINITE: Same funding + identical patterns
-- LIKELY: 3+ matching signals
-- POSSIBLE: 1-2 signals
-
-### Entity Identification
-Known databases: Binance/Coinbase/Kraken wallets, protocol treasuries, bridge contracts, Tornado Cash/Railgun, OFAC list.
-
-### Suspicious Patterns
-1. Rapid fund splitting (>10 addresses <1hr)
-2. Mixer interaction within 24h of large inflow
-3. Bridge hopping (>2 chains <6hr)
-4. Dormant wallet activation after hack
-
-## Investigation Workflow
-\`\`\`
-1. Initial Assessment — balance, tx count, first/last activity, labels
-2. Transaction Analysis — categorize transfers/swaps/calls, find counterparties
-3. Cluster Expansion — apply clustering, expand related addresses
-4. Timeline — chronological activity, correlate external events
-5. Report — executive summary, cluster map, flow diagram, risk score
-\`\`\`
-
-## API Requirements
-- ALCHEMY_API_KEY or ETHERSCAN_API_KEY
-- Optional: ARKHAM_API_KEY for enhanced labeling
-`,
-        isGated: true,
-        creatorId: platform.id,
-      },
-    }),
-
-    // 5. Gas Fee Predictor (active, $0.002/call)
-    prisma.skill.create({
-      data: {
-        name: "Gas Fee Predictor",
-        description:
-          "Predicts optimal gas prices using mempool analysis. Reduces transaction costs by up to 40%.",
-        category: "Infra",
-        icon: "⛽",
-        price: 0.002,
-        rating: 4.6,
-        installs: 1540,
-        tags: "gas,optimization,mempool,eip1559",
-        skillType: "active",
-        endpointUrl: process.env.NEXT_PUBLIC_APP_URL
-          ? `${process.env.NEXT_PUBLIC_APP_URL}/api/skills-internal/price`
-          : "http://localhost:3000/api/skills-internal/price",
-        gatewaySlug: "gas-predictor",
-        pricePerCall: 0.002,
-        fileType: "markdown",
-        fileContent: `# Gas Fee Predictor
-
-## Overview
-You are a gas optimization agent. Predict optimal gas prices and recommend the best times to execute transactions.
-
-## Supported Chains
-Ethereum, Base, Arbitrum, Polygon, Optimism, BSC
-
-## EIP-1559 Model
-\`\`\`
-Total Fee = (Base Fee + Priority Fee) * Gas Used
-
-Priority by urgency:
-  instant:  P90 of recent priority fees
-  fast:     P75
-  standard: P50
-  slow:     P25
-\`\`\`
-
-## Gas Estimates by TX Type
-- Simple transfer: 21,000
-- ERC20 transfer: ~65,000
-- Uniswap swap: ~150,000-300,000
-- NFT mint: ~100,000-500,000
-
-## Endpoint
-POST /v1/predict
-\`\`\`json
-{ "chain": "ethereum", "urgency": "standard", "tx_type": "swap" }
-\`\`\`
-
-Response:
-\`\`\`json
-{
-  "base_fee_gwei": 25.4,
-  "priority_fee_gwei": 0.5,
-  "max_fee_gwei": 40,
-  "estimated_wait_seconds": 24,
-  "best_time_today": "03:00-06:00 UTC (30% lower expected)"
-}
-\`\`\`
-
-## Notes
-Free skill. Uses public RPC endpoints. For high-frequency use, provide your own RPC URL.
-`,
-        isGated: false,
-        creatorId: platform.id,
-      },
-    }),
-
-    // 6. MEV Shield (passive, $2.50)
-    prisma.skill.create({
-      data: {
-        name: "MEV Shield",
-        description:
-          "Protects transactions from sandwich attacks and front-running using private mempools and intelligent routing.",
-        category: "DeFi",
-        icon: "🔒",
-        skillType: "passive",
-        gatewaySlug: "mev-shield",
-        price: 2.5,
-        rating: 4.5,
-        installs: 762,
-        tags: "mev,protection,flashbots,sandwich,frontrunning",
-        fileType: "markdown",
-        fileContent: `# MEV Shield
-
-## Overview
-You are an MEV protection agent. Protect user transactions from sandwich attacks, front-running, and other MEV extraction.
-
-## Attack Types
-
-### Sandwich Attack
-Attacker front-runs with buy (raises price) → your swap at worse price → attacker back-runs with sell.
-
-### Front-Running
-Attacker copies your profitable tx, submits with higher gas, gets included first.
-
-### JIT Liquidity
-Attacker adds liquidity before your swap, captures fees, removes after.
-
-## Protection Strategies
-
-### 1. Private Mempool
-Submit via Flashbots Protect or MEV Blocker. TX goes directly to block builders, never visible in public mempool.
-
-### 2. Slippage Calculation
-\`\`\`
-safe_slippage = base_price_impact + sandwich_cost_estimate + 0.1%
-Rule: Never set slippage higher than necessary. High slippage = invitation to sandwich.
-\`\`\`
-
-### 3. Transaction Simulation
-Before submitting: simulate with eth_call, check output matches expectation, simulate with front-run present.
-
-### 4. Intelligent Routing
-- Get quotes from multiple DEXs
-- Split large trades across venues
-- Prefer private/dark pools for size
-- Use limit orders when possible
-
-## Decision Matrix
-- HIGH MEV risk → Flashbots private submission
-- MEDIUM → MEV Blocker
-- LOW → Public with tight slippage
-
-## API Requirements
-- FLASHBOTS_AUTH_KEY
-- RPC with eth_sendPrivateTransaction support
-`,
-        isGated: true,
-        creatorId: platform.id,
-      },
-    }),
-
-    // 7. Sentiment Analyzer (active, $1.00)
-    prisma.skill.create({
-      data: {
-        name: "Sentiment Analyzer",
-        description:
-          "Aggregates sentiment from social media, news, and on-chain data to gauge market mood for any token.",
-        category: "Analytics",
-        icon: "📊",
-        price: 1.0,
-        rating: 4.4,
-        installs: 1203,
-        tags: "sentiment,analytics,social,market,signals",
-        skillType: "active",
-        endpointUrl: process.env.NEXT_PUBLIC_APP_URL
-          ? `${process.env.NEXT_PUBLIC_APP_URL}/api/skills-internal/echo`
-          : "http://localhost:3000/api/skills-internal/echo",
-        gatewaySlug: "sentiment-analyzer",
-        pricePerCall: 0.01,
-        fileType: "markdown",
-        fileContent: `# Sentiment Analyzer
-
-## Overview
-You are a market sentiment analysis agent. Aggregate and interpret signals from multiple sources to provide actionable market intelligence.
-
-## Data Sources
-- **Social:** Twitter/X, Reddit, Discord, Telegram
-- **News:** CoinDesk, The Block, Decrypt, protocol blogs
-- **On-chain:** Active addresses, tx volumes, exchange flows, whale movements
-
-## Scoring Model
-\`\`\`python
-def calculate_sentiment(token):
-    social   = aggregate_social(token)   * 0.40  # 40% weight
-    news     = aggregate_news(token)     * 0.25  # 25% weight
-    onchain  = calc_onchain(token)       * 0.35  # 35% weight
-    score = social + news + onchain  # -100 to +100
-
-    if score > 50:  return "EXTREME_GREED"
-    if score > 20:  return "GREED"
-    if score > -20: return "NEUTRAL"
-    if score > -50: return "FEAR"
-    return "EXTREME_FEAR"
-\`\`\`
-
-## Endpoint
-POST /v1/analyze
-\`\`\`json
-{ "token": "ETH", "timeframe": "24h" }
-\`\`\`
-
-Response:
-\`\`\`json
-{
-  "token": "ETH",
-  "score": 42,
-  "classification": "GREED",
-  "momentum": "+8 (trending up)",
-  "breakdown": {
-    "social": 55,
-    "news": 38,
-    "onchain": 35
-  },
-  "signals": [
-    "Exchange outflows suggest accumulation",
-    "Social momentum positive and accelerating"
-  ]
-}
-\`\`\`
-
-## API Requirements
-- TWITTER_BEARER_TOKEN
-- Optional: REDDIT_API_KEY, NANSEN_API_KEY
-`,
-        isGated: true,
-        creatorId: community1.id,
-      },
-    }),
-
-    // 8. Polymarket Arbitrage (passive, $3.50)
-    prisma.skill.create({
-      data: {
-        name: "Polymarket Arbitrage",
-        description:
-          "Identifies mispriced prediction market contracts and executes cross-platform arbitrage opportunities.",
-        category: "Trading",
-        icon: "🎯",
-        skillType: "passive",
-        gatewaySlug: "polymarket-arbitrage",
-        price: 3.5,
-        rating: 4.3,
-        installs: 445,
-        tags: "polymarket,arbitrage,predictions,betting,trading",
-        fileType: "markdown",
-        fileContent: `# Polymarket Arbitrage
-
-## Overview
-You are a prediction market arbitrage agent. Identify mispriced contracts across platforms and execute profitable strategies.
-
-## Supported Platforms
-- **Polymarket** (crypto-native, USDC)
-- **Kalshi** (US regulated, USD)
-- **Manifold** (play money, signal only)
-
-## Arbitrage Types
-
-### Same-Event Cross-Platform
-\`\`\`
-Polymarket "Event X" Yes = $0.52
-Kalshi "Event X" Yes = $0.48
-
-Buy Yes on Kalshi @ $0.48 + Buy No on Polymarket @ $0.48 (1-0.52)
-Total cost: $0.96, Guaranteed payout: $1.00, Profit: 4.2%
-
-Only profitable if: profit > (gas + trading fees + slippage)
-\`\`\`
-
-### Correlated Events
-If P(B|A) from historical data differs significantly from market-implied P(B), there's an edge.
-
-### Multi-Outcome Overround
-Sum of all outcome prices > 100% = market's edge. Find markets with lower overround.
-
-## Execution Workflow
-1. IDENTIFY — Scan platforms for price discrepancies >2%
-2. VALIDATE — Confirm events are equivalent, check settlement rules, verify liquidity
-3. SIZE — Max position based on liquidity, account for capital lockup
-4. EXECUTE — Simultaneous limit orders on both sides
-5. MONITOR — Track until settlement
-6. SETTLE — Claim winnings, record P&L
-
-## Risk Management
-\`\`\`
-MAX_POSITION_PER_EVENT: 5% of portfolio
-MAX_PLATFORM_EXPOSURE: 20% of portfolio
-MIN_PROFIT_THRESHOLD: 2% after fees
-MAX_SETTLEMENT_TIME: 90 days
-\`\`\`
-
-## API Requirements
-- POLYMARKET_API_KEY
-- KALSHI_API_KEY (requires US identity)
-`,
-        isGated: true,
-        creatorId: community1.id,
-      },
-    }),
-
-    // 9. Token Price Oracle (active, $0.005/call)
+    // 1. Token Price Oracle (active, $0.005/call)
     prisma.skill.create({
       data: {
         name: "Token Price Oracle",
@@ -791,62 +247,200 @@ POST /v1/echo
       },
     }),
 
-    // 11. Knowledge Wiki Generator (passive, FREE)
+    // 3. Web Scraper (active, $0.003/call — Jina Reader)
     prisma.skill.create({
       data: {
-        name: "Knowledge Wiki Generator",
+        name: "Web Scraper",
         description:
-          "Transforms raw notes, documents, and conversations into a structured personal wiki. Theme-driven atomic entries with [[wikilinks]] so knowledge compounds over time. Writer-not-filer philosophy: you capture, the wiki connects.",
-        category: "Productivity",
-        icon: "📚",
-        skillType: "passive",
-        gatewaySlug: "knowledge-wiki-generator",
-        price: 0.0,
-        rating: 4.9,
+          "Converts any public URL into clean structured markdown. Powered by Jina Reader. Essential for agent RAG pipelines, research, and content extraction.",
+        category: "Infra",
+        icon: "🌐",
+        price: 0.003,
+        rating: 4.8,
         installs: 0,
-        tags: "wiki,knowledge,notes,productivity,writing",
+        tags: "scrape,web,markdown,research,rag,jina",
+        skillType: "active",
+        endpointUrl: process.env.NEXT_PUBLIC_APP_URL
+          ? `${process.env.NEXT_PUBLIC_APP_URL}/api/skills-internal/scrape`
+          : "http://localhost:3000/api/skills-internal/scrape",
+        gatewaySlug: "web-scraper",
+        pricePerCall: 0.003,
+        executionKind: "sync",
+        inputShape: "form",
+        outputShape: "json",
+        estLatencyMs: 2000,
+        sandboxable: true,
+        authRequired: false,
+        inputSchema: JSON.stringify({
+          type: "object",
+          required: ["url"],
+          properties: {
+            url: {
+              type: "string",
+              title: "URL",
+              description: "Public URL to scrape",
+              default: "https://example.com",
+            },
+          },
+        }),
+        outputSchema: JSON.stringify({
+          type: "object",
+          properties: {
+            url: { type: "string" },
+            title: { type: "string" },
+            description: { type: "string" },
+            content: { type: "string" },
+            word_count: { type: "number" },
+            timestamp: { type: "string", format: "date-time" },
+          },
+        }),
+        exampleInput: JSON.stringify({ url: "https://example.com" }),
+        exampleOutput: JSON.stringify({
+          url: "https://example.com",
+          title: "Example Domain",
+          description: "",
+          content: "# Example Domain\n\nThis domain is for use in illustrative examples.",
+          word_count: 12,
+          timestamp: "2026-04-13T00:00:00.000Z",
+        }),
         fileType: "markdown",
-        fileContent: `# Knowledge Wiki Generator
+        fileContent: `# Web Scraper
 
-A skill for building a compounding personal knowledge base. Theme-driven, atomic-entry format with [[wikilinks]].
+## What it does
+Converts any public URL into clean structured markdown via Jina Reader. No browser required, no API key needed.
 
-**Philosophy:** Writer-not-filer. Capture raw, the wiki connects structure.
-
-## Commands
-
-### /wiki ingest <source>
-Absorbs a document, conversation, or URL into the pipeline. Extracts key concepts, generates atomic entries, links to existing nodes.
-
-### /wiki absorb
-Processes the ingest queue. Converts raw captures into structured wiki entries with themes and [[wikilinks]].
-
-### /wiki query <question>
-Semantic search across the wiki. Returns matching entries with their connections and the reasoning path.
-
-### /wiki cleanup
-Audits for orphaned entries, duplicate concepts, and stale nodes. Suggests merges and pruning.
-
-### /wiki breakdown <topic>
-Decomposes a broad topic into atomic sub-entries. One entry = one concept, no more.
-
-### /wiki rebuild-index
-Regenerates the master index of all themes, entry titles, and the [[wikilink]] graph.
-
-## Entry format
-\`\`\`markdown
-## <Concept Title>
-<One clear sentence defining the concept.>
-
-**Why it matters:** <connection to practice>
-**Related:** [[linked-concept-1]] [[linked-concept-2]]
-**Source:** <origin document or date>
+## Usage
+\`\`\`
+POST /v1/scrape
+{ "url": "https://example.com" }
 \`\`\`
 
-## Principles
-- Atomic: one entry = one concept
-- Linked: every entry connects to at least one other
-- Themed: cluster by concept, not by date
-- Compounding: the wiki gets more useful with every capture
+## Response
+\`\`\`json
+{
+  "url": "https://example.com",
+  "title": "Example Domain",
+  "content": "# Example Domain\\n\\n...",
+  "word_count": 482,
+  "timestamp": "2026-04-13T00:00:00Z"
+}
+\`\`\`
+
+## Use cases
+- Agent RAG: scrape docs into context before answering
+- Research pipelines: extract content for summarization
+- Monitoring: detect changes on web pages
+`,
+        isGated: false,
+        creatorId: platform.id,
+      },
+    }),
+
+    // 4. Web Search (active, $0.005/call — Jina Search)
+    prisma.skill.create({
+      data: {
+        name: "Web Search",
+        description:
+          "Returns structured search results for any query. Powered by Jina Search. Essential for agents that need up-to-date information beyond their training data.",
+        category: "Infra",
+        icon: "🔎",
+        price: 0.005,
+        rating: 4.7,
+        installs: 0,
+        tags: "search,web,research,rag,jina,realtime",
+        skillType: "active",
+        endpointUrl: process.env.NEXT_PUBLIC_APP_URL
+          ? `${process.env.NEXT_PUBLIC_APP_URL}/api/skills-internal/search`
+          : "http://localhost:3000/api/skills-internal/search",
+        gatewaySlug: "web-search",
+        pricePerCall: 0.005,
+        executionKind: "sync",
+        inputShape: "form",
+        outputShape: "json",
+        estLatencyMs: 1500,
+        sandboxable: true,
+        authRequired: false,
+        inputSchema: JSON.stringify({
+          type: "object",
+          required: ["query"],
+          properties: {
+            query: {
+              type: "string",
+              title: "Search Query",
+              description: "What to search for",
+              default: "BNB price today",
+            },
+            max_results: {
+              type: "number",
+              title: "Max Results",
+              description: "Number of results to return (1-10)",
+              default: 5,
+            },
+          },
+        }),
+        outputSchema: JSON.stringify({
+          type: "object",
+          properties: {
+            query: { type: "string" },
+            results: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  title: { type: "string" },
+                  url: { type: "string" },
+                  description: { type: "string" },
+                  content: { type: "string" },
+                },
+              },
+            },
+            result_count: { type: "number" },
+            timestamp: { type: "string", format: "date-time" },
+          },
+        }),
+        exampleInput: JSON.stringify({ query: "BNB price today", max_results: 3 }),
+        exampleOutput: JSON.stringify({
+          query: "BNB price today",
+          results: [
+            { title: "BNB Price | CoinGecko", url: "https://coingecko.com/en/coins/bnb", description: "BNB live price...", content: "" },
+          ],
+          result_count: 1,
+          timestamp: "2026-04-13T00:00:00.000Z",
+        }),
+        fileType: "markdown",
+        fileContent: `# Web Search
+
+## What it does
+Returns structured search results for any query via Jina Search. Keeps agents grounded in current reality.
+
+## Usage
+\`\`\`
+POST /v1/search
+{ "query": "BNB price today", "max_results": 5 }
+\`\`\`
+
+## Response
+\`\`\`json
+{
+  "query": "BNB price today",
+  "results": [
+    {
+      "title": "BNB Price | CoinGecko",
+      "url": "https://coingecko.com/en/coins/bnb",
+      "description": "BNB live price, charts, and market data.",
+      "content": "..."
+    }
+  ],
+  "result_count": 5,
+  "timestamp": "2026-04-13T00:00:00Z"
+}
+\`\`\`
+
+## Use cases
+- Real-time price lookups
+- News and event monitoring
+- Fact-checking before acting
+- Research pipelines
 `,
         isGated: false,
         creatorId: platform.id,
@@ -903,31 +497,28 @@ Regenerates the master index of all themes, entry titles, and the [[wikilink]] g
   });
 
   // --- Equip skills ---
-  // Ronin: Yield Optimizer, Gas Predictor, MEV Shield, Forensics
+  // skills[0] = Token Price Oracle, [1] = Echo Test, [2] = Web Scraper, [3] = Web Search
+  // Ronin: Token Price Oracle + Web Search
   await prisma.agentSkill.createMany({
     data: [
       { agentId: ronin.id, skillId: skills[0].id },
-      { agentId: ronin.id, skillId: skills[4].id },
-      { agentId: ronin.id, skillId: skills[5].id },
       { agentId: ronin.id, skillId: skills[3].id },
     ],
   });
-  // Sentinel: Auditor, Forensics, Sentiment
+  // Sentinel: Echo Test + Web Scraper
   await prisma.agentSkill.createMany({
     data: [
       { agentId: sentinel.id, skillId: skills[1].id },
-      { agentId: sentinel.id, skillId: skills[3].id },
-      { agentId: sentinel.id, skillId: skills[6].id },
+      { agentId: sentinel.id, skillId: skills[2].id },
     ],
   });
-  // Oracle: Twitter Alpha, Sentiment, Polymarket, Yield, Gas
+  // Oracle: all 4 skills
   await prisma.agentSkill.createMany({
     data: [
-      { agentId: oracle.id, skillId: skills[2].id },
-      { agentId: oracle.id, skillId: skills[6].id },
-      { agentId: oracle.id, skillId: skills[7].id },
       { agentId: oracle.id, skillId: skills[0].id },
-      { agentId: oracle.id, skillId: skills[4].id },
+      { agentId: oracle.id, skillId: skills[1].id },
+      { agentId: oracle.id, skillId: skills[2].id },
+      { agentId: oracle.id, skillId: skills[3].id },
     ],
   });
 
@@ -936,43 +527,37 @@ Regenerates the master index of all themes, entry titles, and the [[wikilink]] g
     data: [
       {
         rating: 5,
-        comment:
-          "Best yield optimizer I've used. Found 12% APY on Aave that I missed.",
+        comment: "Exactly what I needed for real-time BNB price in my agent. Zero setup.",
         userId: buyer1.id,
-        skillId: skills[0].id,
+        skillId: skills[0].id, // Token Price Oracle
       },
       {
         rating: 5,
-        comment:
-          "Caught a reentrancy bug that Slither missed. Worth every penny.",
+        comment: "Used Echo Test to verify my x402 payment headers. Works perfectly.",
         userId: buyer1.id,
-        skillId: skills[1].id,
+        skillId: skills[1].id, // Echo Test
+      },
+      {
+        rating: 5,
+        comment: "Web Scraper saved hours — plugged docs straight into my RAG pipeline.",
+        userId: buyer1.id,
+        skillId: skills[2].id, // Web Scraper
       },
       {
         rating: 4,
-        comment:
-          "Good alpha signals but sometimes slow during high-traffic events.",
+        comment: "Web Search gives my agent real-time context. Results are clean and structured.",
         userId: buyer1.id,
-        skillId: skills[2].id,
+        skillId: skills[3].id, // Web Search
       },
       {
         rating: 5,
-        comment:
-          "Saved me from a sandwich attack on a 50 ETH swap. Paid for itself instantly.",
-        userId: buyer1.id,
-        skillId: skills[5].id,
-      },
-      {
-        rating: 5,
-        comment:
-          "Ronin managed my DeFi positions for a month. Zero incidents, consistent yield.",
+        comment: "Ronin's been running price checks and searches autonomously. Solid.",
         userId: buyer1.id,
         agentId: ronin.id,
       },
       {
         rating: 4,
-        comment:
-          "Sentinel found 3 critical issues in our audit. Thorough but slow on large codebases.",
+        comment: "Sentinel handles the scraping and echo testing for our CI pipeline.",
         userId: buyer1.id,
         agentId: sentinel.id,
       },
@@ -1025,20 +610,13 @@ Regenerates the master index of all themes, entry titles, and the [[wikilink]] g
     ],
   });
 
-  console.log("✅ Seed complete — SKILL.md + endpoint format");
+  console.log("✅ Seed complete — real skills only");
   console.log("   - 3 users (platform + community + buyer)");
-  console.log("   - 11 skills (SKILL.md as fileContent):");
-  console.log("     1.  DeFi Yield Optimizer      (passive, $2.00)");
-  console.log("     2.  Smart Contract Auditor    (passive, $5.00)");
-  console.log("     3.  Twitter Alpha Scanner     (passive, $1.50)");
-  console.log("     4.  On-Chain Forensics        (passive, $3.00)");
-  console.log("     5.  Gas Fee Predictor         (active,  FREE)");
-  console.log("     6.  MEV Shield                (passive, $2.50)");
-  console.log("     7.  Sentiment Analyzer        (active,  $1.00)");
-  console.log("     8.  Polymarket Arbitrage      (passive, $3.50)");
-  console.log("     9.  Token Price Oracle        (active,  FREE)");
-  console.log("    10.  Echo Test                 (active,  FREE)");
-  console.log("    11.  Knowledge Wiki Generator  (passive, FREE)");
+  console.log("   - 4 skills (working internal endpoints):");
+  console.log("     1.  Token Price Oracle  (active, $0.005/call → /api/skills-internal/price)");
+  console.log("     2.  Echo Test           (active, $0.001/call → /api/skills-internal/echo)");
+  console.log("     3.  Web Scraper         (active, $0.003/call → /api/skills-internal/scrape)");
+  console.log("     4.  Web Search          (active, $0.005/call → /api/skills-internal/search)");
   console.log("   - 3 agents + skills equipped");
   console.log("   - 6 reviews + 4 jobs");
 }

@@ -208,7 +208,7 @@ export function SkillExecutor({
           {result && !pending && (
             <span className="ml-2">
               · {result.latencyMs}ms ·{" "}
-              <span className={result.ok ? "text-[#1a1a1a]" : "text-[#8b0000]"}>
+              <span className={result.ok ? "text-[#1a1a1a]" : "text-[#dc2626]"}>
                 {result.ok ? "ok" : `err ${result.status}`}
               </span>
             </span>
@@ -226,7 +226,7 @@ export function SkillExecutor({
         )}
 
         {result && !result.ok && (
-          <div className="border border-[#8b0000] bg-[#fff5f5] p-2 font-mono text-[10px] text-[#8b0000]">
+          <div className="border border-[#dc2626] bg-[#fff5f5] p-2 font-mono text-[10px] text-[#dc2626]">
             {result.error ?? `Sandbox returned status ${result.status}`}
           </div>
         )}

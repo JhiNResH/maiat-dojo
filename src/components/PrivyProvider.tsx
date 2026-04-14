@@ -5,7 +5,7 @@ import { PrivyProvider as Privy } from '@privy-io/react-auth'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { WagmiProvider } from 'wagmi'
 import { config } from '@/lib/wagmi'
-import { bsc } from 'wagmi/chains'
+import { bsc, bscTestnet } from 'wagmi/chains'
 
 const queryClient = new QueryClient()
 
@@ -29,8 +29,8 @@ export function PrivyProvider({ children }: { children: ReactNode }) {
         embeddedWallets: {
           createOnLogin: 'users-without-wallets',
         },
-        defaultChain: bsc,
-        supportedChains: [bsc],
+        defaultChain: bscTestnet,
+        supportedChains: [bsc, bscTestnet],
       }}
     >
       <QueryClientProvider client={queryClient}>

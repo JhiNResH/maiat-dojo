@@ -1,68 +1,91 @@
-# 🥋 Maiat Dojo
+# Maiat Dojo
 
-> *We believe the real ones rise — not the loudest, not the richest, the best.*
+> The real ones rise — not the loudest, not the richest, the best.
 
-**The Agent Skill Marketplace — proof over promise.**
+**Agent Skill Marketplace with On-Chain Reputation Settlement.**
 
-Dojo is the consumer-facing product of the [Maiat Protocol](https://maiat.io), a Reputation Clearing Network for the Agent Economy. Creators publish executable skills, buyers equip them to agents, and every transaction generates verifiable on-chain reputation. No fake reviews. No bought ratings. Just real transactions, real results.
+Dojo is the consumer-facing product of the [Maiat Protocol](https://maiat.io) — a Reputation Clearing Network for the Agent Economy. Agent developers call skills via REST API, every call is evaluated, and settlement happens on-chain via ERC-8183. No fake reviews. No bought ratings. Just real transactions, real results.
 
 ## How It Works
 
 ```
-Creator publishes skill → Buyer pays USDC → ERC-1155 NFT minted → Agent equipped
-                                  ↓
-                    85% Creator / 10% Platform / 5% Reputation Pool
-                                  ↓
-                    EAS Attestation → Trust Score updated
+Agent calls skill via REST API
+        ↓
+POST /api/v1/run { skill: "web-scraper", input: { url: "..." } }
+        ↓
+Dojo proxies to creator endpoint → evaluates (delivered? format? latency?)
+        ↓
+Session closes → gateway-signed closeAndSettle() on BSC
+        ↓
+On-chain: PASS → 95% to creator / FAIL → 100% refund to agent
+        ↓
+BAS attestation + trust score update (atomic, same tx)
 ```
 
-## Features
+## REST API (v1)
 
-### Live ✅
-| Feature | Description |
-|---------|-------------|
-| **Skill Marketplace** | Browse, search, filter by category |
-| **Creator Upload** | Publish skills via `/create` — name, description, category, price, tags |
-| **Buy Flow** | Two-step USDC approval + purchase via SkillNFT contract |
-| **Leaderboard** | Skills ranked by sales, Creators ranked by revenue — no paid rankings |
-| **Creator Profiles** | Numbers only, no bio — proof over promise |
-| **Trust Badges** | Agent trust scores (red/yellow/green) based on performance data |
-| **Micro Evaluator** | Automated skill quality checks (description, tags, price, category) |
-| **Trust Score API** | Open API: `GET /api/trust/[address]` — any third party can query |
-| **EAS Attestation** | Every purchase generates attestation data for on-chain reputation |
-| **Auto User Sync** | Privy login → automatic User record creation |
-| **Seed Data** | 8 real skills pre-loaded for cold start |
+All endpoints at `/api/v1/`. Agent developers need one API key.
 
-### Coming Next 🔜
-| Feature | Description |
-|---------|-------------|
-| **ERC-6551 TBA** | Agent token-bound accounts (wallets that hold skill NFTs) |
-| **EAS Schema Registration** | On-chain attestation schema for skill purchases |
-| **Base Mainnet Deploy** | Move from Sepolia testnet to production |
-| **dojo.maiat.io** | Public launch |
+```bash
+# One-call lifecycle: find skill → create session → call → evaluate → return
+POST /api/v1/run
+  -H "Authorization: Bearer <api_key>"
+  -d '{"skill": "web-scraper", "input": {"url": "https://example.com"}}'
+# → { "result": {...}, "cost": 0.003, "balance": 9.997, "score": 1.0 }
+
+# Check credits
+GET /api/v1/balance
+
+# Deposit testnet credits
+POST /api/v1/deposit  -d '{"amount": 10}'
+
+# Browse skill catalog (public, no auth)
+GET /api/v1/skills
+
+# Query trust score (public, no auth)
+GET /api/v1/reputation?address=0x...
+
+# Manual session close → triggers on-chain settlement
+POST /api/v1/close  -d '{"session_id": "..."}'
+```
+
+## Skills
+
+| Skill | Type | Price/call | Endpoint |
+|-------|------|-----------|----------|
+| Token Price Oracle | active | $0.005 | `/api/skills-internal/price` |
+| Echo Test | active | $0.001 | `/api/skills-internal/echo` |
+| Web Scraper (Jina Reader) | active | $0.003 | `/api/skills-internal/scrape` |
+| Web Search (Jina Search) | active | $0.005 | `/api/skills-internal/search` |
+
+Two skill types: **Active** (pay-per-use via gateway sessions) and **Passive** (buy-to-download).
 
 ## Stack
 
 | Layer | Tech |
 |-------|------|
-| Frontend | Next.js 14, Tailwind CSS, newspaper aesthetic UI |
-| Auth | Privy (email, Google, Apple, wallet) |
+| Frontend | Next.js 14, Tailwind CSS, newspaper aesthetic |
+| Auth | Privy (email, Google, Apple, wallet) + API keys |
 | Database | Prisma + SQLite (→ Postgres in prod) |
-| Wallet | wagmi + viem (Base chain) |
-| Contracts | Solidity 0.8.24, Foundry, OpenZeppelin |
-| Reputation | EAS attestations + TrustScoreOracle |
-| Chain | Base (Coinbase L2) |
+| Chain | BSC (BNB Smart Chain) — testnet 97, mainnet 56 |
+| Contracts | ERC-8183 AgenticCommerceHooked + hooks (Solidity 0.8.24, Foundry) |
+| Settlement | Gateway-signed `closeAndSettle()` — atomic on-chain |
+| Reputation | BAS attestations + TrustScoreOracle |
+| Wallet | viem (server-side relayer for testnet) |
 
-## Contracts
+## Contracts (BSC Testnet)
 
-Deployed on **Base Sepolia** (testnet):
+| Contract | Address |
+|----------|---------|
+| AgenticCommerceHooked | `0xC159C364BFA5E9F3aa2df16538C5080c84188c04` |
+| TrustBasedEvaluator | `0x0F975BFDA1Fdb6f0193c8ce5144FCe90d65BB895` |
+| EvaluatorRegistry | `0x8b6D60e4EdD3A6Bf111ac46b3BaDB11FdAee9921` |
+| TrustGateACPHook | `0x8D95eBb23871649EC4FB63894249c4f62770c2e3` |
+| CompositeRouterHook | `0xF03b4D80d8Ba7c77ABdB2B2d1f194E00D676B4c7` |
+| AgentIdentity (ERC-8004) | `0xbb1d304179bdd577d5ef15fec91a5ba9756a6e41` |
+| DojoTrustScore | `0xC6cF2d59fF2e4EE64bbfcEaad8Dcb9aA3F13c6dA` |
 
-| Contract | Address | Purpose |
-|----------|---------|---------|
-| SkillNFT | [`0x5263...B74`](https://sepolia.basescan.org/address/0x52635F45b087c1059B3a997fb089bae5Db095B74) | ERC-1155 skill tokens + USDC auto-split (85/10/5) |
-| SkillRoyaltySplitter | [`0x98D3...bD8`](https://sepolia.basescan.org/address/0x98D34100F6030DFDc1370fB45dFa1Ad7980D4bD8) | Agent Services payment split (80/15/5) |
-
-56 tests passing (43 unit + 13 fuzz). Audited with Trail of Bits skills + Pashov 8-agent parallel scan.
+206 tests passing. Audited with 8-agent parallel scan (6 findings, all fixed).
 
 ## Getting Started
 
@@ -73,120 +96,60 @@ npm install
 # Database
 npx prisma generate
 npx prisma db push
-npm run seed          # Load 8 starter skills
+npx tsx prisma/seed.ts     # 4 skills + 3 agents + reviews
 
 # Dev server
-npm run dev           # http://localhost:3000
+npm run dev                # http://localhost:3000
 
-# Contracts
-cd contracts
-forge build           # Compile
-forge test            # 56 tests
-make full-testnet     # Deploy + interact on Sepolia
-```
-
-## Project Structure
-
-```
-maiat-dojo/
-├── src/
-│   ├── app/
-│   │   ├── page.tsx              # Homepage — newspaper-style marketplace
-│   │   ├── create/page.tsx       # Creator upload form
-│   │   ├── leaderboard/page.tsx  # Rankings (by sales + revenue)
-│   │   ├── skill/[id]/page.tsx   # Skill detail
-│   │   ├── agent/[id]/page.tsx   # Agent detail + trust badge
-│   │   ├── creator/[id]/page.tsx # Creator profile (data only)
-│   │   └── api/
-│   │       ├── skills/           # CRUD + buy + create + evaluate
-│   │       ├── agents/           # CRUD + create + equip
-│   │       ├── trust/[address]/  # Open Trust Score API
-│   │       ├── creators/[id]/    # Creator aggregate stats
-│   │       ├── leaderboard/      # Rankings data
-│   │       └── users/sync/       # Privy auto-sync
-│   ├── components/
-│   │   ├── BuySkillButton.tsx    # Two-step USDC buy flow
-│   │   ├── TrustBadge.tsx        # Trust score circular badge
-│   │   ├── PrivyProvider.tsx     # Auth + wagmi wrapper
-│   │   └── ReviewForm.tsx        # Skill/agent reviews
-│   ├── hooks/
-│   │   └── useAutoCreateUser.ts  # Auto user creation on Privy login
-│   └── lib/
-│       ├── contracts.ts          # SkillNFT + USDC ABIs
-│       ├── eas.ts                # EAS attestation helpers
-│       ├── erc6551.ts            # TBA Registry utilities
-│       ├── evaluator.ts          # Micro Evaluator (quality checks)
-│       ├── prisma.ts             # Database client
-│       └── wagmi.ts              # Chain config
-├── contracts/
-│   ├── src/                      # SkillNFT.sol, SkillRoyaltySplitter.sol
-│   ├── test/                     # Unit + fuzz tests (56 total)
-│   ├── script/                   # Deploy.s.sol, Interact.s.sol
-│   └── audits/                   # Security audit reports
-├── prisma/
-│   ├── schema.prisma             # User, Skill, Agent, Job, Review, Purchase
-│   └── seed.ts                   # 8 starter skills
-└── Makefile                      # make test, make deploy-testnet, make audit
+# Verify
+curl http://localhost:3000/api/v1/skills
 ```
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                        DOJO (Consumer)                       │
-├─────────────┬──────────────┬─────────────────┬──────────────┤
-│  Marketplace│  Leaderboard │  Creator Upload  │  Trust Badge │
-│  (browse)   │  (rankings)  │  (publish)       │  (verify)    │
-└──────┬──────┴──────┬───────┴────────┬────────┴──────┬───────┘
-       │             │                │               │
-       ▼             ▼                ▼               ▼
 ┌──────────────────────────────────────────────────────────────┐
-│                     API Layer (Next.js)                        │
-│  /api/skills  /api/trust  /api/creators  /api/leaderboard    │
-└──────┬──────────────┬────────────────────────┬───────────────┘
-       │              │                        │
-       ▼              ▼                        ▼
-┌────────────┐ ┌──────────────┐ ┌──────────────────────────────┐
-│  Prisma DB │ │  Micro       │ │  Base Chain                   │
-│  (state)   │ │  Evaluator   │ │  SkillNFT (ERC-1155)         │
-│            │ │  (quality)   │ │  Splitter (royalties)        │
-└────────────┘ └──────────────┘ │  EAS (attestations)          │
-                                │  ERC-6551 TBA (agent wallets)│
-                                └──────────────────────────────┘
-                                           │
-                                           ▼
-                                ┌──────────────────────┐
-                                │  MAIAT REPUTATION     │
-                                │  CLEARING NETWORK     │
-                                │  (Trust Score Oracle)  │
-                                │  Open API for anyone   │
-                                └──────────────────────┘
+│                    AGENT DEVELOPERS                           │
+│              POST /api/v1/run (one HTTP call)                 │
+└──────────────────────┬───────────────────────────────────────┘
+                       │
+                       ▼
+┌──────────────────────────────────────────────────────────────┐
+│                     DOJO (REST API + Chat UI)                 │
+├────────────┬─────────────┬──────────────┬────────────────────┤
+│  /v1/run   │  /v1/skills │  /v1/balance │  /v1/reputation    │
+│  (lifecycle│  (catalog)  │  (credits)   │  (trust score)     │
+└─────┬──────┴──────┬──────┴──────┬───────┴────────┬───────────┘
+      │             │             │                │
+      ▼             ▼             ▼                ▼
+┌──────────┐ ┌────────────┐ ┌──────────┐ ┌────────────────────┐
+│ Creator  │ │  Session   │ │ Prisma   │ │  BSC Chain          │
+│ Endpoint │ │ Evaluator  │ │ DB       │ │  AgenticCommerce    │
+│ (proxy)  │ │ (sanity)   │ │ (state)  │ │  closeAndSettle()   │
+└──────────┘ └────────────┘ └──────────┘ │  BAS (attestations) │
+                                         │  TrustScoreOracle   │
+                                         └─────────┬──────────┘
+                                                    │
+                                                    ▼
+                                         ┌──────────────────────┐
+                                         │  MAIAT REPUTATION     │
+                                         │  CLEARING NETWORK     │
+                                         │  Open API for anyone  │
+                                         └──────────────────────┘
 ```
 
-## API Reference
+## Settlement Flow
 
-### Public APIs (no auth required)
-
-```bash
-# Get trust score for any agent
-GET /api/trust/0xAgentAddress
-
-# Browse skills
-GET /api/skills?q=defi&category=Trading&sort=popular&limit=20
-
-# Leaderboard
-GET /api/leaderboard
-
-# Creator profile
-GET /api/creators/{userId}
-```
+1. Agent calls `POST /api/v1/run` → session auto-created, skill called, evaluated
+2. Session budget exhausted (or manual `POST /api/v1/close`)
+3. Gateway signs evaluation proof (EIP-191): `keccak256(chainId, contract, jobId, score, calls, passRate)`
+4. `closeAndSettle(jobId, score, calls, passRate, signature)` on BSC
+5. Contract verifies signature → settles USDC (PASS: 95% creator / FAIL: 100% refund)
+6. AfterAction hooks fire atomically: BAS attestation + trust score update
 
 ## Links
 
 - **Maiat Protocol**: [maiat.io](https://maiat.io)
-- **Agent Dashboard**: [app.maiat.io](https://app.maiat.io)
-- **Passport**: [passport.maiat.io](https://passport.maiat.io)
-- **ERC-8183 Hooks**: [github.com/anthropics/hook-contracts](https://github.com/anthropics/hook-contracts) (we're the #1 contributor)
 
 ## License
 

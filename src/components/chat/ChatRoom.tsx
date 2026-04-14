@@ -229,7 +229,7 @@ export function ChatRoom() {
           {pending && (
             <div className="mb-8">
               <div className="mb-1.5 flex items-center gap-2">
-                <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-[#8b0000]/70">
+                <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-[#b08d57]/70">
                   Dojo
                 </span>
                 <span className="h-px flex-1 bg-[#1a1a1a]/10" />
