@@ -1,13 +1,15 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { ArrowLeft, Calendar, Network, ShieldCheck, Tag, Wallet, Zap } from 'lucide-react';
 import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
 import { BackgroundEffect } from '@/components/landing/BackgroundEffect';
-import PurchaseCard from '@/components/PurchaseCard';
 import TrustCard from '@/components/TrustCard';
 import SkillSandbox from '@/components/SkillSandbox';
+
+const PurchaseCard = dynamic(() => import('@/components/PurchaseCard'), { ssr: false });
 
 interface SkillData {
   id: string;

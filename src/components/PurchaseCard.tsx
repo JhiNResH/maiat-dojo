@@ -28,6 +28,17 @@ interface PassiveResult {
   fileType: string;
 }
 
+// ─── Style tokens ────────────────────────────────────────────────────────────
+const ink = "text-[var(--text)]";
+const muted = "text-[var(--text-secondary)]";
+const faint = "text-[var(--text-muted)]";
+const fainter = "text-[var(--text-muted)] opacity-70";
+const ruleLight = "border-[var(--border-light)]";
+const btnBg = "bg-[var(--text)] text-[var(--bg)] hover:opacity-80";
+const inputBorder = "border-[var(--border)] bg-[var(--bg-secondary)]";
+const codeBg = "bg-[var(--bg-secondary)] border-[var(--border)]";
+const successBg = "text-[var(--text)] bg-[var(--bg-secondary)] border-[var(--border)]";
+
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 async function getOrCreateAgent(
@@ -71,13 +82,26 @@ async function syncUser(
   });
 }
 
-// ─── Component ───────────────────────────────────────────────────────────────
+function escrowStepLabel(s: EscrowStep): string {
+  switch (s) {
+    case 'preparing': return 'Preparing...';
+    case 'approving': return 'Approve USDC (1/4)...';
+    case 'creating_job': return 'Create Job (2/4)...';
+    case 'setting_budget': return 'Set Budget (3/4)...';
+    case 'funding': return 'Fund Escrow (4/4)...';
+    case 'confirming': return 'Confirming...';
+    default: return 'Fund & Start';
+  }
+}
 
-export default function PurchaseCard({ skill }: Props) {
-  const { ready, authenticated, login, user, getAccessToken } = usePrivy();
+// ─── Active Skill Panel (wagmi hooks live here) ──────────────────────────────
+
+function ActivePurchasePanel({ skill }: Props) {
+  const { user, getAccessToken } = usePrivy();
+  const escrow = useEscrowFund();
+
   const [step, setStep] = useState<Step>("idle");
   const [error, setError] = useState<string | null>(null);
-  const [passiveResult, setPassiveResult] = useState<PassiveResult | null>(null);
   const [closing, setClosing] = useState(false);
   const [budget, setBudget] = useState<string>(
     skill.pricePerCall ? String(Math.max(1, Math.round(skill.pricePerCall * 20))) : "5"
@@ -85,68 +109,6 @@ export default function PurchaseCard({ skill }: Props) {
   const [faucetLoading, setFaucetLoading] = useState(false);
   const [faucetMsg, setFaucetMsg] = useState<string | null>(null);
 
-  // Agent self-pay escrow hook
-  const escrow = useEscrowFund();
-
-  const isPassive = skill.skillType === "passive";
-  const isFree = skill.price === 0;
-
-  const ink = "text-[var(--text)]";
-  const muted = "text-[var(--text-secondary)]";
-  const faint = "text-[var(--text-muted)]";
-  const fainter = "text-[var(--text-muted)] opacity-70";
-  const rule = "border-[var(--border)]";
-  const ruleLight = "border-[var(--border-light)]";
-  const btnBg = "bg-[var(--text)] text-[var(--bg)] hover:opacity-80";
-  const inputBorder = "border-[var(--border)] bg-[var(--bg-secondary)]";
-  const codeBg = "bg-[var(--bg-secondary)] border-[var(--border)]";
-  const successBg = "text-[var(--text)] bg-[var(--bg-secondary)] border-[var(--border)]";
-
-  // ── Passive purchase ──────────────────────────────────────────────────────
-  async function handlePassiveBuy() {
-    setStep("loading");
-    setError(null);
-    try {
-      const token = await getAccessToken();
-      if (!token || !user) throw new Error("Not authenticated");
-
-      await syncUser(user.id, token, {
-        email: user.email?.address ?? undefined,
-        walletAddress: user.wallet?.address ?? undefined,
-        displayName: user.google?.name ?? undefined,
-      });
-
-      // Buy (free)
-      const buyRes = await fetch("/api/skills/buy", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          privyId: user.id,
-          skillId: skill.id,
-          paymentMethod: "free",
-        }),
-      });
-      const buyData = await buyRes.json();
-      if (!buyRes.ok && buyRes.status !== 409) {
-        throw new Error(buyData.error || "Purchase failed");
-      }
-
-      // Fetch content
-      const contentRes = await fetch(`/api/skills/${skill.id}/content`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const contentData = await contentRes.json();
-      if (!contentRes.ok) throw new Error(contentData.error || "Could not fetch content");
-
-      setPassiveResult({ content: contentData.content, fileType: contentData.fileType });
-      setStep("done");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-      setStep("error");
-    }
-  }
-
-  // ── Active: close session ─────────────────────────────────────────────────
   async function handleCloseSessionById(sessionId: string) {
     setClosing(true);
     try {
@@ -166,7 +128,6 @@ export default function PurchaseCard({ skill }: Props) {
     }
   }
 
-  // ── Active: fund escrow via agent wallet ──────────────────────────────────
   async function handleFundSession() {
     setStep("loading");
     setError(null);
@@ -180,7 +141,9 @@ export default function PurchaseCard({ skill }: Props) {
         displayName: user.google?.name ?? undefined,
       });
 
-      const agentId = await getOrCreateAgent(user.id, token, user.google?.name ?? undefined, user.wallet?.address ?? undefined);
+      const agentId = await getOrCreateAgent(
+        user.id, token, user.google?.name ?? undefined, user.wallet?.address ?? undefined
+      );
 
       await escrow.fund({
         agentId,
@@ -194,7 +157,6 @@ export default function PurchaseCard({ skill }: Props) {
     }
   }
 
-  // ── Testnet faucet ──────────────────────────────────────────────────────
   async function handleFaucet() {
     setFaucetLoading(true);
     setFaucetMsg(null);
@@ -209,7 +171,7 @@ export default function PurchaseCard({ skill }: Props) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Faucet failed");
       setFaucetMsg(`${data.amount} USDC sent`);
-      escrow.reset(); // triggers balance refetch on next render
+      escrow.reset();
     } catch (err) {
       setFaucetMsg(err instanceof Error ? err.message : "Faucet error");
     } finally {
@@ -217,72 +179,8 @@ export default function PurchaseCard({ skill }: Props) {
     }
   }
 
-  // Map escrow step to label
-  function escrowStepLabel(s: EscrowStep): string {
-    switch (s) {
-      case 'preparing': return 'Preparing...';
-      case 'approving': return 'Approve USDC (1/4)...';
-      case 'creating_job': return 'Create Job (2/4)...';
-      case 'setting_budget': return 'Set Budget (3/4)...';
-      case 'funding': return 'Fund Escrow (4/4)...';
-      case 'confirming': return 'Confirming...';
-      default: return 'Fund & Start';
-    }
-  }
-
-  // ── Not authenticated ─────────────────────────────────────────────────────
-  if (!ready) return null;
-
-  if (!authenticated) {
-    return (
-      <div className="classified" data-label={isPassive ? "Acquire" : "Use This Skill"}>
-        <p className={`font-serif text-sm ${muted} mb-4`}>
-          Connect your wallet to {isPassive ? "download" : "use"} this skill.
-        </p>
-        <button
-          onClick={login}
-          className={`w-full flex items-center justify-center gap-2 ${btnBg} font-mono text-xs uppercase tracking-wider py-3 transition-colors`}
-        >
-          <LogIn size={12} />
-          Connect Wallet
-        </button>
-      </div>
-    );
-  }
-
-  // ── Done: passive ─────────────────────────────────────────────────────────
-  if (step === "done" && isPassive && passiveResult) {
-    return (
-      <div className="classified" data-label="Downloaded">
-        <div className={`text-xs font-mono ${successBg} border-l-2 px-2 py-1 mb-4`}>
-          ✓ Content delivered
-        </div>
-        <button
-          onClick={() => {
-            const blob = new Blob([passiveResult.content], { type: "text/plain" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `${skill.name.replace(/\s+/g, "-").toLowerCase()}.md`;
-            a.click();
-            URL.revokeObjectURL(url);
-          }}
-          className={`w-full ${btnBg} font-mono text-xs uppercase tracking-wider py-3 transition-colors mb-2`}
-        >
-          Download .md
-        </button>
-        <button
-          onClick={() => { setStep("idle"); setPassiveResult(null); }}
-          className={`w-full font-mono text-[10px] ${faint} hover:opacity-100 transition-colors py-1`}
-        >
-          View again
-        </button>
-      </div>
-    );
-  }
-
-  // ── Done: active (escrow funded by agent wallet) ──────────────────────────
-  if (escrow.step === "done" && !isPassive && escrow.result) {
+  // ── Done: active (escrow funded) ────────────────────────────────────────
+  if (escrow.step === "done" && escrow.result) {
     const ar = escrow.result;
     return (
       <div className="classified" data-label="Session Active">
@@ -320,42 +218,11 @@ export default function PurchaseCard({ skill }: Props) {
         </p>
 
         <button
-          onClick={() => {
-            // Close uses the escrow result's sessionId
-            handleCloseSessionById(ar.sessionId);
-          }}
+          onClick={() => handleCloseSessionById(ar.sessionId)}
           disabled={closing}
           className={`w-full font-mono text-[10px] ${faint} hover:opacity-80 transition-colors py-1 border border-dotted ${ruleLight} disabled:opacity-40`}
         >
           {closing ? "Closing…" : "Close Session & Refund"}
-        </button>
-      </div>
-    );
-  }
-
-  // ── Passive: buy form ─────────────────────────────────────────────────────
-  if (isPassive) {
-    return (
-      <div className="classified" data-label="Acquire">
-        <div className="mb-3">
-          <span className={`font-mono font-bold text-3xl ${ink}`}>
-            {isFree ? "Free" : `$${skill.price.toFixed(2)}`}
-          </span>
-        </div>
-        <p className={`font-mono text-[10px] ${muted} mb-4 pb-3 border-b border-dotted ${ruleLight}`}>
-          One-time · Instant delivery · .md file
-        </p>
-
-        {step === "error" && error && (
-          <p className="font-mono text-[10px] text-red-500 mb-3">{error}</p>
-        )}
-
-        <button
-          onClick={handlePassiveBuy}
-          disabled={step === "loading"}
-          className={`w-full ${btnBg} font-mono text-xs uppercase tracking-wider py-3 transition-colors disabled:opacity-40`}
-        >
-          {step === "loading" ? "Preparing…" : "Download Free"}
         </button>
       </div>
     );
@@ -383,7 +250,6 @@ export default function PurchaseCard({ skill }: Props) {
         Agent-funded · ERC-8183 on-chain escrow
       </p>
 
-      {/* USDC Balance */}
       {escrow.walletAddress && (
         <div className={`flex justify-between items-center mb-3 pb-2 border-b border-dotted ${ruleLight}`}>
           <span className={`font-mono text-[10px] ${faint} uppercase tracking-wider`}>USDC Balance</span>
@@ -393,7 +259,6 @@ export default function PurchaseCard({ skill }: Props) {
         </div>
       )}
 
-      {/* Budget input */}
       <div className="mb-4">
         <label className={`font-mono text-[10px] uppercase tracking-wider ${faint} block mb-1.5`}>
           Budget (USD)
@@ -417,7 +282,6 @@ export default function PurchaseCard({ skill }: Props) {
         )}
       </div>
 
-      {/* Escrow progress */}
       {isEscrowBusy && (
         <div className={`mb-3 ${codeBg} border p-2`}>
           <div className={`font-mono text-[10px] ${ink} mb-1`}>
@@ -435,7 +299,6 @@ export default function PurchaseCard({ skill }: Props) {
         </div>
       )}
 
-      {/* Errors */}
       {(step === "error" || escrow.step === "error") && (error || escrow.error) && (
         <p className="font-mono text-[10px] text-red-500 mb-3">{escrow.error || error}</p>
       )}
@@ -448,7 +311,6 @@ export default function PurchaseCard({ skill }: Props) {
         {isEscrowBusy ? escrowStepLabel(escrow.step) : "Fund & Start"}
       </button>
 
-      {/* Testnet faucet */}
       {escrow.walletAddress && (
         <button
           onClick={handleFaucet}
@@ -469,4 +331,140 @@ export default function PurchaseCard({ skill }: Props) {
       </div>
     </div>
   );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
+export default function PurchaseCard({ skill }: Props) {
+  const { ready, authenticated, login, user, getAccessToken } = usePrivy();
+  const [step, setStep] = useState<Step>("idle");
+  const [error, setError] = useState<string | null>(null);
+  const [passiveResult, setPassiveResult] = useState<PassiveResult | null>(null);
+
+  const isPassive = skill.skillType === "passive";
+  const isFree = skill.price === 0;
+
+  async function handlePassiveBuy() {
+    setStep("loading");
+    setError(null);
+    try {
+      const token = await getAccessToken();
+      if (!token || !user) throw new Error("Not authenticated");
+
+      await syncUser(user.id, token, {
+        email: user.email?.address ?? undefined,
+        walletAddress: user.wallet?.address ?? undefined,
+        displayName: user.google?.name ?? undefined,
+      });
+
+      const buyRes = await fetch("/api/skills/buy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          privyId: user.id,
+          skillId: skill.id,
+          paymentMethod: "free",
+        }),
+      });
+      const buyData = await buyRes.json();
+      if (!buyRes.ok && buyRes.status !== 409) {
+        throw new Error(buyData.error || "Purchase failed");
+      }
+
+      const contentRes = await fetch(`/api/skills/${skill.id}/content`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const contentData = await contentRes.json();
+      if (!contentRes.ok) throw new Error(contentData.error || "Could not fetch content");
+
+      setPassiveResult({ content: contentData.content, fileType: contentData.fileType });
+      setStep("done");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+      setStep("error");
+    }
+  }
+
+  // ── Not ready ─────────────────────────────────────────────────────────────
+  if (!ready) return null;
+
+  // ── Not authenticated ─────────────────────────────────────────────────────
+  if (!authenticated) {
+    return (
+      <div className="classified" data-label={isPassive ? "Acquire" : "Use This Skill"}>
+        <p className={`font-serif text-sm ${muted} mb-4`}>
+          Connect your wallet to {isPassive ? "download" : "use"} this skill.
+        </p>
+        <button
+          onClick={login}
+          className={`w-full flex items-center justify-center gap-2 ${btnBg} font-mono text-xs uppercase tracking-wider py-3 transition-colors`}
+        >
+          <LogIn size={12} />
+          Connect Wallet
+        </button>
+      </div>
+    );
+  }
+
+  // ── Passive: done ─────────────────────────────────────────────────────────
+  if (step === "done" && isPassive && passiveResult) {
+    return (
+      <div className="classified" data-label="Downloaded">
+        <div className={`text-xs font-mono ${successBg} border-l-2 px-2 py-1 mb-4`}>
+          ✓ Content delivered
+        </div>
+        <button
+          onClick={() => {
+            const blob = new Blob([passiveResult.content], { type: "text/plain" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `${skill.name.replace(/\s+/g, "-").toLowerCase()}.md`;
+            a.click();
+            URL.revokeObjectURL(url);
+          }}
+          className={`w-full ${btnBg} font-mono text-xs uppercase tracking-wider py-3 transition-colors mb-2`}
+        >
+          Download .md
+        </button>
+        <button
+          onClick={() => { setStep("idle"); setPassiveResult(null); }}
+          className={`w-full font-mono text-[10px] ${faint} hover:opacity-100 transition-colors py-1`}
+        >
+          View again
+        </button>
+      </div>
+    );
+  }
+
+  // ── Passive: form ─────────────────────────────────────────────────────────
+  if (isPassive) {
+    return (
+      <div className="classified" data-label="Acquire">
+        <div className="mb-3">
+          <span className={`font-mono font-bold text-3xl ${ink}`}>
+            {isFree ? "Free" : `$${skill.price.toFixed(2)}`}
+          </span>
+        </div>
+        <p className={`font-mono text-[10px] ${muted} mb-4 pb-3 border-b border-dotted ${ruleLight}`}>
+          One-time · Instant delivery · .md file
+        </p>
+
+        {step === "error" && error && (
+          <p className="font-mono text-[10px] text-red-500 mb-3">{error}</p>
+        )}
+
+        <button
+          onClick={handlePassiveBuy}
+          disabled={step === "loading"}
+          className={`w-full ${btnBg} font-mono text-xs uppercase tracking-wider py-3 transition-colors disabled:opacity-40`}
+        >
+          {step === "loading" ? "Preparing…" : "Download Free"}
+        </button>
+      </div>
+    );
+  }
+
+  // ── Active: delegate to panel with wagmi hooks ────────────────────────────
+  return <ActivePurchasePanel skill={skill} />;
 }
