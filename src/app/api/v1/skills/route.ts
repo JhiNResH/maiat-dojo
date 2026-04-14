@@ -1,9 +1,16 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
-const prisma = new PrismaClient();
+function safeJsonParse(value: string | null): unknown {
+  if (!value) return null;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+}
 
 /**
  * GET /api/v1/skills
@@ -46,8 +53,8 @@ export async function GET() {
     latency_ms: s.estLatencyMs,
     input_shape: s.inputShape,
     output_shape: s.outputShape,
-    example_input: s.exampleInput ? JSON.parse(s.exampleInput) : null,
-    example_output: s.exampleOutput ? JSON.parse(s.exampleOutput) : null,
+    example_input: safeJsonParse(s.exampleInput),
+    example_output: safeJsonParse(s.exampleOutput),
   }));
 
   return NextResponse.json({ skills: result, count: result.length });

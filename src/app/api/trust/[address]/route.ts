@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { calculateTrustScore } from "@/lib/trust-score";
 
 export const dynamic = "force-dynamic";
 
@@ -98,7 +99,6 @@ async function calculateAndReturnTrustScore(
       : 0;
 
   // Count attestations (purchases with attestationUid for skills created by this agent's owner)
-  // For MVP, we count purchases that have an attestationUid
   const attestationCount = await prisma.purchase.count({
     where: {
       attestationUid: { not: null },
@@ -112,44 +112,38 @@ async function calculateAndReturnTrustScore(
     },
   });
 
-  // Calculate trust score components
-  const successRateComponent = agent.successRate * 0.4; // 0-40 points
-  const ratingComponent = (avgRating / 5) * 0.3; // 0-30 points
-  const jobsComponent = (Math.min(agent.jobsCompleted, 100) / 100) * 0.2; // 0-20 points
-  const attestationComponent = (Math.min(attestationCount, 50) / 50) * 0.1; // 0-10 points
-
-  // Final score (0-100)
-  const trustScore =
-    (successRateComponent + ratingComponent + jobsComponent + attestationComponent) * 100;
-
-  // Round to 2 decimal places
-  const roundedScore = Math.round(trustScore * 100) / 100;
+  const { score, breakdown } = calculateTrustScore({
+    successRate: agent.successRate,
+    avgRating,
+    jobsCompleted: agent.jobsCompleted,
+    attestationCount,
+  });
 
   return NextResponse.json({
     address,
-    trustScore: roundedScore,
+    trustScore: score,
     breakdown: {
       successRate: {
         value: agent.successRate,
         weight: 0.4,
-        contribution: Math.round(successRateComponent * 100 * 100) / 100,
+        contribution: breakdown.successRate,
       },
       avgRating: {
         value: Math.round(avgRating * 100) / 100,
         weight: 0.3,
-        contribution: Math.round(ratingComponent * 100 * 100) / 100,
+        contribution: breakdown.rating,
       },
       jobsCompleted: {
         value: agent.jobsCompleted,
         cappedAt: 100,
         weight: 0.2,
-        contribution: Math.round(jobsComponent * 100 * 100) / 100,
+        contribution: breakdown.jobs,
       },
       attestationCount: {
         value: attestationCount,
         cappedAt: 50,
         weight: 0.1,
-        contribution: Math.round(attestationComponent * 100 * 100) / 100,
+        contribution: breakdown.attestations,
       },
     },
     attestationCount,
