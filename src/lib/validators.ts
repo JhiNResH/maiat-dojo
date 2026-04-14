@@ -45,7 +45,16 @@ export async function parseBody<T>(
   const result = schema.safeParse(raw);
   if (!result.success) {
     const messages = result.error.errors.map(
-      (e: ZodError['errors'][number]) => `${e.path.join('.')}: ${e.message}`,
+      (e: ZodError['errors'][number]) => {
+        const field = e.path.length > 0 ? e.path.join('.') : 'body';
+        // Generic messages — don't leak schema internals (constraints, field hints)
+        if (e.code === 'invalid_type' && e.received === 'undefined') {
+          return `${field}: required`;
+        }
+        if (e.code === 'too_small') return `${field}: too short or too small`;
+        if (e.code === 'too_big') return `${field}: too large`;
+        return `${field}: invalid`;
+      },
     );
     return {
       success: false,

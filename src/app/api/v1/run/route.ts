@@ -250,15 +250,18 @@ export async function POST(req: NextRequest) {
   }
 
   // --- Auto-close: settle session when budget exhausted ---
-  // Use known cost from the atomic updateMany above instead of a stale re-read.
-  // The budget was atomically decremented at line 214, so we can compute the
-  // effective remaining directly, eliminating one DB round-trip + race window.
+  // Re-read after transaction to get the actual post-decrement value.
+  // session.budgetRemaining is a pre-transaction snapshot that doesn't reflect
+  // concurrent decrements — using it would miss auto-settle under concurrency.
   let settleTriggered = false;
   if (shouldCharge) {
-    const effectiveRemaining = session.budgetRemaining - cost;
-    if (effectiveRemaining < pricePerCall) {
+    const latest = await prisma.session.findUnique({
+      where: { id: session.id },
+      select: { budgetRemaining: true },
+    });
+    if (latest && latest.budgetRemaining < pricePerCall) {
       settleTriggered = true;
-      // Fire-and-forget: settle session in background
+      // Fire-and-forget: settle session in background (idempotent)
       void settleSession(session.id).catch((err) => {
         logError('v1/run:settle', err, { sessionId: session.id });
       });
