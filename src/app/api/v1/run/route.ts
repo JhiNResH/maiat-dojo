@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
 import { evaluateCall } from '@/lib/session-evaluator';
+import { settleSession } from '@/lib/settle-session';
+import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
-
-const prisma = new PrismaClient();
 
 /**
  * POST /api/v1/run
@@ -257,6 +256,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 
+  // --- Auto-close: settle session when budget exhausted ---
+  let settleTriggered = false;
+  if (shouldCharge) {
+    const updatedSession = await prisma.session.findUnique({
+      where: { id: session.id },
+      select: { budgetRemaining: true, pricePerCall: true },
+    });
+
+    if (updatedSession && updatedSession.budgetRemaining < updatedSession.pricePerCall) {
+      settleTriggered = true;
+      // Fire-and-forget: settle session in background
+      void settleSession(session.id).catch((err) => {
+        console.error('[v1/run] background settle failed:', err);
+      });
+    }
+  }
+
   // --- Parse creator response ---
   let result: unknown = creatorBody;
   try {
@@ -285,5 +301,6 @@ export async function POST(req: NextRequest) {
     score: evalResult.score,
     session_id: session.id,
     latency_ms: latencyMs,
+    ...(settleTriggered && { settle_triggered: true }),
   });
 }
