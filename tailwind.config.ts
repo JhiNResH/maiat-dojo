@@ -8,6 +8,7 @@ const config: Config = {
       fontFamily: {
         sans: ["var(--font-sans)", "Inter", "system-ui", "sans-serif"],
         mono: ["var(--font-mono)", "JetBrains Mono", "Fira Code", "monospace"],
+        serif: ["var(--font-serif)", "Playfair Display", "Georgia", "serif"],
       },
     },
   },

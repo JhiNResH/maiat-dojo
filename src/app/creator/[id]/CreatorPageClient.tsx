@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Calendar, DollarSign, ShieldCheck, Star, TrendingUp } from 'lucide-react';
-import { useDarkMode } from '@/app/DarkModeContext';
 import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
 import { BackgroundEffect } from '@/components/landing/BackgroundEffect';
@@ -45,11 +44,7 @@ export default function CreatorPageClient({
   totalRevenue,
   refundRate,
 }: Props) {
-  const { isDark } = useDarkMode();
-
-  const glassCard = isDark
-    ? 'border-white/[0.06] bg-white/[0.03]'
-    : 'border-black/[0.06] bg-white/60';
+  const glassCard = 'border border-[var(--border)] bg-[var(--card-bg)]';
 
   const glassStyle = {
     backdropFilter: 'blur(40px) saturate(180%)',
@@ -64,13 +59,7 @@ export default function CreatorPageClient({
   ];
 
   return (
-    <div
-      className="min-h-screen atmosphere transition-colors duration-700"
-      style={{
-        background: isDark ? '#0A0A0A' : '#fafaf7',
-        color: isDark ? '#ededed' : '#0a0a0a',
-      }}
-    >
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors duration-700">
       <BackgroundEffect />
       <Navbar />
 
@@ -78,9 +67,7 @@ export default function CreatorPageClient({
         <div className="max-w-6xl mx-auto">
           <Link
             href="/"
-            className={`inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] mb-10 transition-opacity hover:opacity-70 ${
-              isDark ? 'text-gray-400' : 'text-gray-500'
-            }`}
+            className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] mb-10 transition-opacity hover:opacity-70 text-[var(--text-muted)]"
           >
             <ArrowLeft className="w-3 h-3" />
             Back to marketplace
@@ -88,38 +75,17 @@ export default function CreatorPageClient({
 
           {/* Header */}
           <header className="flex items-start gap-6 mb-12">
-            <div
-              className="w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold text-white shrink-0"
-              style={{
-                backgroundColor: `hsl(${
-                  ((creator.id?.charCodeAt(0) ?? 0) * 37) % 360
-                }, 60%, 50%)`,
-              }}
-            >
+            <div className="w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold shrink-0 bg-[var(--bg-secondary)] text-[var(--text)]">
               {(creator.displayName || '?')[0].toUpperCase()}
             </div>
             <div className="min-w-0">
-              <span
-                className={`inline-block text-[9px] font-bold uppercase tracking-[0.2em] px-3 py-1.5 rounded-full border mb-3 ${
-                  isDark
-                    ? 'border-white/10 bg-white/5 text-gray-400'
-                    : 'border-black/10 bg-white/60 text-gray-500'
-                }`}
-              >
+              <span className="inline-block text-[9px] font-bold uppercase tracking-[0.2em] px-3 py-1.5 rounded-full border mb-3 border-[var(--border)] bg-[var(--card-bg)] text-[var(--text-muted)]">
                 Creator profile
               </span>
-              <h1
-                className={`font-sans font-semibold text-4xl md:text-6xl tracking-[-0.03em] leading-[0.95] mb-3 ${
-                  isDark ? 'text-white' : 'text-black'
-                }`}
-              >
+              <h1 className="font-sans font-semibold text-4xl md:text-6xl tracking-[-0.03em] leading-[0.95] mb-3 text-[var(--text)]">
                 {creator.displayName || 'Anonymous'}
               </h1>
-              <div
-                className={`flex items-center gap-3 text-sm ${
-                  isDark ? 'text-gray-400' : 'text-gray-500'
-                }`}
-              >
+              <div className="flex items-center gap-3 text-sm text-[var(--text-muted)]">
                 <span className="font-mono tabular-nums">
                   {truncateAddress(creator.walletAddress)}
                 </span>
@@ -146,24 +112,12 @@ export default function CreatorPageClient({
                   style={glassStyle}
                 >
                   <div className="flex items-center justify-between mb-3">
-                    <Icon
-                      className={`w-3.5 h-3.5 ${
-                        isDark ? 'text-gray-500' : 'text-gray-400'
-                      }`}
-                    />
+                    <Icon className="w-3.5 h-3.5 text-[var(--text-muted)]" />
                   </div>
-                  <div
-                    className={`font-mono text-2xl font-bold tabular-nums ${
-                      isDark ? 'text-white' : 'text-black'
-                    }`}
-                  >
+                  <div className="font-mono text-2xl font-bold tabular-nums text-[var(--text)]">
                     {stat.value}
                   </div>
-                  <div
-                    className={`text-[9px] font-bold uppercase tracking-[0.2em] mt-1 ${
-                      isDark ? 'text-gray-500' : 'text-gray-400'
-                    }`}
-                  >
+                  <div className="text-[9px] font-bold uppercase tracking-[0.2em] mt-1 text-[var(--text-muted)]">
                     {stat.label}
                   </div>
                 </motion.div>
@@ -177,28 +131,16 @@ export default function CreatorPageClient({
             style={glassStyle}
           >
             <div className="flex items-center justify-between mb-6">
-              <div
-                className={`text-[10px] font-bold uppercase tracking-[0.3em] ${
-                  isDark ? 'text-gray-500' : 'text-gray-400'
-                }`}
-              >
+              <div className="text-[10px] font-bold uppercase tracking-[0.3em] text-[var(--text-muted)]">
                 Published skills
               </div>
-              <div
-                className={`font-mono text-xs tabular-nums ${
-                  isDark ? 'text-gray-500' : 'text-gray-400'
-                }`}
-              >
+              <div className="font-mono text-xs tabular-nums text-[var(--text-muted)]">
                 {creator.skills.length}
               </div>
             </div>
 
             {creator.skills.length === 0 ? (
-              <p
-                className={`text-sm italic ${
-                  isDark ? 'text-gray-500' : 'text-gray-400'
-                }`}
-              >
+              <p className="text-sm italic text-[var(--text-muted)]">
                 No skills published yet.
               </p>
             ) : (
@@ -212,59 +154,27 @@ export default function CreatorPageClient({
                   >
                     <Link
                       href={`/skill/${skill.id}`}
-                      className={`group block rounded-2xl p-5 border transition-all hover:scale-[1.01] ${
-                        isDark
-                          ? 'border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04]'
-                          : 'border-black/[0.06] bg-white/40 hover:bg-white/70'
-                      }`}
+                      className="group block rounded-2xl p-5 border transition-all hover:opacity-80 border-[var(--border-light)] bg-[var(--bg-secondary)]"
                     >
                       <div className="flex items-start gap-3 mb-3">
                         <span className="text-2xl">{skill.icon || '⚡'}</span>
                         <div className="flex-1 min-w-0">
-                          <div
-                            className={`font-sans font-semibold text-sm truncate ${
-                              isDark ? 'text-white' : 'text-black'
-                            }`}
-                          >
+                          <div className="font-sans font-semibold text-sm truncate text-[var(--text)]">
                             {skill.name}
                           </div>
-                          <div
-                            className={`text-[9px] font-bold uppercase tracking-[0.15em] mt-0.5 ${
-                              isDark ? 'text-gray-500' : 'text-gray-400'
-                            }`}
-                          >
+                          <div className="text-[9px] font-bold uppercase tracking-[0.15em] mt-0.5 text-[var(--text-muted)]">
                             {skill.category || 'Uncategorized'}
                           </div>
                         </div>
                       </div>
-                      <p
-                        className={`text-xs leading-relaxed line-clamp-2 mb-4 ${
-                          isDark ? 'text-gray-400' : 'text-gray-600'
-                        }`}
-                      >
+                      <p className="text-xs leading-relaxed line-clamp-2 mb-4 text-[var(--text-secondary)]">
                         {skill.description || '—'}
                       </p>
-                      <div
-                        className={`flex items-center justify-between pt-3 border-t ${
-                          isDark ? 'border-white/[0.06]' : 'border-black/[0.06]'
-                        }`}
-                      >
-                        <div
-                          className={`font-mono text-[10px] tabular-nums ${
-                            isDark ? 'text-gray-500' : 'text-gray-400'
-                          }`}
-                        >
+                      <div className="flex items-center justify-between pt-3 border-t border-[var(--border-light)]">
+                        <div className="font-mono text-[10px] tabular-nums text-[var(--text-muted)]">
                           {skill.installs.toLocaleString()} installs
                         </div>
-                        <div
-                          className={`font-mono text-xs font-bold tabular-nums ${
-                            skill.price === 0
-                              ? 'text-emerald-500'
-                              : isDark
-                              ? 'text-white'
-                              : 'text-black'
-                          }`}
-                        >
+                        <div className="font-mono text-xs font-bold tabular-nums text-[var(--text)]">
                           {skill.price === 0 ? 'FREE' : `$${skill.price.toFixed(2)}`}
                         </div>
                       </div>

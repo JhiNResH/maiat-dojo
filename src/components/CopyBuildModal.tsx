@@ -203,8 +203,8 @@ export default function CopyBuildModal({
               {missingSkills.length > 0 && (
                 <div>
                   <div className="flex items-center gap-2 mb-3">
-                    <ShoppingCart size={14} className="text-[#8b0000]" />
-                    <h3 className="font-mono text-xs uppercase tracking-wider text-[#8b0000] font-bold">
+                    <ShoppingCart size={14} className="text-[#b08d57]" />
+                    <h3 className="font-mono text-xs uppercase tracking-wider text-[#b08d57] font-bold">
                       You Need ({missingSkills.length})
                     </h3>
                   </div>
@@ -249,8 +249,8 @@ export default function CopyBuildModal({
 
               {/* Error message */}
               {error && (
-                <div className="mt-4 p-3 bg-[#8b0000]/10 border border-[#8b0000]/20">
-                  <p className="font-mono text-xs text-[#8b0000]">{error}</p>
+                <div className="mt-4 p-3 bg-[#dc2626]/10 border border-[#dc2626]/20">
+                  <p className="font-mono text-xs text-[#dc2626]">{error}</p>
                 </div>
               )}
             </>

@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ArrowRight, Wallet, Activity, DollarSign, ShieldCheck } from 'lucide-react';
 import { usePrivy } from '@privy-io/react-auth';
-import { useDarkMode } from '@/app/DarkModeContext';
 import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
 import { BackgroundEffect } from '@/components/landing/BackgroundEffect';
@@ -50,7 +49,6 @@ interface DashboardData {
 }
 
 export default function DashboardPage() {
-  const { isDark } = useDarkMode();
   const { ready, authenticated, user, getAccessToken } = usePrivy();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -80,9 +78,7 @@ export default function DashboardPage() {
       .finally(() => setLoading(false));
   }, [ready, authenticated, user, getAccessToken]);
 
-  const glassCard = isDark
-    ? 'border-white/[0.06] bg-white/[0.03]'
-    : 'border-black/[0.06] bg-white/60';
+  const glassCard = 'border border-[var(--border)] bg-[var(--card-bg)]';
 
   const glassStyle = {
     backdropFilter: 'blur(40px) saturate(180%)',
@@ -90,36 +86,20 @@ export default function DashboardPage() {
   } as const;
 
   return (
-    <div
-      className="min-h-screen atmosphere transition-colors duration-700"
-      style={{
-        background: isDark ? '#0A0A0A' : '#fafaf7',
-        color: isDark ? '#ededed' : '#0a0a0a',
-      }}
-    >
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors duration-700">
       <BackgroundEffect />
       <Navbar />
 
       <main className="relative pt-32 pb-20 px-6">
         <div className="max-w-6xl mx-auto">
           <div className="mb-12">
-            <div
-              className={`text-[10px] font-bold uppercase tracking-[0.3em] mb-3 ${
-                isDark ? 'text-gray-500' : 'text-gray-400'
-              }`}
-            >
+            <div className="text-[10px] font-bold uppercase tracking-[0.3em] mb-3 text-[var(--text-muted)]">
               Dashboard
             </div>
-            <h1
-              className={`font-sans font-semibold text-4xl md:text-6xl tracking-[-0.03em] leading-[0.95] ${
-                isDark ? 'text-white' : 'text-black'
-              }`}
-            >
+            <h1 className="font-sans font-semibold text-4xl md:text-6xl tracking-[-0.03em] leading-[0.95] text-[var(--text)]">
               Your sessions,
               <br />
-              <span className={isDark ? 'text-gray-500' : 'text-gray-400'}>
-                on-chain.
-              </span>
+              <span className="text-[var(--text-muted)]">on-chain.</span>
             </h1>
           </div>
 
@@ -128,32 +108,16 @@ export default function DashboardPage() {
               className={`rounded-3xl p-16 text-center border ${glassCard}`}
               style={glassStyle}
             >
-              <Wallet
-                className={`w-12 h-12 mx-auto mb-5 ${
-                  isDark ? 'text-gray-500' : 'text-gray-400'
-                }`}
-              />
-              <p
-                className={`text-base mb-2 ${
-                  isDark ? 'text-gray-300' : 'text-gray-600'
-                }`}
-              >
+              <Wallet className="w-12 h-12 mx-auto mb-5 text-[var(--text-muted)]" />
+              <p className="text-base mb-2 text-[var(--text-secondary)]">
                 Connect your wallet to view your dashboard.
               </p>
-              <p
-                className={`text-xs ${
-                  isDark ? 'text-gray-500' : 'text-gray-400'
-                }`}
-              >
+              <p className="text-xs text-[var(--text-muted)]">
                 Use the Connect button in the top-right corner.
               </p>
             </div>
           ) : loading ? (
-            <div
-              className={`text-center py-20 text-sm font-mono animate-pulse ${
-                isDark ? 'text-gray-500' : 'text-gray-400'
-              }`}
-            >
+            <div className="text-center py-20 text-sm font-mono animate-pulse text-[var(--text-muted)]">
               Loading dashboard…
             </div>
           ) : error ? (
@@ -161,11 +125,7 @@ export default function DashboardPage() {
               className={`rounded-3xl p-16 text-center border ${glassCard}`}
               style={glassStyle}
             >
-              <p
-                className={`text-base ${
-                  isDark ? 'text-gray-300' : 'text-gray-600'
-                }`}
-              >
+              <p className="text-base text-[var(--text-secondary)]">
                 {error === '404' ? 'No data found for this wallet.' : `Error: ${error}`}
               </p>
             </div>
@@ -174,25 +134,21 @@ export default function DashboardPage() {
               {/* Summary stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <StatCard
-                  isDark={isDark}
                   icon={ShieldCheck}
                   label="Identity"
                   value={data.user.erc8004TokenId ? `#${data.user.erc8004TokenId}` : 'Not minted'}
                 />
                 <StatCard
-                  isDark={isDark}
                   icon={Wallet}
                   label="KYA Level"
                   value={String(data.user.kyaLevel)}
                 />
                 <StatCard
-                  isDark={isDark}
                   icon={DollarSign}
                   label={data.role === 'creator' ? 'Earnings' : 'Spent'}
                   value={`$${(data.role === 'creator' ? data.creator.totalEarnings : data.agent.totalSpent).toFixed(2)}`}
                 />
                 <StatCard
-                  isDark={isDark}
                   icon={Activity}
                   label="Total calls"
                   value={String(data.role === 'creator' ? data.creator.callCount : data.agent.callCount)}
@@ -206,18 +162,12 @@ export default function DashboardPage() {
                   style={glassStyle}
                 >
                   <div className="flex items-center justify-between mb-6">
-                    <div
-                      className={`text-[10px] font-bold uppercase tracking-[0.3em] ${
-                        isDark ? 'text-gray-500' : 'text-gray-400'
-                      }`}
-                    >
+                    <div className="text-[10px] font-bold uppercase tracking-[0.3em] text-[var(--text-muted)]">
                       Your skills · {data.creator.skillCount} created
                     </div>
                     <Link
                       href="/create"
-                      className={`inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.2em] hover:opacity-70 transition-opacity ${
-                        isDark ? 'text-gray-400' : 'text-gray-500'
-                      }`}
+                      className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.2em] hover:opacity-70 transition-opacity text-[var(--text-muted)]"
                     >
                       List new
                       <ArrowRight className="w-3 h-3" />
@@ -228,35 +178,19 @@ export default function DashboardPage() {
                       <Link
                         key={skill.id}
                         href={`/skill/${skill.id}`}
-                        className={`flex items-center justify-between p-4 rounded-2xl border transition-all hover:opacity-80 ${
-                          isDark
-                            ? 'border-white/[0.04] bg-white/[0.02]'
-                            : 'border-black/[0.04] bg-black/[0.02]'
-                        }`}
+                        className="flex items-center justify-between p-4 rounded-2xl border transition-all hover:opacity-80 border-[var(--border-light)] bg-[var(--bg-secondary)]"
                       >
                         <div className="flex items-baseline gap-3 min-w-0">
-                          <span
-                            className={`font-sans font-semibold text-base truncate ${
-                              isDark ? 'text-white' : 'text-black'
-                            }`}
-                          >
+                          <span className="font-sans font-semibold text-base truncate text-[var(--text)]">
                             {skill.name}
                           </span>
                           {skill.slug && (
-                            <span
-                              className={`font-mono text-[10px] tabular-nums ${
-                                isDark ? 'text-gray-500' : 'text-gray-400'
-                              }`}
-                            >
+                            <span className="font-mono text-[10px] tabular-nums text-[var(--text-muted)]">
                               /{skill.slug}
                             </span>
                           )}
                         </div>
-                        <div
-                          className={`font-mono text-xs tabular-nums shrink-0 ${
-                            isDark ? 'text-gray-400' : 'text-gray-500'
-                          }`}
-                        >
+                        <div className="font-mono text-xs tabular-nums shrink-0 text-[var(--text-muted)]">
                           {skill.sessionCount} sessions · ${skill.pricePerCall?.toFixed(2) ?? 'FREE'}/call
                         </div>
                       </Link>
@@ -271,11 +205,7 @@ export default function DashboardPage() {
                   className={`rounded-3xl p-8 border transition-colors duration-700 ${glassCard}`}
                   style={glassStyle}
                 >
-                  <div
-                    className={`text-[10px] font-bold uppercase tracking-[0.3em] mb-6 ${
-                      isDark ? 'text-gray-500' : 'text-gray-400'
-                    }`}
-                  >
+                  <div className="text-[10px] font-bold uppercase tracking-[0.3em] mb-6 text-[var(--text-muted)]">
                     Your agents · {data.agent.agents.length} owned
                   </div>
                   <div className="space-y-2">
@@ -283,24 +213,12 @@ export default function DashboardPage() {
                       <Link
                         key={agent.id}
                         href={`/agent/${agent.id}`}
-                        className={`flex items-center justify-between p-4 rounded-2xl border transition-all hover:opacity-80 ${
-                          isDark
-                            ? 'border-white/[0.04] bg-white/[0.02]'
-                            : 'border-black/[0.04] bg-black/[0.02]'
-                        }`}
+                        className="flex items-center justify-between p-4 rounded-2xl border transition-all hover:opacity-80 border-[var(--border-light)] bg-[var(--bg-secondary)]"
                       >
-                        <span
-                          className={`font-sans font-semibold text-base ${
-                            isDark ? 'text-white' : 'text-black'
-                          }`}
-                        >
+                        <span className="font-sans font-semibold text-base text-[var(--text)]">
                           {agent.name}
                         </span>
-                        <div
-                          className={`font-mono text-xs tabular-nums ${
-                            isDark ? 'text-gray-400' : 'text-gray-500'
-                          }`}
-                        >
+                        <div className="font-mono text-xs tabular-nums text-[var(--text-muted)]">
                           Trust {agent.trustScore ?? '–'} · {agent.sessionCount} sessions
                         </div>
                       </Link>
@@ -314,17 +232,12 @@ export default function DashboardPage() {
                 className={`rounded-3xl p-8 border transition-colors duration-700 ${glassCard}`}
                 style={glassStyle}
               >
-                <div
-                  className={`text-[10px] font-bold uppercase tracking-[0.3em] mb-6 ${
-                    isDark ? 'text-gray-500' : 'text-gray-400'
-                  }`}
-                >
+                <div className="text-[10px] font-bold uppercase tracking-[0.3em] mb-6 text-[var(--text-muted)]">
                   Recent sessions
                 </div>
                 <SessionTable
                   sessions={data.role === 'creator' ? data.creator.recentSessions : data.agent.recentSessions}
                   viewAs={data.role}
-                  isDark={isDark}
                 />
               </section>
             </div>
@@ -338,12 +251,10 @@ export default function DashboardPage() {
 }
 
 function StatCard({
-  isDark,
   icon: Icon,
   label,
   value,
 }: {
-  isDark: boolean;
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: string;
@@ -353,35 +264,19 @@ function StatCard({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className={`rounded-2xl p-5 border transition-colors duration-700 ${
-        isDark
-          ? 'border-white/[0.06] bg-white/[0.03]'
-          : 'border-black/[0.06] bg-white/60'
-      }`}
+      className="rounded-2xl p-5 border transition-colors duration-700 border-[var(--border)] bg-[var(--card-bg)]"
       style={{
         backdropFilter: 'blur(40px) saturate(180%)',
         WebkitBackdropFilter: 'blur(40px) saturate(180%)',
       }}
     >
       <div className="flex items-center justify-between mb-3">
-        <Icon
-          className={`w-4 h-4 ${
-            isDark ? 'text-gray-500' : 'text-gray-400'
-          }`}
-        />
-        <span
-          className={`text-[9px] font-bold uppercase tracking-[0.2em] ${
-            isDark ? 'text-gray-500' : 'text-gray-400'
-          }`}
-        >
+        <Icon className="w-4 h-4 text-[var(--text-muted)]" />
+        <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-[var(--text-muted)]">
           {label}
         </span>
       </div>
-      <div
-        className={`font-mono text-xl md:text-2xl font-bold tabular-nums ${
-          isDark ? 'text-white' : 'text-black'
-        }`}
-      >
+      <div className="font-mono text-xl md:text-2xl font-bold tabular-nums text-[var(--text)]">
         {value}
       </div>
     </motion.div>
@@ -391,19 +286,13 @@ function StatCard({
 function SessionTable({
   sessions,
   viewAs,
-  isDark,
 }: {
   sessions: SessionRow[];
   viewAs: 'creator' | 'agent';
-  isDark: boolean;
 }) {
   if (sessions.length === 0) {
     return (
-      <p
-        className={`text-sm text-center py-10 ${
-          isDark ? 'text-gray-500' : 'text-gray-400'
-        }`}
-      >
+      <p className="text-sm text-center py-10 text-[var(--text-muted)]">
         No sessions yet.
       </p>
     );
@@ -413,58 +302,26 @@ function SessionTable({
     <div className="overflow-x-auto -mx-2">
       <table className="w-full font-mono text-xs">
         <thead>
-          <tr
-            className={`border-b ${
-              isDark ? 'border-white/10' : 'border-black/10'
-            }`}
-          >
-            <th
-              className={`text-left py-3 px-3 font-semibold uppercase tracking-wider text-[10px] ${
-                isDark ? 'text-gray-500' : 'text-gray-400'
-              }`}
-            >
+          <tr className="border-b border-[var(--border)]">
+            <th className="text-left py-3 px-3 font-semibold uppercase tracking-wider text-[10px] text-[var(--text-muted)]">
               Date
             </th>
-            <th
-              className={`text-left py-3 px-3 font-semibold uppercase tracking-wider text-[10px] ${
-                isDark ? 'text-gray-500' : 'text-gray-400'
-              }`}
-            >
+            <th className="text-left py-3 px-3 font-semibold uppercase tracking-wider text-[10px] text-[var(--text-muted)]">
               {viewAs === 'creator' ? 'Agent' : 'Skill'}
             </th>
-            <th
-              className={`text-right py-3 px-3 font-semibold uppercase tracking-wider text-[10px] ${
-                isDark ? 'text-gray-500' : 'text-gray-400'
-              }`}
-            >
+            <th className="text-right py-3 px-3 font-semibold uppercase tracking-wider text-[10px] text-[var(--text-muted)]">
               Calls
             </th>
-            <th
-              className={`text-right py-3 px-3 font-semibold uppercase tracking-wider text-[10px] ${
-                isDark ? 'text-gray-500' : 'text-gray-400'
-              }`}
-            >
+            <th className="text-right py-3 px-3 font-semibold uppercase tracking-wider text-[10px] text-[var(--text-muted)]">
               Budget
             </th>
-            <th
-              className={`text-right py-3 px-3 font-semibold uppercase tracking-wider text-[10px] ${
-                isDark ? 'text-gray-500' : 'text-gray-400'
-              }`}
-            >
+            <th className="text-right py-3 px-3 font-semibold uppercase tracking-wider text-[10px] text-[var(--text-muted)]">
               Spent
             </th>
-            <th
-              className={`text-left py-3 px-3 font-semibold uppercase tracking-wider text-[10px] ${
-                isDark ? 'text-gray-500' : 'text-gray-400'
-              }`}
-            >
+            <th className="text-left py-3 px-3 font-semibold uppercase tracking-wider text-[10px] text-[var(--text-muted)]">
               Status
             </th>
-            <th
-              className={`text-left py-3 px-3 font-semibold uppercase tracking-wider text-[10px] ${
-                isDark ? 'text-gray-500' : 'text-gray-400'
-              }`}
-            >
+            <th className="text-left py-3 px-3 font-semibold uppercase tracking-wider text-[10px] text-[var(--text-muted)]">
               Attestation
             </th>
           </tr>
@@ -473,56 +330,30 @@ function SessionTable({
           {sessions.map((s) => (
             <tr
               key={s.id}
-              className={`border-b ${
-                isDark ? 'border-white/[0.04]' : 'border-black/[0.04]'
-              }`}
+              className="border-b border-[var(--border-light)]"
             >
-              <td
-                className={`py-3 px-3 ${
-                  isDark ? 'text-gray-500' : 'text-gray-400'
-                }`}
-              >
+              <td className="py-3 px-3 text-[var(--text-muted)]">
                 {new Date(s.openedAt).toLocaleDateString('en-US', {
                   month: 'short',
                   day: 'numeric',
                 })}
               </td>
-              <td
-                className={`py-3 px-3 ${
-                  isDark ? 'text-white' : 'text-black'
-                }`}
-              >
+              <td className="py-3 px-3 text-[var(--text)]">
                 {viewAs === 'creator' ? s.agent?.name ?? '–' : s.skill?.name ?? '–'}
               </td>
-              <td
-                className={`py-3 px-3 text-right tabular-nums ${
-                  isDark ? 'text-gray-300' : 'text-gray-700'
-                }`}
-              >
+              <td className="py-3 px-3 text-right tabular-nums text-[var(--text-secondary)]">
                 {s.callCount}
               </td>
-              <td
-                className={`py-3 px-3 text-right tabular-nums ${
-                  isDark ? 'text-gray-300' : 'text-gray-700'
-                }`}
-              >
+              <td className="py-3 px-3 text-right tabular-nums text-[var(--text-secondary)]">
                 ${s.budgetTotal.toFixed(2)}
               </td>
-              <td
-                className={`py-3 px-3 text-right tabular-nums ${
-                  isDark ? 'text-gray-300' : 'text-gray-700'
-                }`}
-              >
+              <td className="py-3 px-3 text-right tabular-nums text-[var(--text-secondary)]">
                 ${(s.budgetTotal - s.budgetRemaining).toFixed(2)}
               </td>
               <td className="py-3 px-3">
-                <StatusPill status={s.status} isDark={isDark} />
+                <StatusPill status={s.status} />
               </td>
-              <td
-                className={`py-3 px-3 truncate max-w-[120px] ${
-                  isDark ? 'text-gray-500' : 'text-gray-400'
-                }`}
-              >
+              <td className="py-3 px-3 truncate max-w-[120px] text-[var(--text-muted)]">
                 {s.basAttestationUid ? s.basAttestationUid.slice(0, 10) + '…' : '–'}
               </td>
             </tr>
@@ -533,21 +364,19 @@ function SessionTable({
   );
 }
 
-function StatusPill({ status, isDark }: { status: string; isDark: boolean }) {
+function StatusPill({ status }: { status: string }) {
   const styles: Record<string, { dot: string; text: string }> = {
-    settled: { dot: 'bg-emerald-500', text: 'text-emerald-500' },
-    refunded: { dot: 'bg-red-500', text: 'text-red-500' },
-    active: { dot: 'bg-blue-500', text: 'text-blue-500' },
-    funded: { dot: 'bg-amber-500', text: 'text-amber-500' },
+    settled: { dot: 'bg-[var(--text)]', text: 'text-[var(--text)]' },
+    refunded: { dot: 'bg-[var(--text-muted)]', text: 'text-[var(--text-muted)]' },
+    active: { dot: 'bg-[var(--text)]', text: 'text-[var(--text)]' },
+    funded: { dot: 'bg-[var(--text-secondary)]', text: 'text-[var(--text-secondary)]' },
   };
   const style = styles[status] ?? {
-    dot: isDark ? 'bg-white/30' : 'bg-black/30',
-    text: isDark ? 'text-gray-400' : 'text-gray-500',
+    dot: 'bg-[var(--text-muted)]',
+    text: 'text-[var(--text-muted)]',
   };
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider ${style.text}`}
-    >
+    <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider ${style.text}`}>
       <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`} />
       {status}
     </span>

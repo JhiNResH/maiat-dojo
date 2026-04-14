@@ -108,7 +108,7 @@ export function SkillListCard({ skills, onRun }: SkillListCardProps) {
 
       <div className="mt-2 text-right font-mono text-[9px] text-[#1a1a1a]/30">
         or type{" "}
-        <span className="text-[#8b0000]/70">call &lt;name&gt;</span> to sandbox
+        <span className="text-[#b08d57]/70">call &lt;name&gt;</span> to sandbox
       </div>
     </figure>
   );
