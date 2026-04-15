@@ -120,6 +120,7 @@ export function LandingHero(_props: LandingHeroProps) {
   const [events, setEvents] = useState<ActivityEvent[]>([]);
   const [now, setNow] = useState(0);
   const [filter, setFilter] = useState("all");
+  const [query, setQuery] = useState("");
   const dripIndex = useRef(0);
 
   useEffect(() => {
@@ -169,12 +170,18 @@ export function LandingHero(_props: LandingHeroProps) {
     ? ["all", ...Array.from(new Set(skills.map((s) => s.category ?? "misc")))]
     : ["all"];
 
+  const q = query.trim().toLowerCase();
   const filtered =
     skills === null
       ? null
-      : filter === "all"
-        ? skills
-        : skills.filter((s) => (s.category ?? "misc") === filter);
+      : skills.filter((s) => {
+          const matchCat = filter === "all" || (s.category ?? "misc") === filter;
+          const matchQ =
+            !q ||
+            s.name.toLowerCase().includes(q) ||
+            (s.description ?? "").toLowerCase().includes(q);
+          return matchCat && matchQ;
+        });
 
   return (
     <div className="flex w-full flex-col gap-12">
@@ -213,6 +220,33 @@ export function LandingHero(_props: LandingHeroProps) {
           </div>
         </div>
       )}
+
+      {/* ═══ SEARCH BAR ═══ */}
+      <div className="relative">
+        <svg
+          className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-muted)]"
+          fill="none" stroke="currentColor" strokeWidth={2}
+          viewBox="0 0 24 24"
+        >
+          <circle cx={11} cy={11} r={8} />
+          <path d="m21 21-4.35-4.35" />
+        </svg>
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search skills…"
+          className="w-full rounded-full border border-[var(--border)] bg-[var(--card-bg)] py-2.5 pl-9 pr-4 font-mono text-[13px] text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none focus:border-[var(--text)] transition-colors"
+        />
+        {query && (
+          <button
+            onClick={() => setQuery("")}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
+          >
+            ✕
+          </button>
+        )}
+      </div>
 
       {/* ═══ CATEGORY FILTER PILLS ═══ */}
       <div className="flex flex-wrap items-center gap-2">
