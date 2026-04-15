@@ -30,13 +30,15 @@ elif [[ "$DB_URL" != postgresql://* && "$DB_URL" != postgres://* ]]; then
   echo "WARNING: DATABASE_URL doesn't start with postgresql:// — got: ${DB_URL:0:20}..."
 fi
 
-# 2. BSC contract addresses should match between .env.local and contracts.ts
+# 2. BSC_ACP_ADDRESS should match agenticCommerceHooked in contracts.ts (active chain)
 if [ -f src/lib/contracts.ts ]; then
   ENV_ACP=$(grep '^BSC_ACP_ADDRESS=' "$ENV_FILE" 2>/dev/null | cut -d= -f2- | tr -d '"' || true)
   if [ -n "$ENV_ACP" ]; then
-    CODE_ACP=$(grep -o "0x[a-fA-F0-9]\{40\}" src/lib/contracts.ts 2>/dev/null | head -1 || true)
-    if [ -n "$CODE_ACP" ] && [ "$ENV_ACP" != "$CODE_ACP" ]; then
-      echo "WARNING: BSC_ACP_ADDRESS mismatch"
+    # Detect active chain, then grep the correct block
+    ACTIVE_CHAIN=$(grep "ACTIVE_CHAIN" src/lib/contracts.ts 2>/dev/null | grep -o "'[^']*'" | tr -d "'" || echo "bscTestnet")
+    CODE_ACP=$(sed -n "/${ACTIVE_CHAIN}/,/}/p" src/lib/contracts.ts 2>/dev/null | grep "agenticCommerceHooked" | grep -o '"0x[a-fA-F0-9]*"' | tr -d '"' || true)
+    if [ -n "$CODE_ACP" ] && [ "$CODE_ACP" != "0x0000000000000000000000000000000000000000" ] && [ "$ENV_ACP" != "$CODE_ACP" ]; then
+      echo "WARNING: BSC_ACP_ADDRESS mismatch (chain: ${ACTIVE_CHAIN})"
       echo "  .env.local: $ENV_ACP"
       echo "  contracts.ts: $CODE_ACP"
       echo "  (env vars override code — make sure this is intentional)"
