@@ -80,7 +80,7 @@ describe('POST /api/skills/[id]/review', () => {
     vi.clearAllMocks();
     // Enable dev mode (skip auth)
     process.env.DOJO_SKIP_PRIVY_AUTH = 'true';
-    process.env.NODE_ENV = 'test';
+    (process.env as Record<string, string>).NODE_ENV = 'test';
   });
 
   it('rejects missing fields (no rating/comment)', async () => {
@@ -223,7 +223,7 @@ describe('GET /api/sessions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.DOJO_SKIP_PRIVY_AUTH = 'true';
-    process.env.NODE_ENV = 'test';
+    (process.env as Record<string, string>).NODE_ENV = 'test';
   });
 
   it('rejects missing privyId', async () => {
