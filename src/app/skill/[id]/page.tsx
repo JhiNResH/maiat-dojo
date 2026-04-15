@@ -82,6 +82,24 @@ export default async function SkillPage({ params }: { params: { id: string } }) 
     heatmap.push({ date: dayKey, count });
   }
 
+  // Reviews (public, newest first)
+  const reviews = await prisma.review.findMany({
+    where: { skillId: params.id },
+    orderBy: { createdAt: 'desc' },
+    take: 20,
+    include: {
+      user: { select: { id: true, displayName: true, walletAddress: true } },
+      session: {
+        select: {
+          id: true,
+          callCount: true,
+          status: true,
+          settledAt: true,
+        },
+      },
+    },
+  });
+
   // BAS attestations (most recent first, with uid)
   const attestations = skill.sessions
     .filter((s) => !!s.basAttestationUid)
@@ -129,6 +147,21 @@ export default async function SkillPage({ params }: { params: { id: string } }) 
       medianLatencyMs={medianLatencyMs}
       heatmap={heatmap}
       attestations={attestations}
+      reviews={reviews.map((r) => ({
+        id: r.id,
+        rating: r.rating,
+        comment: r.comment,
+        createdAt: r.createdAt.toISOString(),
+        user: r.user,
+        session: r.session
+          ? {
+              id: r.session.id,
+              callCount: r.session.callCount,
+              status: r.session.status,
+              settledAt: r.session.settledAt?.toISOString() ?? null,
+            }
+          : null,
+      }))}
     />
   );
 }

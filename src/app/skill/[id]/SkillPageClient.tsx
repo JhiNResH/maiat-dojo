@@ -1,13 +1,17 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { ArrowLeft, Calendar, Network, ShieldCheck, Tag, Wallet, Zap } from 'lucide-react';
+import { usePrivy } from '@privy-io/react-auth';
 import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
 import { BackgroundEffect } from '@/components/landing/BackgroundEffect';
 import TrustCard from '@/components/TrustCard';
 import SkillSandbox from '@/components/SkillSandbox';
+import ReviewSection from '@/components/ReviewSection';
+import ReviewForm from '@/components/ReviewForm';
 
 const PurchaseCard = dynamic(() => import('@/components/PurchaseCard'), { ssr: false });
 
@@ -45,6 +49,31 @@ interface HeatmapBucket {
   count: number;
 }
 
+interface ReviewData {
+  id: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+  user: {
+    id: string;
+    displayName: string | null;
+    walletAddress: string | null;
+  };
+  session: {
+    id: string;
+    callCount: number;
+    status: string;
+    settledAt: string | null;
+  } | null;
+}
+
+interface SettledSession {
+  id: string;
+  callCount: number;
+  status: string;
+  settledAt: string | null;
+}
+
 interface Props {
   skill: SkillData;
   totalCalls: number;
@@ -56,6 +85,7 @@ interface Props {
   medianLatencyMs: number | null;
   heatmap: HeatmapBucket[];
   attestations: Attestation[];
+  reviews: ReviewData[];
 }
 
 function truncateAddress(address: string | null | undefined): string {
@@ -81,8 +111,31 @@ export default function SkillPageClient({
   medianLatencyMs,
   heatmap,
   attestations,
+  reviews,
 }: Props) {
   const trustScore = skill.evaluationScore ?? 0;
+  const { authenticated, user, getAccessToken } = usePrivy();
+  const [userSessions, setUserSessions] = useState<SettledSession[]>([]);
+  const [dbUserId, setDbUserId] = useState<string | undefined>();
+
+  useEffect(() => {
+    if (!authenticated || !user) return;
+    let cancelled = false;
+    (async () => {
+      const token = await getAccessToken();
+      if (!token || cancelled) return;
+      // Fetch user's settled sessions for this skill
+      const res = await fetch(
+        `/api/sessions?privyId=${encodeURIComponent(user.id)}&skillId=${skill.id}&status=settled,refunded`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (!res.ok || cancelled) return;
+      const data = await res.json();
+      setUserSessions(data.sessions ?? []);
+      setDbUserId(data.userId);
+    })();
+    return () => { cancelled = true; };
+  }, [authenticated, user, getAccessToken, skill.id]);
 
   return (
     <div className="min-h-screen bg-[var(--bg)]">
@@ -179,6 +232,19 @@ export default function SkillPageClient({
                   erc8004TokenId: skill.creator.erc8004TokenId,
                 }}
               />
+
+              <ReviewSection reviews={reviews} />
+
+              {authenticated && (
+                <div className="glass-card p-8">
+                  <ReviewForm
+                    targetType="skill"
+                    targetId={skill.id}
+                    userId={dbUserId}
+                    sessions={userSessions}
+                  />
+                </div>
+              )}
             </div>
 
             {/* Right sidebar */}
