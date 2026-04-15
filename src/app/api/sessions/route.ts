@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
 
   // Auth check
   const skipAuth =
-    process.env.SKIP_PRIVY_AUTH === 'true' ||
+    process.env.DOJO_SKIP_PRIVY_AUTH === 'true' &&
     process.env.NODE_ENV !== 'production';
 
   if (!skipAuth) {
