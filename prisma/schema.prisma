@@ -156,6 +156,12 @@ model Review {
   skill      Skill?   @relation(fields: [skillId], references: [id])
   agentId    String?
   agent      Agent?   @relation(fields: [agentId], references: [id])
+
+  // Receipt gate — one review per session per skill
+  sessionId  String?
+  session    Session? @relation(fields: [sessionId], references: [id])
+
+  @@unique([userId, skillId, sessionId])
 }
 
 // --- Purchases ---
@@ -219,6 +225,7 @@ model Session {
 
   // Relations
   calls            SkillCall[]
+  reviews          Review[]
 
   @@index([status, expiresAt])
   @@index([payerAgentId])
