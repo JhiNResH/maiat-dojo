@@ -28,24 +28,67 @@ contract ReputationHubTest is Test {
         assertEq(hub.scoreOf(agent), 0);
     }
 
-    function test_setOracle_byOwner() public {
+    // ── 2-step oracle update (F6 fix) ──────────────────────
+
+    function test_proposeOracle_byOwner() public {
+        MockTrustOracle newOracle = new MockTrustOracle();
+        hub.proposeOracle(newOracle);
+        assertEq(address(hub.pendingOracle()), address(newOracle));
+        assertEq(hub.oracleAcceptableAt(), block.timestamp + hub.ORACLE_DELAY());
+    }
+
+    function test_acceptOracle_afterDelay() public {
         MockTrustOracle newOracle = new MockTrustOracle();
         newOracle.setScore(agent, 42);
-        hub.setOracle(newOracle);
+
+        hub.proposeOracle(newOracle);
+        vm.warp(block.timestamp + hub.ORACLE_DELAY());
+        hub.acceptOracle();
+
         assertEq(address(hub.oracle()), address(newOracle));
         assertEq(hub.scoreOf(agent), 42);
+        // pending cleared
+        assertEq(address(hub.pendingOracle()), address(0));
     }
 
-    function test_setOracle_revertsFromNonOwner() public {
+    function test_acceptOracle_revertsBeforeDelay() public {
+        MockTrustOracle newOracle = new MockTrustOracle();
+        hub.proposeOracle(newOracle);
+
+        // 1 second before delay elapses
+        vm.warp(block.timestamp + hub.ORACLE_DELAY() - 1);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ReputationHub.OracleDelayNotElapsed.selector,
+                hub.oracleAcceptableAt()
+            )
+        );
+        hub.acceptOracle();
+    }
+
+    function test_acceptOracle_revertsWithNoPending() public {
+        vm.expectRevert(ReputationHub.NoOraclePending.selector);
+        hub.acceptOracle();
+    }
+
+    function test_cancelOracleProposal() public {
+        MockTrustOracle newOracle = new MockTrustOracle();
+        hub.proposeOracle(newOracle);
+        hub.cancelOracleProposal();
+        assertEq(address(hub.pendingOracle()), address(0));
+        assertEq(hub.oracleAcceptableAt(), 0);
+    }
+
+    function test_proposeOracle_revertsFromNonOwner() public {
         MockTrustOracle newOracle = new MockTrustOracle();
         vm.prank(bob);
-        vm.expectRevert(); // OwnableUnauthorizedAccount
-        hub.setOracle(newOracle);
+        vm.expectRevert();
+        hub.proposeOracle(newOracle);
     }
 
-    function test_setOracle_revertsOnZero() public {
+    function test_proposeOracle_revertsOnZero() public {
         vm.expectRevert(ReputationHub.ZeroAddress.selector);
-        hub.setOracle(ITrustOracle(address(0)));
+        hub.proposeOracle(ITrustOracle(address(0)));
     }
 
     function test_constructor_revertsOnZero() public {

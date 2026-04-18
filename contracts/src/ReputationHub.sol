@@ -16,23 +16,54 @@ import {Ownable}        from "@openzeppelin/contracts/access/Ownable.sol";
  * @dev See ADR `2026-04-16-tokens-as-interface-reputation-as-allocation.md`.
  */
 contract ReputationHub is IReputationHub, Ownable {
-    /// @notice Current trust oracle source.
+    /// @notice Current active trust oracle source.
     ITrustOracle public oracle;
 
+    /// @notice F6: pending oracle proposed by owner; must be accepted after delay.
+    ITrustOracle public pendingOracle;
+
+    /// @notice Earliest timestamp at which pendingOracle can be accepted (48-hour delay).
+    uint256 public oracleAcceptableAt;
+
+    uint256 public constant ORACLE_DELAY = 48 hours;
+
+    event OracleProposed(address indexed proposed, uint256 acceptableAt);
     event OracleUpdated(address indexed oldOracle, address indexed newOracle);
+    event OracleProposalCancelled();
 
     error ZeroAddress();
+    error NoOraclePending();
+    error OracleDelayNotElapsed(uint256 acceptableAt);
 
     constructor(ITrustOracle oracle_) Ownable(msg.sender) {
         if (address(oracle_) == address(0)) revert ZeroAddress();
         oracle = oracle_;
     }
 
-    /// @notice Replace the trust oracle (e.g. to swap in a multi-dim source).
-    function setOracle(ITrustOracle newOracle) external onlyOwner {
+    /// @notice Propose a new oracle. Takes effect only after ORACLE_DELAY.
+    /// @dev F6: immediate oracle swap with no delay is an instant reputation-gate bypass.
+    function proposeOracle(ITrustOracle newOracle) external onlyOwner {
         if (address(newOracle) == address(0)) revert ZeroAddress();
-        emit OracleUpdated(address(oracle), address(newOracle));
-        oracle = newOracle;
+        pendingOracle      = newOracle;
+        oracleAcceptableAt = block.timestamp + ORACLE_DELAY;
+        emit OracleProposed(address(newOracle), oracleAcceptableAt);
+    }
+
+    /// @notice Accept the pending oracle after the delay has elapsed.
+    function acceptOracle() external onlyOwner {
+        if (address(pendingOracle) == address(0)) revert NoOraclePending();
+        if (block.timestamp < oracleAcceptableAt) revert OracleDelayNotElapsed(oracleAcceptableAt);
+        emit OracleUpdated(address(oracle), address(pendingOracle));
+        oracle        = pendingOracle;
+        pendingOracle = ITrustOracle(address(0));
+        oracleAcceptableAt = 0;
+    }
+
+    /// @notice Cancel a pending oracle proposal.
+    function cancelOracleProposal() external onlyOwner {
+        pendingOracle      = ITrustOracle(address(0));
+        oracleAcceptableAt = 0;
+        emit OracleProposalCancelled();
     }
 
     /// @inheritdoc IReputationHub

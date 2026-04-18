@@ -21,8 +21,11 @@ import {SkillRunToken}  from "./SkillRunToken.sol";
  *      `specs/2026-04-16-agent-commerce-protocol.md` and ADR
  *      `2026-04-16-tokens-as-interface-reputation-as-allocation.md`.
  *
- * @dev The SwapRouter is the sole caller of {depositTreasury}/{releaseTreasury}.
- *      Providers set price, active, metadata, and reputation floor.
+ * @dev Mutations to `priceUSDC` and `minReputation` are supply-gated: they
+ *      revert while RUN_TOKEN totalSupply > 0. This prevents providers from
+ *      retroactively changing the deal for agents who already pre-paid
+ *      (audit findings #1, #7 — 2026-04-17). Owner can `transferProvider`
+ *      to reclaim squatted slugs (finding #2).
  */
 contract SkillRegistry is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -32,7 +35,7 @@ contract SkillRegistry is Ownable, ReentrancyGuard {
     // ─────────────────────────────────────────────
 
     struct Skill {
-        address provider;       // registrar (msg.sender at register time)
+        address provider;       // registrar (msg.sender at register time) — owner-reassignable
         address creator;        // payment recipient — may differ from provider
         address runToken;       // CREATE2-deployed ERC-20
         uint256 priceUSDC;      // 6 decimals
@@ -57,7 +60,9 @@ contract SkillRegistry is Ownable, ReentrancyGuard {
     /// @notice Payment token (USDC, 6 decimals on BSC; 18 on mainnet — see deploy script).
     IERC20 public immutable usdc;
 
-    /// @notice Authorised router — sole caller of treasury ops.
+    /// @notice Authorised router — sole caller of treasury ops. Existing
+    ///         SkillRunTokens resolve this live via `registry.router()`, so
+    ///         rotating the router here automatically retargets deployed tokens.
     address public router;
 
     /// @notice skillId => Skill
@@ -87,6 +92,8 @@ contract SkillRegistry is Ownable, ReentrancyGuard {
     event SkillActiveChanged(bytes32 indexed skillId, bool active);
     event SkillMetadataUpdated(bytes32 indexed skillId, string uri);
     event SkillMinReputationUpdated(bytes32 indexed skillId, uint256 oldFloor, uint256 newFloor);
+    event SkillProviderTransferred(bytes32 indexed skillId, address indexed oldProvider, address indexed newProvider);
+    event SkillCreatorUpdated(bytes32 indexed skillId, address indexed oldCreator, address indexed newCreator);
 
     event TreasuryDeposited(bytes32 indexed skillId, uint256 amount, uint256 newBalance);
     event TreasuryReleased(bytes32 indexed skillId, address indexed to, uint256 amount, uint256 newBalance);
@@ -104,6 +111,8 @@ contract SkillRegistry is Ownable, ReentrancyGuard {
     error EmptySlug();
     error PriceTooLow(uint256 price, uint256 minPrice);
     error InsufficientTreasury(uint256 requested, uint256 available);
+    error SupplyOutstanding(bytes32 skillId, uint256 supply);
+    error InvalidCategory(uint8 category);
 
     // ─────────────────────────────────────────────
     //  Modifiers
@@ -123,7 +132,10 @@ contract SkillRegistry is Ownable, ReentrancyGuard {
         usdc = usdc_;
     }
 
-    /// @notice Wire the SwapRouter post-deploy (circular constructor avoided).
+    /// @notice Wire / rotate the SwapRouter.
+    /// @dev Existing SkillRunTokens resolve the router live via `registry.router()`,
+    ///      so rotating here automatically retargets all deployed tokens — fixing
+    ///      audit finding #5 (immutable-router-orphans-tokens).
     function setRouter(address router_) external onlyOwner {
         if (router_ == address(0)) revert ZeroAddress();
         emit RouterUpdated(router, router_);
@@ -160,6 +172,7 @@ contract SkillRegistry is Ownable, ReentrancyGuard {
         if (bytes(slug).length == 0) revert EmptySlug();
         if (creator == address(0)) revert ZeroAddress();
         if (priceUSDC < MIN_PRICE) revert PriceTooLow(priceUSDC, MIN_PRICE);
+        if (category > 2) revert InvalidCategory(category);
 
         skillId = keccak256(bytes(slug));
         if (skills[skillId].provider != address(0)) revert SkillAlreadyRegistered(skillId);
@@ -185,9 +198,13 @@ contract SkillRegistry is Ownable, ReentrancyGuard {
         );
     }
 
+    /// @notice Update price. Reverts while RUN_TOKEN supply > 0 so agents who
+    ///         already pre-paid cannot be drained by a retroactive price change
+    ///         (audit finding #1).
     function setPrice(bytes32 skillId, uint256 newPrice) external {
         Skill storage s = _mutableSkill(skillId, msg.sender);
         if (newPrice < MIN_PRICE) revert PriceTooLow(newPrice, MIN_PRICE);
+        _requireZeroSupply(skillId, s.runToken);
         emit SkillPriceUpdated(skillId, s.priceUSDC, newPrice);
         s.priceUSDC = newPrice;
     }
@@ -195,7 +212,7 @@ contract SkillRegistry is Ownable, ReentrancyGuard {
     function setActive(bytes32 skillId, bool active) external {
         Skill storage s = skills[skillId];
         if (s.provider == address(0)) revert SkillNotFound(skillId);
-        // Provider OR protocol owner may deactivate (safety valve).
+        // Provider OR protocol owner may toggle.
         if (msg.sender != s.provider && msg.sender != owner()) {
             revert NotSkillProvider(skillId);
         }
@@ -209,10 +226,31 @@ contract SkillRegistry is Ownable, ReentrancyGuard {
         emit SkillMetadataUpdated(skillId, uri);
     }
 
+    /// @notice Update reputation floor. Reverts while RUN_TOKEN supply > 0 —
+    ///         same reasoning as {setPrice} (audit finding #7).
     function setMinReputation(bytes32 skillId, uint256 newFloor) external {
         Skill storage s = _mutableSkill(skillId, msg.sender);
+        _requireZeroSupply(skillId, s.runToken);
         emit SkillMinReputationUpdated(skillId, s.minReputation, newFloor);
         s.minReputation = newFloor;
+    }
+
+    /// @notice Owner-override to reclaim squatted slugs or rotate a compromised
+    ///         provider (audit finding #2). Does not touch supply or treasury.
+    function transferProvider(bytes32 skillId, address newProvider) external onlyOwner {
+        Skill storage s = skills[skillId];
+        if (s.provider == address(0)) revert SkillNotFound(skillId);
+        if (newProvider == address(0)) revert ZeroAddress();
+        emit SkillProviderTransferred(skillId, s.provider, newProvider);
+        s.provider = newProvider;
+    }
+
+    /// @notice Provider-initiated creator payout rotation.
+    function setCreator(bytes32 skillId, address newCreator) external {
+        Skill storage s = _mutableSkill(skillId, msg.sender);
+        if (newCreator == address(0)) revert ZeroAddress();
+        emit SkillCreatorUpdated(skillId, s.creator, newCreator);
+        s.creator = newCreator;
     }
 
     // ─────────────────────────────────────────────
@@ -227,7 +265,7 @@ contract SkillRegistry is Ownable, ReentrancyGuard {
         emit TreasuryDeposited(skillId, amount, treasury[skillId]);
     }
 
-    /// @notice Called by SwapRouter on execute. Releases USDC to destination.
+    /// @notice Called by SwapRouter on execute / redeem. Releases USDC.
     function releaseTreasury(bytes32 skillId, address to, uint256 amount)
         external
         onlyRouter
@@ -253,6 +291,9 @@ contract SkillRegistry is Ownable, ReentrancyGuard {
     }
 
     /// @notice CREATE2 address predicted for a skillId. View-safe (no deploy).
+    /// @dev The runToken bytecode no longer encodes the router (router is read
+    ///      live from registry), so this prediction is stable across router
+    ///      rotations — fixing the stale-view lead from audit.
     function computeRunTokenAddress(bytes32 skillId, string calldata slug)
         external
         view
@@ -263,7 +304,6 @@ contract SkillRegistry is Ownable, ReentrancyGuard {
             abi.encode(
                 skillId,
                 address(this),
-                router,
                 _runTokenName(slug),
                 _runTokenSymbol(skillId)
             )
@@ -281,13 +321,17 @@ contract SkillRegistry is Ownable, ReentrancyGuard {
         if (caller != s.provider) revert NotSkillProvider(skillId);
     }
 
+    function _requireZeroSupply(bytes32 skillId, address runToken) internal view {
+        uint256 supply = IERC20(runToken).totalSupply();
+        if (supply != 0) revert SupplyOutstanding(skillId, supply);
+    }
+
     function _deployRunToken(bytes32 skillId, string calldata slug) internal returns (address) {
         bytes memory bytecode = abi.encodePacked(
             type(SkillRunToken).creationCode,
             abi.encode(
                 skillId,
                 address(this),
-                router,
                 _runTokenName(slug),
                 _runTokenSymbol(skillId)
             )

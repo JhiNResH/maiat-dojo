@@ -14,20 +14,22 @@ import {IReputationHub} from "./interfaces/IReputationHub.sol";
  * @title SwapRouter
  * @notice Agent-facing entry point for the Maiat commerce layer.
  *
- *  Three flows:
- *   - {buyRunToken} — USDC → RUN_TOKEN credits (pre-buy, no execution yet)
- *   - {executeSkill} — burn 1 RUN_TOKEN → off-chain execution request
- *   - {swap}        — 1-shot: direct USDC → execution (skips token mint)
+ *  Four agent flows:
+ *   - {buyRunToken}    — USDC → RUN_TOKEN credits (pre-buy, no execution yet)
+ *   - {executeSkill}   — burn 1 RUN_TOKEN → off-chain execution request
+ *   - {swap}           — 1-shot: direct USDC → execution (skips token mint)
+ *   - {redeemRunToken} — burn N RUN_TOKENs → get USDC back (escape hatch)
  *
- *  All three enforce the reputation gate first, then token/USDC movement.
+ *  All flows enforce the reputation gate first, then token/USDC movement.
  *  Off-chain execution is requested via {ExecutionRequested} event; the
  *  gateway settles with a signed proof via {settle}.
  *
- * @dev Phase 2 intentionally does NOT delegate to ERC-8183 `AgenticCommerceHooked`
- *      because that contract's `createJob` makes `msg.sender` the `client`,
- *      which would mask the agent identity from hooks. A Phase 2.5 patch to
- *      accept an explicit actor address will let us re-delegate. See ADR
- *      `2026-04-16-tokens-as-interface-reputation-as-allocation.md`.
+ * @dev Audit remediation (2026-04-17):
+ *      - `maxPriceUSDC` slippage param on buy/swap (finding #3)
+ *      - `redeemRunToken` escape hatch (finding #8)
+ *      - Fee/treasury/creator snapshotted into Request at open time
+ *      - Pull-payment fallback on transfer failure + rescueTokens (finding #4)
+ *      - Price/reputation cannot change while supply > 0 (enforced in registry)
  */
 contract SwapRouter is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -44,6 +46,13 @@ contract SwapRouter is Ownable, ReentrancyGuard {
         uint256       amountUSDC;
         uint256       timestamp;
         RequestStatus status;
+        // Snapshot at open time so admin param changes cannot retroactively
+        // alter the split or destinations of an in-flight request.
+        address       creator;
+        address       platformTreasury;
+        address       reputationPool;
+        uint16        platformBps;
+        uint16        reputationBps;
     }
 
     // ─────────────────────────────────────────────
@@ -72,6 +81,11 @@ contract SwapRouter is Ownable, ReentrancyGuard {
     uint16  public reputationBps  = 500;  // 5%
 
     mapping(bytes32 => Request) public requests;
+
+    /// @notice Pull-payment ledger for USDC that could not be pushed (blacklist,
+    ///         paused, etc.). Users / creators call {claimPending} to withdraw.
+    mapping(address => uint256) public pendingWithdrawal;
+
     uint256 private _nonce;
 
     // ─────────────────────────────────────────────
@@ -87,6 +101,12 @@ contract SwapRouter is Ownable, ReentrancyGuard {
         address indexed agent,
         uint256 amount,
         uint256 costUSDC
+    );
+    event RunTokenRedeemed(
+        bytes32 indexed skillId,
+        address indexed agent,
+        uint256 amount,
+        uint256 refundUSDC
     );
     event ExecutionRequested(
         bytes32 indexed requestId,
@@ -105,6 +125,9 @@ contract SwapRouter is Ownable, ReentrancyGuard {
         uint256 reputationShare
     );
     event ExecutionRefunded(bytes32 indexed requestId, address indexed agent, uint256 amount);
+    event PaymentDeferred(address indexed to, uint256 amount, uint256 newBalance);
+    event PendingClaimed(address indexed to, uint256 amount);
+    event TokensRescued(address indexed token, address indexed to, uint256 amount);
 
     // ─────────────────────────────────────────────
     //  Errors
@@ -120,6 +143,9 @@ contract SwapRouter is Ownable, ReentrancyGuard {
     error RequestNotPending(bytes32 requestId);
     error RequestNotExpired(bytes32 requestId);
     error NotRequester();
+    error PriceExceedsMax(uint256 actualPrice, uint256 maxPrice);
+    error InsufficientTokenBalance(uint256 have, uint256 need);
+    error NothingPending();
 
     // ─────────────────────────────────────────────
     //  Constructor
@@ -151,10 +177,23 @@ contract SwapRouter is Ownable, ReentrancyGuard {
     //  Agent: buy RUN_TOKEN (bulk pre-purchase)
     // ─────────────────────────────────────────────
 
-    function buyRunToken(bytes32 skillId, uint256 amount) external nonReentrant {
+    /**
+     * @notice Pre-purchase execution credits.
+     * @param skillId      Target skill.
+     * @param amount       Number of RUN_TOKENs to mint.
+     * @param maxPriceUSDC Max per-token price the agent is willing to pay.
+     *                     Slippage guard against provider front-running with
+     *                     `setPrice` (audit finding #3). Pass `type(uint256).max`
+     *                     to opt out of the guard (not recommended).
+     */
+    function buyRunToken(bytes32 skillId, uint256 amount, uint256 maxPriceUSDC)
+        external
+        nonReentrant
+    {
         if (amount == 0) revert ZeroAmount();
         SkillRegistry.Skill memory s = registry.getSkill(skillId);
         if (!s.active) revert SkillInactive(skillId);
+        if (s.priceUSDC > maxPriceUSDC) revert PriceExceedsMax(s.priceUSDC, maxPriceUSDC);
         _requireReputation(msg.sender, s.minReputation);
 
         uint256 cost = s.priceUSDC * amount;
@@ -181,28 +220,55 @@ contract SwapRouter is Ownable, ReentrancyGuard {
         if (!s.active) revert SkillInactive(skillId);
         _requireReputation(msg.sender, s.minReputation);
 
+        // Price is supply-locked in registry, so s.priceUSDC == the price every
+        // outstanding RUN_TOKEN was minted at.
         SkillRunToken(s.runToken).burn(msg.sender, 1);
         registry.releaseTreasury(skillId, address(this), s.priceUSDC);
 
-        requestId = _openRequest(skillId, msg.sender, s.priceUSDC, params);
+        requestId = _openRequest(skillId, msg.sender, s.priceUSDC, params, s.creator);
     }
 
     // ─────────────────────────────────────────────
     //  Agent: 1-shot swap (skip RUN_TOKEN mint/burn)
     // ─────────────────────────────────────────────
 
-    function swap(bytes32 skillId, bytes calldata params)
+    function swap(bytes32 skillId, uint256 maxPriceUSDC, bytes calldata params)
         external
         nonReentrant
         returns (bytes32 requestId)
     {
         SkillRegistry.Skill memory s = registry.getSkill(skillId);
         if (!s.active) revert SkillInactive(skillId);
+        if (s.priceUSDC > maxPriceUSDC) revert PriceExceedsMax(s.priceUSDC, maxPriceUSDC);
         _requireReputation(msg.sender, s.minReputation);
 
         usdc.safeTransferFrom(msg.sender, address(this), s.priceUSDC);
 
-        requestId = _openRequest(skillId, msg.sender, s.priceUSDC, params);
+        requestId = _openRequest(skillId, msg.sender, s.priceUSDC, params, s.creator);
+    }
+
+    // ─────────────────────────────────────────────
+    //  Agent: redeem RUN_TOKEN (escape hatch)
+    // ─────────────────────────────────────────────
+
+    /**
+     * @notice Burn unused RUN_TOKENs and reclaim proportional treasury USDC.
+     *         Works even when the skill is inactive — gives agents an exit
+     *         regardless of provider behaviour (audit finding #8).
+     * @dev No reputation check — burning credits should never be gated.
+     */
+    function redeemRunToken(bytes32 skillId, uint256 amount) external nonReentrant {
+        if (amount == 0) revert ZeroAmount();
+        SkillRegistry.Skill memory s = registry.getSkill(skillId);
+
+        uint256 bal = SkillRunToken(s.runToken).balanceOf(msg.sender);
+        if (bal < amount) revert InsufficientTokenBalance(bal, amount);
+
+        uint256 refund = s.priceUSDC * amount;
+        SkillRunToken(s.runToken).burn(msg.sender, amount);
+        registry.releaseTreasury(skillId, msg.sender, refund);
+
+        emit RunTokenRedeemed(skillId, msg.sender, amount, refund);
     }
 
     // ─────────────────────────────────────────────
@@ -211,8 +277,12 @@ contract SwapRouter is Ownable, ReentrancyGuard {
 
     /**
      * @notice Finalise an execution request.
-     *  On success: split USDC between creator / platform / reputation pool.
+     *  On success: split USDC between creator / platform / reputation pool
+     *              using the bps/addresses snapshotted at request-open time.
      *  On failure: refund the full amount to the agent.
+     *  Any push that fails (blacklist, paused token) is credited to
+     *  {pendingWithdrawal} so the whole request doesn't revert
+     *  (audit finding #4).
      */
     function settle(
         bytes32 requestId,
@@ -224,18 +294,17 @@ contract SwapRouter is Ownable, ReentrancyGuard {
         if (r.status == RequestStatus.None) revert RequestNotFound(requestId);
         if (r.status != RequestStatus.Pending) revert RequestNotPending(requestId);
 
-        SkillRegistry.Skill memory s = registry.getSkill(r.skillId);
         uint256 amount = r.amountUSDC;
 
         if (success) {
             r.status = RequestStatus.Settled;
-            uint256 platformShare   = (amount * platformBps)   / MAX_BPS;
-            uint256 reputationShare = (amount * reputationBps) / MAX_BPS;
+            uint256 platformShare   = (amount * r.platformBps)   / MAX_BPS;
+            uint256 reputationShare = (amount * r.reputationBps) / MAX_BPS;
             uint256 creatorShare    = amount - platformShare - reputationShare;
 
-            if (creatorShare    > 0) usdc.safeTransfer(s.creator,        creatorShare);
-            if (platformShare   > 0) usdc.safeTransfer(platformTreasury, platformShare);
-            if (reputationShare > 0) usdc.safeTransfer(reputationPool,   reputationShare);
+            _safeCredit(r.creator,          creatorShare);
+            _safeCredit(r.platformTreasury, platformShare);
+            _safeCredit(r.reputationPool,   reputationShare);
 
             emit ExecutionSettled(
                 requestId, r.skillId, true, resultHash,
@@ -243,7 +312,7 @@ contract SwapRouter is Ownable, ReentrancyGuard {
             );
         } else {
             r.status = RequestStatus.Refunded;
-            usdc.safeTransfer(r.agent, amount);
+            _safeCredit(r.agent, amount);
             emit ExecutionRefunded(requestId, r.agent, amount);
         }
     }
@@ -257,8 +326,18 @@ contract SwapRouter is Ownable, ReentrancyGuard {
         if (block.timestamp < r.timestamp + REQUEST_TTL) revert RequestNotExpired(requestId);
 
         r.status = RequestStatus.Refunded;
-        usdc.safeTransfer(r.agent, r.amountUSDC);
+        _safeCredit(r.agent, r.amountUSDC);
         emit ExecutionRefunded(requestId, r.agent, r.amountUSDC);
+    }
+
+    /// @notice Claim USDC that was deferred because a push transfer failed
+    ///         (e.g. recipient blacklisted at settle time; now unblocked).
+    function claimPending() external nonReentrant {
+        uint256 amount = pendingWithdrawal[msg.sender];
+        if (amount == 0) revert NothingPending();
+        pendingWithdrawal[msg.sender] = 0;
+        usdc.safeTransfer(msg.sender, amount);
+        emit PendingClaimed(msg.sender, amount);
     }
 
     // ─────────────────────────────────────────────
@@ -285,6 +364,15 @@ contract SwapRouter is Ownable, ReentrancyGuard {
         emit FeesUpdated(platformBps_, reputationBps_);
     }
 
+    /// @notice Owner can sweep stray tokens (misdirected deposits, dust).
+    ///         Request accounting is not touched — amounts owed to agents /
+    ///         creators are held in Request state and pendingWithdrawal.
+    function rescueTokens(IERC20 token, address to, uint256 amount) external onlyOwner {
+        if (to == address(0)) revert ZeroAddress();
+        token.safeTransfer(to, amount);
+        emit TokensRescued(address(token), to, amount);
+    }
+
     // ─────────────────────────────────────────────
     //  Internal
     // ─────────────────────────────────────────────
@@ -299,17 +387,39 @@ contract SwapRouter is Ownable, ReentrancyGuard {
         bytes32 skillId,
         address agent,
         uint256 amount,
-        bytes calldata params
+        bytes calldata params,
+        address creatorSnapshot
     ) internal returns (bytes32 requestId) {
         unchecked { _nonce++; }
         requestId = keccak256(abi.encodePacked(skillId, agent, block.timestamp, _nonce, block.chainid));
         requests[requestId] = Request({
-            skillId:    skillId,
-            agent:      agent,
-            amountUSDC: amount,
-            timestamp:  block.timestamp,
-            status:     RequestStatus.Pending
+            skillId:           skillId,
+            agent:             agent,
+            amountUSDC:        amount,
+            timestamp:         block.timestamp,
+            status:            RequestStatus.Pending,
+            creator:           creatorSnapshot,
+            platformTreasury:  platformTreasury,
+            reputationPool:    reputationPool,
+            platformBps:       platformBps,
+            reputationBps:     reputationBps
         });
         emit ExecutionRequested(requestId, skillId, agent, amount, params);
+    }
+
+    /// @dev Attempts to push USDC; on revert (blacklist / paused / contract),
+    ///      credits the recipient's {pendingWithdrawal} balance instead of
+    ///      failing the whole tx. Zero amount is a no-op.
+    function _safeCredit(address to, uint256 amount) internal {
+        if (amount == 0) return;
+        (bool ok, bytes memory ret) = address(usdc).call(
+            abi.encodeWithSelector(IERC20.transfer.selector, to, amount)
+        );
+        bool success = ok && (ret.length == 0 || abi.decode(ret, (bool)));
+        if (!success) {
+            uint256 newBal = pendingWithdrawal[to] + amount;
+            pendingWithdrawal[to] = newBal;
+            emit PaymentDeferred(to, amount, newBal);
+        }
     }
 }

@@ -102,6 +102,7 @@ contract SkillNFT is ERC1155, IERC2981, Ownable, ReentrancyGuard, ISkillNFT {
     );
 
     event SkillActiveChanged(uint256 indexed skillId, bool active);
+    event SkillCreatorUpdated(uint256 indexed skillId, address indexed newCreator);
     event FeesUpdated(uint16 platformFeeBps, uint16 reputationPoolBps);
     event PlatformWalletUpdated(address indexed newWallet);
     event ReputationPoolUpdated(address indexed newPool);
@@ -237,6 +238,19 @@ contract SkillNFT is ERC1155, IERC2981, Ownable, ReentrancyGuard, ISkillNFT {
     // ─────────────────────────────────────────────
     //  Admin: Skill Lifecycle
     // ─────────────────────────────────────────────
+
+    /**
+     * @notice Update the creator (payment recipient) of a skill.
+     * @dev F8: creator address has no update path by default; a lost key or
+     *      USDC-blacklisted address permanently breaks revenue flow.
+     *      Owner-only to prevent provider self-rerouting without consent.
+     */
+    function updateCreator(uint256 skillId, address newCreator) external onlyOwner {
+        if (skillId == 0 || skillId >= nextSkillId) revert InvalidSkillId(skillId);
+        if (newCreator == address(0)) revert InvalidAddress();
+        skills[skillId].creator = newCreator;
+        emit SkillCreatorUpdated(skillId, newCreator);
+    }
 
     /**
      * @notice Activate or deactivate a skill. (M-04: supports reactivation)

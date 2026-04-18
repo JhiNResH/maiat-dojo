@@ -47,7 +47,7 @@ contract SwapRouterTest is Test {
             SLUG, PRICE, creator, "ipfs://meta", bytes32("slug.v1"), 0, 0
         );
 
-        // Fund agents with USDC & approve router.
+        // Fund agents with USDC & approve router for USDC transfers.
         usdc.mint(agent, 1_000_000);
         vm.prank(agent);
         usdc.approve(address(router), type(uint256).max);
@@ -55,13 +55,38 @@ contract SwapRouterTest is Test {
         usdc.mint(otherAgent, 1_000_000);
         vm.prank(otherAgent);
         usdc.approve(address(router), type(uint256).max);
+
+        // Agents must also approve router to burn their RUN_TOKENs on executeSkill.
+        // Approval is set now even though tokens don't exist yet — ERC20 allows this.
+        vm.prank(agent);
+        SkillRunToken(runToken).approve(address(router), type(uint256).max);
+        vm.prank(otherAgent);
+        SkillRunToken(runToken).approve(address(router), type(uint256).max);
+    }
+
+    // ── helpers ───────────────────────────────────────────────
+
+    /// @dev Request struct has 10 fields. Helper extracts status to avoid verbose destructuring.
+    function _reqStatus(bytes32 reqId) internal view returns (SwapRouter.RequestStatus) {
+        (,,,, SwapRouter.RequestStatus s,,,,,) = router.requests(reqId);
+        return s;
+    }
+
+    function _reqAgent(bytes32 reqId) internal view returns (address) {
+        (, address a,,,,,,,,) = router.requests(reqId);
+        return a;
+    }
+
+    function _reqAmount(bytes32 reqId) internal view returns (uint256) {
+        (,, uint256 amt,,,,,,,) = router.requests(reqId);
+        return amt;
     }
 
     // ── buyRunToken ───────────────────────────────────────────
 
     function test_buyRunToken_success() public {
         vm.prank(agent);
-        router.buyRunToken(skillId, 10);
+        router.buyRunToken(skillId, 10, type(uint256).max);
         assertEq(SkillRunToken(runToken).balanceOf(agent), 10);
         assertEq(registry.treasury(skillId), PRICE * 10);
         assertEq(usdc.balanceOf(agent), 1_000_000 - PRICE * 10);
@@ -70,7 +95,7 @@ contract SwapRouterTest is Test {
     function test_buyRunToken_revertsOnZeroAmount() public {
         vm.prank(agent);
         vm.expectRevert(SwapRouter.ZeroAmount.selector);
-        router.buyRunToken(skillId, 0);
+        router.buyRunToken(skillId, 0, type(uint256).max);
     }
 
     function test_buyRunToken_revertsOnInactive() public {
@@ -78,10 +103,11 @@ contract SwapRouterTest is Test {
         registry.setActive(skillId, false);
         vm.prank(agent);
         vm.expectRevert(abi.encodeWithSelector(SwapRouter.SkillInactive.selector, skillId));
-        router.buyRunToken(skillId, 10);
+        router.buyRunToken(skillId, 10, type(uint256).max);
     }
 
     function test_buyRunToken_revertsOnInsufficientReputation() public {
+        // setMinReputation allowed while supply = 0.
         vm.prank(provider);
         registry.setMinReputation(skillId, 50);
 
@@ -89,7 +115,7 @@ contract SwapRouterTest is Test {
         vm.expectRevert(abi.encodeWithSelector(
             SwapRouter.InsufficientReputation.selector, 50, 0
         ));
-        router.buyRunToken(skillId, 10);
+        router.buyRunToken(skillId, 10, type(uint256).max);
     }
 
     function test_buyRunToken_passesWhenReputationMet() public {
@@ -98,50 +124,58 @@ contract SwapRouterTest is Test {
         oracle.setScore(agent, 60);
 
         vm.prank(agent);
-        router.buyRunToken(skillId, 3);
+        router.buyRunToken(skillId, 3, type(uint256).max);
         assertEq(SkillRunToken(runToken).balanceOf(agent), 3);
+    }
+
+    function test_buyRunToken_revertsOnPriceExceedsMax() public {
+        vm.prank(agent);
+        vm.expectRevert(abi.encodeWithSelector(
+            SwapRouter.PriceExceedsMax.selector, PRICE, PRICE - 1
+        ));
+        router.buyRunToken(skillId, 1, PRICE - 1);
     }
 
     // ── executeSkill ──────────────────────────────────────────
 
     function test_executeSkill_success() public {
         vm.prank(agent);
-        router.buyRunToken(skillId, 3);
+        router.buyRunToken(skillId, 3, type(uint256).max);
 
         vm.prank(agent);
-        vm.recordLogs();
         bytes32 reqId = router.executeSkill(skillId, hex"deadbeef");
 
         assertEq(SkillRunToken(runToken).balanceOf(agent), 2);
         assertEq(registry.treasury(skillId), PRICE * 2);
         assertEq(usdc.balanceOf(address(router)), PRICE); // escrowed
 
-        (bytes32 sId, address a, uint256 amt,, SwapRouter.RequestStatus status)
-            = router.requests(reqId);
-        assertEq(sId, skillId);
-        assertEq(a, agent);
-        assertEq(amt, PRICE);
-        assertEq(uint8(status), uint8(SwapRouter.RequestStatus.Pending));
+        assertEq(_reqAgent(reqId),  agent);
+        assertEq(_reqAmount(reqId), PRICE);
+        assertEq(uint8(_reqStatus(reqId)), uint8(SwapRouter.RequestStatus.Pending));
     }
 
     function test_executeSkill_revertsOnNoBalance() public {
         vm.prank(agent);
-        vm.expectRevert(); // ERC20 insufficient balance
+        vm.expectRevert(); // ERC20 insufficient balance or allowance
         router.executeSkill(skillId, "");
     }
 
     function test_executeSkill_revertsOnReputationGate() public {
-        // Buy first with rep = 0 (gate open).
-        vm.prank(agent);
-        router.buyRunToken(skillId, 3);
-
-        // Provider raises bar, agent too low.
+        // Set reputation gate BEFORE any tokens are minted (audit fix: setMinReputation
+        // reverts while supply > 0 so providers can't retroactively gate pre-paid agents).
         vm.prank(provider);
         registry.setMinReputation(skillId, 80);
 
+        // Agent score 90 — above gate, can buy.
+        oracle.setScore(agent, 90);
+        vm.prank(agent);
+        router.buyRunToken(skillId, 3, type(uint256).max);
+
+        // Score drops below the gate — execute now reverts.
+        oracle.setScore(agent, 50);
         vm.prank(agent);
         vm.expectRevert(abi.encodeWithSelector(
-            SwapRouter.InsufficientReputation.selector, 80, 0
+            SwapRouter.InsufficientReputation.selector, 80, 50
         ));
         router.executeSkill(skillId, "");
     }
@@ -150,15 +184,14 @@ contract SwapRouterTest is Test {
 
     function test_swap_success() public {
         vm.prank(agent);
-        bytes32 reqId = router.swap(skillId, hex"cafe");
+        bytes32 reqId = router.swap(skillId, type(uint256).max, hex"cafe");
 
         assertEq(SkillRunToken(runToken).balanceOf(agent), 0); // skips mint
         assertEq(usdc.balanceOf(address(router)), PRICE);       // escrowed
         assertEq(registry.treasury(skillId), 0);                // untouched
 
-        (, address a,,, SwapRouter.RequestStatus status) = router.requests(reqId);
-        assertEq(a, agent);
-        assertEq(uint8(status), uint8(SwapRouter.RequestStatus.Pending));
+        assertEq(_reqAgent(reqId), agent);
+        assertEq(uint8(_reqStatus(reqId)), uint8(SwapRouter.RequestStatus.Pending));
     }
 
     function test_swap_revertsOnReputationGate() public {
@@ -168,14 +201,22 @@ contract SwapRouterTest is Test {
         vm.expectRevert(abi.encodeWithSelector(
             SwapRouter.InsufficientReputation.selector, 50, 0
         ));
-        router.swap(skillId, "");
+        router.swap(skillId, type(uint256).max, "");
+    }
+
+    function test_swap_revertsOnPriceExceedsMax() public {
+        vm.prank(agent);
+        vm.expectRevert(abi.encodeWithSelector(
+            SwapRouter.PriceExceedsMax.selector, PRICE, PRICE - 1
+        ));
+        router.swap(skillId, PRICE - 1, "");
     }
 
     // ── settle ────────────────────────────────────────────────
 
     function test_settle_successDistributesFees() public {
         vm.prank(agent);
-        bytes32 reqId = router.swap(skillId, "");
+        bytes32 reqId = router.swap(skillId, type(uint256).max, "");
 
         uint256 expectedPlatform = PRICE * 500 / 10_000;    // 5%
         uint256 expectedRep      = PRICE * 500 / 10_000;    // 5%
@@ -189,26 +230,24 @@ contract SwapRouterTest is Test {
         assertEq(usdc.balanceOf(repPool),  expectedRep);
         assertEq(usdc.balanceOf(address(router)), 0);
 
-        (,,,, SwapRouter.RequestStatus status) = router.requests(reqId);
-        assertEq(uint8(status), uint8(SwapRouter.RequestStatus.Settled));
+        assertEq(uint8(_reqStatus(reqId)), uint8(SwapRouter.RequestStatus.Settled));
     }
 
     function test_settle_failureRefunds() public {
         uint256 balBefore = usdc.balanceOf(agent);
         vm.prank(agent);
-        bytes32 reqId = router.swap(skillId, "");
+        bytes32 reqId = router.swap(skillId, type(uint256).max, "");
 
         vm.prank(gateway);
         router.settle(reqId, false, bytes32(0));
 
         assertEq(usdc.balanceOf(agent), balBefore); // full refund
-        (,,,, SwapRouter.RequestStatus status) = router.requests(reqId);
-        assertEq(uint8(status), uint8(SwapRouter.RequestStatus.Refunded));
+        assertEq(uint8(_reqStatus(reqId)), uint8(SwapRouter.RequestStatus.Refunded));
     }
 
     function test_settle_revertsFromNonGateway() public {
         vm.prank(agent);
-        bytes32 reqId = router.swap(skillId, "");
+        bytes32 reqId = router.swap(skillId, type(uint256).max, "");
         vm.prank(otherAgent);
         vm.expectRevert(SwapRouter.NotGateway.selector);
         router.settle(reqId, true, bytes32(0));
@@ -216,7 +255,7 @@ contract SwapRouterTest is Test {
 
     function test_settle_revertsOnDoubleSettle() public {
         vm.prank(agent);
-        bytes32 reqId = router.swap(skillId, "");
+        bytes32 reqId = router.swap(skillId, type(uint256).max, "");
         vm.prank(gateway);
         router.settle(reqId, true, bytes32("r"));
         vm.prank(gateway);
@@ -239,20 +278,19 @@ contract SwapRouterTest is Test {
     function test_claimRefund_afterTTL() public {
         uint256 balBefore = usdc.balanceOf(agent);
         vm.prank(agent);
-        bytes32 reqId = router.swap(skillId, "");
+        bytes32 reqId = router.swap(skillId, type(uint256).max, "");
 
-        vm.warp(block.timestamp + 15 minutes + 1);
+        vm.warp(block.timestamp + router.REQUEST_TTL() + 1);
         vm.prank(agent);
         router.claimRefund(reqId);
 
         assertEq(usdc.balanceOf(agent), balBefore);
-        (,,,, SwapRouter.RequestStatus status) = router.requests(reqId);
-        assertEq(uint8(status), uint8(SwapRouter.RequestStatus.Refunded));
+        assertEq(uint8(_reqStatus(reqId)), uint8(SwapRouter.RequestStatus.Refunded));
     }
 
     function test_claimRefund_revertsBeforeTTL() public {
         vm.prank(agent);
-        bytes32 reqId = router.swap(skillId, "");
+        bytes32 reqId = router.swap(skillId, type(uint256).max, "");
         vm.prank(agent);
         vm.expectRevert(abi.encodeWithSelector(
             SwapRouter.RequestNotExpired.selector, reqId
@@ -262,8 +300,9 @@ contract SwapRouterTest is Test {
 
     function test_claimRefund_revertsFromNonRequester() public {
         vm.prank(agent);
-        bytes32 reqId = router.swap(skillId, "");
-        vm.warp(block.timestamp + 15 minutes + 1);
+        bytes32 reqId = router.swap(skillId, type(uint256).max, "");
+        // NotRequester check comes before TTL check in claimRefund.
+        vm.warp(block.timestamp + router.REQUEST_TTL() + 1);
         vm.prank(otherAgent);
         vm.expectRevert(SwapRouter.NotRequester.selector);
         router.claimRefund(reqId);
@@ -299,10 +338,10 @@ contract SwapRouterTest is Test {
     function test_fullLifecycle() public {
         // 1. Agent buys 5 credits.
         vm.prank(agent);
-        router.buyRunToken(skillId, 5);
+        router.buyRunToken(skillId, 5, type(uint256).max);
         assertEq(SkillRunToken(runToken).balanceOf(agent), 5);
 
-        // 2. Execute once.
+        // 2. Execute once (agent has pre-approved router via setUp).
         vm.prank(agent);
         bytes32 reqId = router.executeSkill(skillId, hex"01");
         assertEq(SkillRunToken(runToken).balanceOf(agent), 4);
