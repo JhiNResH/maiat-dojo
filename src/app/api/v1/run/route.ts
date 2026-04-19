@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { keccak256, toBytes } from 'viem';
 import { evaluateCall } from '@/lib/session-evaluator';
 import { settleSession } from '@/lib/settle-session';
+import { anchorExecutionAsync, PHASE2_ADDRESSES } from '@/lib/swap-router';
 import { prisma } from '@/lib/prisma';
 import { parseBody, v1RunInput } from '@/lib/validators';
 import { logError } from '@/lib/logger';
@@ -289,6 +291,32 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // --- Phase 2 on-chain anchor (fire-and-forget) ---
+  // Anchor successful executions to BSC via SwapRouter. Non-blocking — if the
+  // RPC is down or the skill isn't registered on-chain, API response is
+  // unaffected. The tx hashes land in logs for demo/verification.
+  // Resolves the on-chain skillId by hashing the gatewaySlug (must match the
+  // slug used at `SkillRegistry.register` time).
+  let onchainPromise: Promise<void> | null = null;
+  if (shouldCharge && skill.gatewaySlug) {
+    const onchainSkillId = keccak256(toBytes(skill.gatewaySlug));
+    onchainPromise = anchorExecutionAsync(
+      onchainSkillId,
+      !failed,
+      evalResult.responseHash,
+    )
+      .then((r) => {
+        if (r.ok) {
+          console.log('[v1/run] anchored', {
+            skill: skillSlug,
+            swap: r.swapTxHash,
+            settle: r.settleTxHash,
+          });
+        }
+      })
+      .catch((err) => logError('v1/run:anchor', err, { skill: skillSlug }));
+  }
+
   return NextResponse.json({
     result,
     cost,
@@ -297,5 +325,12 @@ export async function POST(req: NextRequest) {
     session_id: session.id,
     latency_ms: latencyMs,
     ...(settleTriggered && { settle_triggered: true }),
+    ...(onchainPromise && {
+      onchain: {
+        chain: 'bsc-testnet',
+        router: PHASE2_ADDRESSES.swapRouter,
+        anchored: 'pending', // fire-and-forget; check logs for tx hashes
+      },
+    }),
   });
 }

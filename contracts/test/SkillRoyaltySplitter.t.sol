@@ -43,6 +43,14 @@ contract SkillRoyaltySplitterTest is Test {
 
     // ── pay ────────────────────────────────────────────────
 
+    /// @dev F3 fix: pay() now credits pendingWithdrawals (pull pattern).
+    ///      Recipients must call withdraw() to receive funds.
+    function _withdrawAll() internal {
+        vm.prank(operator); splitter.withdraw();
+        vm.prank(creator);  splitter.withdraw();
+        vm.prank(platform); splitter.withdraw();
+    }
+
     function test_pay_splits() public {
         uint256 operatorBefore = usdc.balanceOf(operator);
         uint256 creatorBefore  = usdc.balanceOf(creator);
@@ -50,6 +58,7 @@ contract SkillRoyaltySplitterTest is Test {
 
         vm.prank(buyer);
         splitter.pay(1, operator, AMOUNT);
+        _withdrawAll();
 
         // 80% operator, 15% creator, 5% platform
         assertEq(usdc.balanceOf(operator) - operatorBefore, 0.8e6);
@@ -63,6 +72,7 @@ contract SkillRoyaltySplitterTest is Test {
 
         vm.prank(buyer);
         splitter.pay(1, operator, amount);
+        _withdrawAll();
 
         assertEq(usdc.balanceOf(operator) - operatorBefore, 80e6);
         assertEq(usdc.balanceOf(creator), 15e6 + 8.5e6); // from buySkill + pay
@@ -136,16 +146,20 @@ contract SkillRoyaltySplitterTest is Test {
         uint256 operatorBefore = usdc.balanceOf(operator);
         vm.prank(buyer);
         splitter.pay(1, operator, 10000); // exactly 0.01 USDC
+        vm.prank(operator); splitter.withdraw();
         // operator gets 80% of 10000 = 8000
         assertEq(usdc.balanceOf(operator) - operatorBefore, 8000);
     }
 
-    // ── AUDIT-2 M-2: no funds stuck in contract after pay ──
+    // ── AUDIT-2 M-2: no funds stuck in contract after pay + withdraw ──
 
     function test_pay_noFundsStuck() public {
         uint256 contractBefore = usdc.balanceOf(address(splitter));
         vm.prank(buyer);
         splitter.pay(1, operator, AMOUNT);
+        // After pull-pattern pay(), funds sit in pendingWithdrawals.
+        // Once all recipients withdraw, nothing remains.
+        _withdrawAll();
         assertEq(usdc.balanceOf(address(splitter)), contractBefore);
     }
 

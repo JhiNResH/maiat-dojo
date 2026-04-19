@@ -37,6 +37,15 @@ contract SkillRoyaltySplitterFuzzTest is Test {
         usdc.approve(address(splitter), type(uint256).max);
     }
 
+    // ── Helpers ────────────────────────────────────────────
+
+    /// @dev F3 fix: after pay() funds sit in pendingWithdrawals; recipients must pull.
+    function _withdrawAll() internal {
+        vm.prank(operator); splitter.withdraw();
+        vm.prank(creator);  splitter.withdraw();
+        vm.prank(platform); splitter.withdraw();
+    }
+
     // ── Fuzz: splits always sum to amount ──────────────────
 
     function testFuzz_pay_splitsSumToAmount(uint256 amount) public {
@@ -49,6 +58,7 @@ contract SkillRoyaltySplitterFuzzTest is Test {
 
         vm.prank(buyer);
         splitter.pay(1, operator, amount);
+        _withdrawAll();
 
         uint256 operatorGot = usdc.balanceOf(operator) - operatorBefore;
         uint256 creatorGot  = usdc.balanceOf(creator) - creatorBefore;
@@ -60,7 +70,7 @@ contract SkillRoyaltySplitterFuzzTest is Test {
         assertEq(buyerPaid, amount, "buyer paid != amount");
     }
 
-    // ── Fuzz: no funds stuck in splitter ───────────────────
+    // ── Fuzz: no funds stuck in splitter after all withdraw ──
 
     function testFuzz_pay_noFundsStuck(uint256 amount) public {
         amount = bound(amount, splitter.MIN_AMOUNT(), 1_000_000e6);
@@ -69,6 +79,7 @@ contract SkillRoyaltySplitterFuzzTest is Test {
 
         vm.prank(buyer);
         splitter.pay(1, operator, amount);
+        _withdrawAll();
 
         assertEq(usdc.balanceOf(address(splitter)), contractBefore, "funds stuck");
     }
@@ -85,6 +96,7 @@ contract SkillRoyaltySplitterFuzzTest is Test {
 
         vm.prank(buyer);
         splitter.pay(1, operator, amount);
+        _withdrawAll();
 
         uint256 operatorGot = usdc.balanceOf(operator) - operatorBefore;
         uint256 creatorGot  = usdc.balanceOf(creator) - creatorBefore;

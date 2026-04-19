@@ -39,6 +39,10 @@ contract SkillRoyaltySplitter is Ownable, ReentrancyGuard {
     uint16 public platformBps = 500;    // 5%
     address public platformWallet;
 
+    /// @notice F3: pending withdrawals per recipient (withdrawal pattern).
+    /// @dev Replaces push-transfer so a USDC-blacklisted creator cannot DoS pay().
+    mapping(address => uint256) public pendingWithdrawals;
+
     /// @notice Minimum payment amount: 0.01 USDC (10000 units at 6 decimals)
     /// @dev Prevents zero-rounding where operator/creator get 0 on tiny amounts
     uint256 public constant MIN_AMOUNT = 10000;
@@ -53,6 +57,7 @@ contract SkillRoyaltySplitter is Ownable, ReentrancyGuard {
         uint256 creatorAmt,
         uint256 platformAmt
     );
+    event Withdrawn(address indexed recipient, uint256 amount);
 
     event FeeSplitUpdated(uint16 operatorBps, uint16 creatorBps, uint16 platformBps);
     event PlatformWalletUpdated(address indexed newWallet);
@@ -68,6 +73,7 @@ contract SkillRoyaltySplitter is Ownable, ReentrancyGuard {
     error InvalidFeeSplit();
     error OperatorBpsTooLow();
     error TransferFailed(address recipient);
+    error NothingToWithdraw();
 
     // ── Constructor ────────────────────────────────────────
     constructor(
@@ -120,15 +126,24 @@ contract SkillRoyaltySplitter is Ownable, ReentrancyGuard {
         uint256 creatorAmt  = (amount * creatorBps) / 10000;
         uint256 platformAmt = amount - operatorAmt - creatorAmt;
 
-        // AUDIT-2 M-2: Pull full amount to contract first (single pull)
+        // F3: Pull full amount to contract, then credit via withdrawal pattern.
+        // A USDC-blacklisted creator/operator cannot DoS pay() for others.
         usdc.safeTransferFrom(msg.sender, address(this), amount);
 
-        // Push to each recipient — if any fails, funds stay in contract for rescue
-        usdc.safeTransfer(operator, operatorAmt);
-        usdc.safeTransfer(creator, creatorAmt);
-        usdc.safeTransfer(platformWallet, platformAmt);
+        pendingWithdrawals[operator]       += operatorAmt;
+        pendingWithdrawals[creator]        += creatorAmt;
+        pendingWithdrawals[platformWallet] += platformAmt;
 
         emit ServicePayment(skillId, operator, creator, amount, operatorAmt, creatorAmt, platformAmt);
+    }
+
+    /// @notice Pull pending balance. Each recipient withdraws independently.
+    function withdraw() external nonReentrant {
+        uint256 amount = pendingWithdrawals[msg.sender];
+        if (amount == 0) revert NothingToWithdraw();
+        pendingWithdrawals[msg.sender] = 0;
+        usdc.safeTransfer(msg.sender, amount);
+        emit Withdrawn(msg.sender, amount);
     }
 
     // ── Admin setters ──────────────────────────────────────
