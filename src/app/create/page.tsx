@@ -3,13 +3,14 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Upload, Loader2, Sparkles } from 'lucide-react';
+import { ArrowLeft, Upload, Loader2, Sparkles, FileText } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { usePrivy } from '@privy-io/react-auth';
 import { useAutoCreateUser } from '@/hooks/useAutoCreateUser';
 import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
 import { BackgroundEffect } from '@/components/landing/BackgroundEffect';
+import { parseSkillMd } from '@/lib/skill-md';
 
 const CATEGORIES = ['Trading', 'Security', 'Content', 'DeFi', 'Analytics', 'Infra', 'Social'];
 
@@ -38,6 +39,34 @@ export default function CreateSkillPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showSkillMd, setShowSkillMd] = useState(false);
+  const [skillMdRaw, setSkillMdRaw] = useState('');
+  const [skillMdError, setSkillMdError] = useState<string | null>(null);
+
+  const handleImportSkillMd = () => {
+    setSkillMdError(null);
+    try {
+      const parsed = parseSkillMd(skillMdRaw);
+      setFormData((prev) => ({
+        ...prev,
+        name: parsed.name,
+        description: parsed.description,
+        longDescription: parsed.longDescription ?? prev.longDescription,
+        category: parsed.category,
+        icon: parsed.icon ?? prev.icon,
+        price: String(parsed.price),
+        tags: parsed.tags,
+        fileContent: parsed.fileContent,
+        fileType: 'markdown',
+      }));
+      setShowSkillMd(false);
+      setSkillMdRaw('');
+    } catch (err) {
+      setSkillMdError(
+        err instanceof Error ? err.message : 'Invalid SkillMD format'
+      );
+    }
+  };
 
   const glassCard = 'border border-[var(--border)] bg-[var(--card-bg)]';
 
@@ -188,6 +217,68 @@ export default function CreateSkillPage() {
               settlement is automatic on PASS.
             </p>
           </header>
+
+          {/* SkillMD import */}
+          <div className="mb-6">
+            <button
+              type="button"
+              onClick={() => setShowSkillMd((v) => !v)}
+              className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--card-bg)] px-4 py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-secondary)] transition-colors hover:text-[var(--text)]"
+            >
+              <FileText className="h-3 w-3" />
+              {showSkillMd ? 'Hide SkillMD import' : 'Import from SkillMD'}
+            </button>
+            {showSkillMd && (
+              <div
+                className={`mt-4 rounded-3xl border p-6 ${glassCard}`}
+                style={glassStyle}
+              >
+                <div className={labelClass}>Paste SkillMD</div>
+                <p className="mb-3 text-[12px] text-[var(--text-muted)]">
+                  Markdown file with YAML frontmatter. See{' '}
+                  <a
+                    href="https://github.com/JhiNResH/maiat-dojo/blob/main/examples/skill-template.md"
+                    className="underline hover:text-[var(--text)]"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    example
+                  </a>
+                  .
+                </p>
+                <textarea
+                  value={skillMdRaw}
+                  onChange={(e) => setSkillMdRaw(e.target.value)}
+                  placeholder={`---\nname: My Skill\ndescription: …\ncategory: DeFi\nprice: 0.003\n---\n\n# Body content…`}
+                  rows={10}
+                  className={`${inputBase} resize-y font-mono text-[12px]`}
+                />
+                {skillMdError && (
+                  <p className="mt-2 text-[12px] text-red-500">{skillMdError}</p>
+                )}
+                <div className="mt-4 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleImportSkillMd}
+                    disabled={!skillMdRaw.trim()}
+                    className="rounded-full bg-[var(--text)] px-5 py-2 text-[11px] font-bold uppercase tracking-[0.15em] text-[var(--bg)] disabled:opacity-40"
+                  >
+                    Import
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSkillMdRaw('');
+                      setSkillMdError(null);
+                    }}
+                    className="text-[11px] font-bold uppercase tracking-[0.15em] text-[var(--text-muted)] hover:text-[var(--text)]"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
