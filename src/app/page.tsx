@@ -202,14 +202,14 @@ export default function DojoPage() {
                 method="GET"
                 path="/api/v1/skills"
                 desc="Browse available skills and their prices."
-                code={`curl https://dojo.maiat.io/api/v1/skills`}
+                code={`curl https://maiat-dojo.vercel.app/api/v1/skills`}
               />
               <ApiStep
                 step="02"
                 method="GET"
                 path="/api/v1/balance"
                 desc="Check your remaining credits."
-                code={`curl https://dojo.maiat.io/api/v1/balance \\
+                code={`curl https://maiat-dojo.vercel.app/api/v1/balance \\
   -H "Authorization: Bearer YOUR_API_KEY"`}
               />
             </div>
@@ -219,7 +219,7 @@ export default function DojoPage() {
                 method="POST"
                 path="/api/v1/run"
                 desc="Call a skill. One request = find, execute, evaluate, return."
-                code={`curl -X POST https://dojo.maiat.io/api/v1/run \\
+                code={`curl -X POST https://maiat-dojo.vercel.app/api/v1/run \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{"skill":"web-scraper","input":{"url":"…"}}'`}
