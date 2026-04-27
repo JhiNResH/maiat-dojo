@@ -333,6 +333,14 @@ export function getDemoSkillById(id: string) {
   return DEMO_SKILLS.find((skill) => skill.id === id) ?? null;
 }
 
+export function getDemoSkillByWorkflowId(id: string) {
+  return (
+    DEMO_SKILLS.find(
+      (skill) => skill.workflowId === id || skill.workflowSlug === id || skill.id === id,
+    ) ?? null
+  );
+}
+
 export function filterDemoSkills({
   q,
   category,

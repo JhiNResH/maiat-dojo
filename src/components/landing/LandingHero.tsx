@@ -275,13 +275,15 @@ export function LandingHero(_props: LandingHeroProps) {
         </p>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((s) => (
+          {filtered.map((s) => {
+            const workflowKey = s.workflowId ?? s.workflowSlug ?? s.id;
+            return (
             <div
               key={s.id}
               className="glass-card group flex min-h-[220px] flex-col p-5"
             >
               <div className="flex items-start justify-between gap-3">
-                <Link href={`/skill/${s.id}`} className="min-w-0">
+                <Link href={`/workflow/${workflowKey}/run`} className="min-w-0">
                   <h3 className="text-[15px] font-semibold leading-snug text-[var(--text)] transition-colors hover:text-[var(--text-secondary)]">
                     {s.name}
                   </h3>
@@ -312,26 +314,27 @@ export function LandingHero(_props: LandingHeroProps) {
               </div>
               <div className="mt-auto grid grid-cols-3 gap-2 pt-5">
                 <Link
-                  href={`/skill/${s.id}`}
+                  href={`/workflow/${workflowKey}/run`}
                   className="rounded-full bg-[var(--text)] px-3 py-2 text-center text-[11px] font-semibold uppercase tracking-wider text-[var(--bg)] transition-opacity hover:opacity-80"
                 >
                   Run
                 </Link>
                 <Link
-                  href={`/create?fork=${s.workflowId ?? s.id}`}
+                  href={`/workflow/${workflowKey}/fork`}
                   className="rounded-full border border-[var(--border)] px-3 py-2 text-center text-[11px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] transition-colors hover:text-[var(--text)]"
                 >
                   Fork
                 </Link>
                 <Link
-                  href={`/create?deploy=${s.workflowId ?? s.id}`}
+                  href={`/workflow/${workflowKey}/deploy`}
                   className="rounded-full border border-[var(--border)] px-3 py-2 text-center text-[11px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] transition-colors hover:text-[var(--text)]"
                 >
                   Deploy
                 </Link>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
