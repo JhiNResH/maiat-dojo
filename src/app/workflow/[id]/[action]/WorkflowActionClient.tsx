@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle2, GitFork, Play, Rocket, ShieldCheck } from "lucide-react";
+import { usePrivy } from "@privy-io/react-auth";
 
 type WorkflowAction = "run" | "fork" | "deploy";
 
@@ -104,7 +105,7 @@ function actionCopy(action: WorkflowAction) {
         label: "Run workflow",
         eyebrow: "Execution",
         title: "Run a proven workflow.",
-        body: "Send one input, receive a structured result and execution receipt. This is the path buyers use before they fork or deploy a variant.",
+        body: "Send one input and receive a structured sandbox result. Production API runs write paid execution receipts through the Dojo gateway.",
       };
     case "fork":
       return {
@@ -219,6 +220,7 @@ function FieldInput({
 }
 
 function RunPanel({ workflow }: { workflow: WorkflowActionData }) {
+  const { authenticated, login, getAccessToken } = usePrivy();
   const schema = useMemo(() => safeParseSchema(workflow.skill.inputSchema), [workflow.skill.inputSchema]);
   const example = useMemo(() => safeParseRecord(workflow.skill.exampleInput), [workflow.skill.exampleInput]);
   const [values, setValues] = useState<Record<string, unknown>>(() =>
@@ -238,9 +240,20 @@ function RunPanel({ workflow }: { workflow: WorkflowActionData }) {
     setPending(true);
     setResult(null);
     try {
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      const isDemo = workflow.id.startsWith("demo-") || workflow.skill.id.startsWith("demo-");
+      if (!isDemo) {
+        const token = authenticated ? await getAccessToken() : null;
+        if (!token) {
+          setPending(false);
+          login();
+          return;
+        }
+        headers.Authorization = `Bearer ${token}`;
+      }
       const response = await fetch(`/api/skills/${workflow.skill.id}/sandbox`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ input: values }),
       });
       const data = (await response.json()) as RunResult;
@@ -294,7 +307,7 @@ function RunPanel({ workflow }: { workflow: WorkflowActionData }) {
 
       <section id="receipt" className="glass-card p-6">
         <div className="mb-5 flex items-center justify-between">
-          <span className="label-sm">Execution receipt</span>
+          <span className="label-sm">Sandbox receipt preview</span>
           {result && (
             <span className="font-mono text-[11px] text-[var(--text-muted)]">
               {result.latencyMs ?? 0}ms
@@ -308,7 +321,7 @@ function RunPanel({ workflow }: { workflow: WorkflowActionData }) {
               : result ?? {
                   status: "ready",
                   workflow: workflow.slug,
-                  receipt: "Run the workflow to generate an execution receipt.",
+                  receipt: "Run the workflow to preview the receipt shape.",
                 },
           )}
         </pre>

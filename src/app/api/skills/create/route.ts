@@ -164,11 +164,17 @@ export async function POST(req: NextRequest) {
       for (let attempt = 0; attempt < 3; attempt++) {
         const suffix = randomBytes(3).toString('hex');
         const candidate = `${base}-${suffix}`;
-        const existing = await prisma.skill.findUnique({
-          where: { gatewaySlug: candidate },
-          select: { id: true },
-        });
-        if (!existing) {
+        const [existingSkill, existingWorkflow] = await Promise.all([
+          prisma.skill.findUnique({
+            where: { gatewaySlug: candidate },
+            select: { id: true },
+          }),
+          prisma.workflow.findUnique({
+            where: { slug: candidate },
+            select: { id: true },
+          }),
+        ]);
+        if (!existingSkill && !existingWorkflow) {
           finalSlug = candidate;
           break;
         }
@@ -238,44 +244,101 @@ export async function POST(req: NextRequest) {
       return typeof v === 'string' ? v : JSON.stringify(v);
     };
 
-    // Create the skill
-    const skill = await prisma.skill.create({
-      data: {
-        name,
-        description,
-        longDescription: longDescription ?? null,
-        category,
-        icon: icon || "⚡",
-        price: parsedPrice,
-        currency: "USD",
-        tags: tags ?? "",
-        fileContent: fileContent ?? null,
-        fileType: fileType ?? null,
-        isGated: parsedPrice > 0,
-        creatorId: user.id,
-        skillType: effectiveSkillType,
-        gatewaySlug: finalSlug,
-        pricePerCall: pricePerCall ? Number(pricePerCall) : null,
-        endpointUrl: endpointUrl ?? null,
-        creatorHmacSecret: finalHmacSecret ?? null,
-        // Profile fields
-        executionKind: executionKind ?? null,
-        inputShape: inputShape ?? null,
-        outputShape: outputShape ?? null,
-        estLatencyMs: estLatencyMs ? Number(estLatencyMs) : undefined,
-        sandboxable: sandboxable ?? null,
-        authRequired: authRequired ?? null,
-        inputSchema: stringify(inputSchema),
-        outputSchema: stringify(outputSchema),
-        exampleInput: stringify(exampleInput),
-        exampleOutput: stringify(exampleOutput),
-      },
-      include: {
-        creator: true,
-      },
+    const inputSchemaText = stringify(inputSchema);
+    const outputSchemaText = stringify(outputSchema);
+    const exampleInputText = stringify(exampleInput);
+    const exampleOutputText = stringify(exampleOutput);
+    const effectivePricePerCall = pricePerCall ? Number(pricePerCall) : null;
+
+    const created = await prisma.$transaction(async (tx) => {
+      const skill = await tx.skill.create({
+        data: {
+          name,
+          description,
+          longDescription: longDescription ?? null,
+          category,
+          icon: icon || "⚡",
+          price: parsedPrice,
+          currency: "USD",
+          tags: tags ?? "",
+          fileContent: fileContent ?? null,
+          fileType: fileType ?? null,
+          isGated: parsedPrice > 0,
+          creatorId: user.id,
+          skillType: effectiveSkillType,
+          gatewaySlug: finalSlug,
+          pricePerCall: effectivePricePerCall,
+          endpointUrl: endpointUrl ?? null,
+          creatorHmacSecret: finalHmacSecret ?? null,
+          // Profile fields
+          executionKind: executionKind ?? null,
+          inputShape: inputShape ?? null,
+          outputShape: outputShape ?? null,
+          estLatencyMs: estLatencyMs ? Number(estLatencyMs) : undefined,
+          sandboxable: sandboxable ?? null,
+          authRequired: authRequired ?? null,
+          inputSchema: inputSchemaText,
+          outputSchema: outputSchemaText,
+          exampleInput: exampleInputText,
+          exampleOutput: exampleOutputText,
+        },
+        include: {
+          creator: true,
+        },
+      });
+
+      if (effectiveSkillType !== 'active') {
+        return { skill, workflow: null };
+      }
+
+      if (!finalSlug) {
+        throw new Error('gatewaySlug is required to create a workflow');
+      }
+
+      const workflow = await tx.workflow.create({
+        data: {
+          slug: finalSlug,
+          name,
+          description,
+          category,
+          icon: icon || "⚡",
+          status: 'published',
+          pricePerRun: effectivePricePerCall ?? parsedPrice,
+          creatorId: user.id,
+          skillId: skill.id,
+        },
+      });
+
+      const version = await tx.workflowVersion.create({
+        data: {
+          workflowId: workflow.id,
+          version: 1,
+          title: name,
+          summary: longDescription ?? description,
+          inputSchema: inputSchemaText,
+          outputSchema: outputSchemaText,
+          stepGraph: JSON.stringify({
+            kind: 'one_step_endpoint',
+            skillId: skill.id,
+            gatewaySlug: finalSlug,
+          }),
+          evaluatorPolicy: JSON.stringify({
+            evaluator: 'dojo-sanity-v1',
+            delivered: true,
+            validFormat: true,
+            withinSla: true,
+          }),
+          slaMs: estLatencyMs ? Number(estLatencyMs) : 5000,
+        },
+      });
+
+      return { skill, workflow: { ...workflow, latestVersion: version } };
     });
 
-    return NextResponse.json(skill, { status: 201 });
+    return NextResponse.json(
+      { ...created.skill, workflow: created.workflow },
+      { status: 201 },
+    );
   } catch (err: unknown) {
     console.error("[POST /api/skills/create]", err);
     const message = err instanceof Error ? err.message : "Internal server error";
