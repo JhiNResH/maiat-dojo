@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { filterDemoSkills, toPublicSkill } from "@/lib/demo-catalog";
 
 export const dynamic = "force-dynamic";
 
@@ -56,40 +57,60 @@ export async function GET(req: NextRequest) {
     }),
   };
 
-  const [skills, total] = await Promise.all([
-    prisma.skill.findMany({
-      where,
-      orderBy,
-      skip: offset,
-      take: limit,
-      include: {
-        creator: { select: { id: true, displayName: true, avatarUrl: true } },
-        _count: { select: { reviews: true, purchases: true, sessions: true } },
-        workflow: {
-          select: {
-            id: true,
-            slug: true,
-            pricePerRun: true,
-            runCount: true,
-            forkCount: true,
-            trustScore: true,
-            royaltyBps: true,
-            versions: {
-              orderBy: { version: "desc" },
-              take: 1,
-              select: {
-                id: true,
-                version: true,
-                summary: true,
-                slaMs: true,
+  const fallback = () => {
+    const demo = filterDemoSkills({ q, category, freeOnly, limit, offset });
+    return NextResponse.json({
+      total: demo.total,
+      skills: demo.skills.map(toPublicSkill),
+      demo: true,
+    });
+  };
+
+  let skills;
+  let total;
+  try {
+    [skills, total] = await Promise.all([
+      prisma.skill.findMany({
+        where,
+        orderBy,
+        skip: offset,
+        take: limit,
+        include: {
+          creator: { select: { id: true, displayName: true, avatarUrl: true } },
+          _count: { select: { reviews: true, purchases: true, sessions: true } },
+          workflow: {
+            select: {
+              id: true,
+              slug: true,
+              pricePerRun: true,
+              runCount: true,
+              forkCount: true,
+              trustScore: true,
+              royaltyBps: true,
+              versions: {
+                orderBy: { version: "desc" },
+                take: 1,
+                select: {
+                  id: true,
+                  version: true,
+                  summary: true,
+                  slaMs: true,
+                },
               },
             },
           },
         },
-      },
-    }),
-    prisma.skill.count({ where }),
-  ]);
+      }),
+      prisma.skill.count({ where }),
+    ]);
+  } catch (error) {
+    console.warn("[GET /api/skills] falling back to demo catalog:", error);
+    return fallback();
+  }
+
+  if (skills.length === 0 && offset === 0) {
+    return fallback();
+  }
 
   const mapped = skills.map((s) => ({
     ...s,
