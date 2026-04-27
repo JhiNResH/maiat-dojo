@@ -105,8 +105,8 @@ export function ChatRoom() {
               kind: "text",
               tone: "warn",
               content: catalogError
-                ? `Couldn't load the skill list (${catalogError}).`
-                : "No skills listed yet.",
+                ? `Couldn't load the workflow list (${catalogError}).`
+                : "No workflows listed yet.",
             });
             return;
           }

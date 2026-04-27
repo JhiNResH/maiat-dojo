@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * SkillListCard — chat-embedded mini browse view.
+ * SkillListCard — chat-embedded mini workflow browse view.
  *
  * Spec: specs/2026-04-09-chat-first-ui.md (buyer intent: list / show skills)
  *
@@ -30,7 +30,7 @@ export function SkillListCard({ skills, onRun }: SkillListCardProps) {
         className="border border-dashed bg-[#f8f5ef]/60 px-4 py-6 text-center font-serif text-sm italic text-[#1a1a1a]/40"
         style={{ borderColor: "#b8a990" }}
       >
-        No skills listed yet.
+            No workflows listed yet.
       </div>
     );
   }
@@ -39,7 +39,7 @@ export function SkillListCard({ skills, onRun }: SkillListCardProps) {
     <figure className="my-1">
       <figcaption className="mb-2 flex items-baseline justify-between border-b-[3px] border-double border-[#1a1a1a]/60 pb-1">
         <span className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-[#1a1a1a]/70">
-          Skill Listings
+          Workflow Listings
         </span>
         <span className="font-mono text-[9px] text-[#1a1a1a]/30">
           {skills.length} on offer

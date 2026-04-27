@@ -19,6 +19,11 @@ export interface ChatSkillSummary {
   gatewaySlug: string | null;
   callCount?: number;
   trustScore?: number;
+  workflowId?: string | null;
+  workflowSlug?: string | null;
+  workflowRunCount?: number;
+  workflowForkCount?: number;
+  royaltyBps?: number | null;
 }
 
 export type ChatMessage =

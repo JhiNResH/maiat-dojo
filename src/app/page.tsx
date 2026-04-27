@@ -1,12 +1,12 @@
 "use client";
 
 /**
- * Dojo home — marketplace-first landing (matching app.maiat.io layout).
+ * Dojo home — workflow marketplace landing (matching app.maiat.io layout).
  *
  * Vertical stack, no sidebars:
  *   - Floating glass navbar
  *   - Centered hero + CTAs
- *   - LandingHero (stats → ticker → filters → grid)
+ *   - LandingHero (stats -> ticker -> filters -> grid)
  *   - For Developers (API quick-start)
  *   - Multi-column footer
  */
@@ -127,7 +127,7 @@ export default function DojoPage() {
           {/* Center links */}
           <div className="hidden items-center gap-6 md:flex">
             <Link href="/demo" className="text-[11px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] transition-colors hover:text-[var(--text)]">
-              Markets
+              Demo
             </Link>
             <Link href="/leaderboard" className="text-[11px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] transition-colors hover:text-[var(--text)]">
               Leaderboard
@@ -154,22 +154,22 @@ export default function DojoPage() {
           <div className="mb-8 inline-flex items-center gap-2 rounded-full bg-[var(--text)] px-4 py-1.5">
             <span className="live-dot live-dot-inverted" />
             <span className="font-mono text-[11px] font-semibold uppercase tracking-wider text-[var(--bg)]">
-              Mainnet Live
+              Workflow Preview
             </span>
           </div>
           {/* Two-tone heading — first line dark, second line muted */}
           <h1 className="heading-xl">
-            Skill Marketplace
+            Agent Workflows
             <br />
-            <span className="heading-xl-muted">for AI Agents.</span>
+            <span className="heading-xl-muted">to run, fork, and sell.</span>
           </h1>
           <p className="mx-auto mt-8 max-w-md text-[16px] leading-relaxed text-[var(--text-secondary)]">
-            List your API as a skill. Agents pay per call. Every call is
-            evaluated, attested on BAS, and builds on-chain trust.
+            Publish an endpoint-backed workflow, let other agents run it in
+            sandbox, fork it into variants, then deploy their own version.
           </p>
           <div className="mt-10 flex items-center justify-center gap-3">
             <Link href="/create" className="btn-primary">
-              List a Skill →
+              Publish Workflow →
             </Link>
             <a href="#developers" className="btn-outline">
               REST API Docs
@@ -177,7 +177,7 @@ export default function DojoPage() {
           </div>
         </section>
 
-        {/* ═══ MARKETPLACE (stats → ticker → filters → grid) ═══ */}
+        {/* ═══ MARKETPLACE (stats -> ticker -> filters -> grid) ═══ */}
         <main className="mb-20">
           <LandingHero />
         </main>
@@ -187,11 +187,11 @@ export default function DojoPage() {
           <div className="mb-8 text-center">
             <span className="label-sm">For Developers</span>
             <h2 className="heading-lg mt-3 text-[var(--text)]">
-              One HTTP call per skill.
+              One HTTP call per workflow.
             </h2>
             <p className="mx-auto mt-3 max-w-lg text-[15px] leading-relaxed text-[var(--text-secondary)]">
-              Your agent doesn&apos;t need a wallet, sessions, or nonces. Get an
-              API key, pick a skill, and call it.
+              Your agent does not need wallet plumbing, sessions, or nonces.
+              Pick a published workflow, execute it through the gateway, and let Dojo clear the run.
             </p>
           </div>
 
@@ -201,7 +201,7 @@ export default function DojoPage() {
                 step="01"
                 method="GET"
                 path="/api/v1/skills"
-                desc="Browse available skills and their prices."
+                desc="Browse executable workflows and their gateway slugs."
                 code={`curl https://maiat-dojo.vercel.app/api/v1/skills`}
               />
               <ApiStep
@@ -218,7 +218,7 @@ export default function DojoPage() {
                 step="03"
                 method="POST"
                 path="/api/v1/run"
-                desc="Call a skill. One request = find, execute, evaluate, return."
+                desc="Run a workflow by gateway slug. One request = authorize, execute, evaluate, return."
                 code={`curl -X POST https://maiat-dojo.vercel.app/api/v1/run \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
@@ -228,14 +228,15 @@ export default function DojoPage() {
                 step="04"
                 method=""
                 path="Response"
-                desc="Result, cost, balance, and trust score in one response."
+                desc="Result, cost, balance, and execution score in one response."
                 code={`{
   "result": { "content": "..." },
   "cost": 0.003,
   "balance": 9.997,
   "score": 1.0,
   "session_id": "cls...",
-  "latency_ms": 842
+  "latency_ms": 842,
+  "workflow_receipt": { "settlement_status": "paid" }
 }`}
               />
             </div>
@@ -250,7 +251,7 @@ export default function DojoPage() {
                 The Dojo
               </span>
               <p className="mt-2 text-[13px] leading-relaxed text-[var(--text-muted)]">
-                Skill marketplace for the
+                Workflow marketplace for the
                 <br />
                 agent economy.
               </p>
@@ -311,7 +312,7 @@ export default function DojoPage() {
               <span className="label-sm">Get Started</span>
               <div className="mt-3 flex flex-col gap-2">
                 <Link href="/create" className="btn-primary w-full justify-center text-[12px]">
-                  List a Skill
+                  Publish Workflow
                 </Link>
                 <a href="#developers" className="btn-outline w-full justify-center text-[12px]">
                   View Docs
@@ -324,7 +325,7 @@ export default function DojoPage() {
               &copy; 2026 Maiat Protocol. All rights reserved.
             </span>
             <span className="text-[12px] text-[var(--text-muted)]">
-              BSC Mainnet
+              Preview rail
             </span>
           </div>
         </footer>

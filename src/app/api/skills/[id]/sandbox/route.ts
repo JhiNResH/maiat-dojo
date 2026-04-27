@@ -19,6 +19,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createHmac } from 'node:crypto';
 import { prisma } from '@/lib/prisma';
+import { getDemoSkillById, runDemoSkill } from '@/lib/demo-catalog';
 import { verifyPrivyAuth } from '@/lib/privy-server';
 import { parseSkillProfile } from '@/lib/skill-profile';
 
@@ -69,6 +70,33 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const demoSkill = getDemoSkillById(params.id);
+  if (demoSkill) {
+    let body: SandboxRequestBody;
+    try {
+      body = (await req.json()) as SandboxRequestBody;
+    } catch {
+      return NextResponse.json(
+        { error: 'Invalid JSON body', code: 'BAD_BODY' },
+        { status: 400 }
+      );
+    }
+
+    const t0 = Date.now();
+    const input =
+      body?.input && typeof body.input === 'object' && !Array.isArray(body.input)
+        ? (body.input as Record<string, unknown>)
+        : {};
+
+    return NextResponse.json({
+      ok: true,
+      status: 200,
+      latencyMs: Math.max(12, Date.now() - t0),
+      data: runDemoSkill(demoSkill, input),
+      demo: true,
+    });
+  }
+
   // Auth gate — require authenticated caller (buyer trying a skill)
   const skipAuth =
     process.env.DOJO_SKIP_PRIVY_AUTH === 'true' &&

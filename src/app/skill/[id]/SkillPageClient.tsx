@@ -10,6 +10,7 @@ import { Footer } from '@/components/landing/Footer';
 import { BackgroundEffect } from '@/components/landing/BackgroundEffect';
 import TrustCard from '@/components/TrustCard';
 import SkillSandbox from '@/components/SkillSandbox';
+import SkillExecutor from '@/components/skill/SkillExecutor';
 import ReviewSection from '@/components/ReviewSection';
 import ReviewForm from '@/components/ReviewForm';
 
@@ -27,6 +28,16 @@ interface SkillData {
   gatewaySlug: string | null;
   fileContent: string | null;
   evaluationScore: number | null;
+  executionKind?: string | null;
+  inputShape?: string | null;
+  outputShape?: string | null;
+  estLatencyMs?: number | null;
+  sandboxable?: boolean | null;
+  authRequired?: boolean | null;
+  inputSchema?: string | null;
+  outputSchema?: string | null;
+  exampleInput?: string | null;
+  exampleOutput?: string | null;
   createdAt: string;
   updatedAt: string;
   creator: {
@@ -214,6 +225,31 @@ export default function SkillPageClient({
               {/* Flagship: live sandbox (token-price-oracle only) */}
               {skill.gatewaySlug === 'token-price-oracle' && (
                 <SkillSandbox />
+              )}
+
+              {skill.skillType === 'active' && skill.gatewaySlug !== 'token-price-oracle' && (
+                <section className="glass-card p-8">
+                  <div className="font-mono text-[9px] uppercase tracking-[0.15em] mb-5 text-[var(--text-muted)]">
+                    Run workflow
+                  </div>
+                  <SkillExecutor
+                    skill={{
+                      id: skill.id,
+                      name: skill.name,
+                      executionKind: skill.executionKind,
+                      inputShape: skill.inputShape,
+                      outputShape: skill.outputShape,
+                      estLatencyMs: skill.estLatencyMs,
+                      sandboxable: skill.sandboxable,
+                      authRequired: skill.authRequired,
+                      inputSchema: skill.inputSchema,
+                      outputSchema: skill.outputSchema,
+                      exampleInput: skill.exampleInput,
+                      exampleOutput: skill.exampleOutput,
+                    }}
+                    mode="sandbox"
+                  />
+                </section>
               )}
 
               {/* Flagship: trust dossier */}

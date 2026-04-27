@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Leaderboard — top skills by on-chain trust score.
+ * Leaderboard — top workflows by on-chain trust score.
  *
  * Spec: specs/2026-04-09-chat-first-ui.md (landing hero §Leaderboard+Trending)
  *
@@ -36,7 +36,7 @@ export function Leaderboard({ limit = 5 }: { limit?: number }) {
       label="Leaderboard"
       meta="by trust"
       skills={skills}
-      emptyCopy="No skills listed yet."
+      emptyCopy="No workflows listed yet."
       metric={(s) => {
         const score = s.trustScore ?? 0;
         return score > 0 ? `${Math.round(score)}★` : "—";

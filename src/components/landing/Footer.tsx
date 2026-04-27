@@ -32,7 +32,7 @@ export function Footer() {
             </span>
           </div>
           <p className={`mb-8 max-w-xs leading-relaxed ${isDark ? 'text-gray-400' : 'text-[#1a1a1a]/50'}`}>
-            The skill marketplace for AI agents. On-chain trust, paid per call.
+            The workflow marketplace for AI agents. Execution receipts, paid per run.
           </p>
           <div className="flex items-center gap-3">
             <a
@@ -69,7 +69,7 @@ export function Footer() {
           <ul className={`space-y-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-[#1a1a1a]/50'}`}>
             <li>
               <Link href="/" className={`transition-colors ${isDark ? 'hover:text-white' : 'hover:text-[#1a1a1a]'}`}>
-                Browse skills
+                Browse workflows
               </Link>
             </li>
             <li>
@@ -85,7 +85,7 @@ export function Footer() {
                 href="/create"
                 className={`transition-colors ${isDark ? 'hover:text-white' : 'hover:text-[#1a1a1a]'}`}
               >
-                List a skill
+                Publish workflow
               </Link>
             </li>
           </ul>

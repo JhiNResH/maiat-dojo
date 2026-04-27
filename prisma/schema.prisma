@@ -36,6 +36,9 @@ model User {
   reviews       Review[]
   purchases     Purchase[]
   createdSkills Skill[]    @relation("SkillCreator")
+  createdWorkflows Workflow[] @relation("WorkflowCreator")
+  createdForks WorkflowFork[] @relation("ForkCreator")
+  createdRunReceipts WorkflowRunReceipt[] @relation("ReceiptCreator")
   ownedAgents   Agent[]    @relation("AgentOwner")
 }
 
@@ -96,6 +99,7 @@ model Skill {
   purchases   Purchase[]
   equippedBy  AgentSkill[]
   sessions    Session[]
+  workflow    Workflow?
 }
 
 // --- Agents ---
@@ -125,6 +129,7 @@ model Agent {
   reviews        Review[]
   jobs           Job[]
   sessions       Session[]
+  workflowRunReceipts WorkflowRunReceipt[] @relation("ReceiptBuyerAgent")
 }
 
 // --- Agent <-> Skill (equipped) ---
@@ -226,6 +231,7 @@ model Session {
   // Relations
   calls            SkillCall[]
   reviews          Review[]
+  workflowRunReceipts WorkflowRunReceipt[]
 
   @@index([status, expiresAt])
   @@index([payerAgentId])
@@ -253,7 +259,113 @@ model SkillCall {
   score        Float    @default(0)    // 0.0 = fail | 1.0 = pass
 
   session      Session  @relation(fields: [sessionId], references: [id])
+  workflowReceipt WorkflowRunReceipt?
 
   @@index([sessionId, nonce])
   @@unique([sessionId, nonce])
+}
+
+// --- Workflows (versioned agent processes) — 2026-04-27 ---
+// Current Skills are one-step workflows. This layer adds run/fork/deploy
+// semantics without breaking the existing /api/v1/run skill gateway.
+model Workflow {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  description String
+  category    String
+  icon        String   @default("⚙️")
+  status      String   @default("published") // draft | published | archived
+  pricePerRun Float    @default(0)
+  royaltyBps  Int      @default(500)
+  runCount    Int      @default(0)
+  forkCount   Int      @default(0)
+  trustScore  Float    @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Optional one-step execution target. Multi-step workflows can leave this
+  // null until the workflow runner exists.
+  skillId     String?  @unique
+  skill       Skill?   @relation(fields: [skillId], references: [id])
+
+  creatorId   String
+  creator     User     @relation("WorkflowCreator", fields: [creatorId], references: [id])
+
+  versions      WorkflowVersion[]
+  receipts      WorkflowRunReceipt[]
+  forksAsParent WorkflowFork[] @relation("WorkflowForkParent")
+  forksAsChild  WorkflowFork[] @relation("WorkflowForkChild")
+
+  @@index([status, category])
+  @@index([creatorId])
+}
+
+model WorkflowVersion {
+  id              String   @id @default(cuid())
+  workflowId      String
+  version         Int      @default(1)
+  title           String
+  summary         String
+  inputSchema     String?
+  outputSchema    String?
+  stepGraph       String
+  evaluatorPolicy String
+  slaMs           Int      @default(5000)
+  createdAt       DateTime @default(now())
+
+  workflow Workflow @relation(fields: [workflowId], references: [id])
+  receipts WorkflowRunReceipt[]
+
+  @@unique([workflowId, version])
+  @@index([workflowId])
+}
+
+model WorkflowFork {
+  id               String   @id @default(cuid())
+  parentWorkflowId String
+  childWorkflowId  String   @unique
+  creatorId        String
+  royaltyBps       Int      @default(500)
+  createdAt        DateTime @default(now())
+
+  parentWorkflow Workflow @relation("WorkflowForkParent", fields: [parentWorkflowId], references: [id])
+  childWorkflow  Workflow @relation("WorkflowForkChild", fields: [childWorkflowId], references: [id])
+  creator        User     @relation("ForkCreator", fields: [creatorId], references: [id])
+
+  @@index([parentWorkflowId])
+  @@index([creatorId])
+}
+
+model WorkflowRunReceipt {
+  id               String   @id @default(cuid())
+  workflowId       String
+  versionId        String?
+  skillCallId      String?  @unique
+  sessionId        String
+  buyerAgentId     String
+  creatorId        String
+  evaluator        String   @default("dojo-sanity-v1")
+  requestHash      String
+  responseHash     String?
+  delivered        Boolean  @default(false)
+  validFormat      Boolean  @default(false)
+  withinSla        Boolean  @default(false)
+  score            Float    @default(0)
+  costUsdc         Float    @default(0)
+  settlementStatus String   @default("paid") // paid | refunded | disputed
+  attestationUid   String?
+  createdAt        DateTime @default(now())
+
+  workflow   Workflow         @relation(fields: [workflowId], references: [id])
+  version    WorkflowVersion? @relation(fields: [versionId], references: [id])
+  skillCall  SkillCall?       @relation(fields: [skillCallId], references: [id])
+  session    Session          @relation(fields: [sessionId], references: [id])
+  buyerAgent Agent            @relation("ReceiptBuyerAgent", fields: [buyerAgentId], references: [id])
+  creator    User             @relation("ReceiptCreator", fields: [creatorId], references: [id])
+
+  @@index([workflowId, createdAt])
+  @@index([buyerAgentId, createdAt])
+  @@index([creatorId, createdAt])
+  @@index([sessionId])
 }

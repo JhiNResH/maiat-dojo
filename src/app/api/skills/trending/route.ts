@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { DEMO_SKILLS, toPublicSkill } from "@/lib/demo-catalog";
 
 export const dynamic = "force-dynamic";
 
@@ -29,37 +30,73 @@ export async function GET(req: NextRequest) {
 
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
-  const grouped = await prisma.session.groupBy({
-    by: ["skillId"],
-    where: { openedAt: { gte: since } },
-    _sum: { callCount: true },
-    _count: { _all: true },
-    orderBy: { _count: { skillId: "desc" } },
-    take: limit,
-  });
+  const fallback = () =>
+    NextResponse.json({
+      window: { days, since: since.toISOString() },
+      zeroState: true,
+      demo: true,
+      skills: DEMO_SKILLS.slice(0, limit).map((skill) => ({
+        ...toPublicSkill(skill),
+        recentSessions: 0,
+        recentCalls: 0,
+      })),
+    });
+
+  let grouped;
+  try {
+    grouped = await prisma.session.groupBy({
+      by: ["skillId"],
+      where: { openedAt: { gte: since } },
+      _sum: { callCount: true },
+      _count: { _all: true },
+      orderBy: { _count: { skillId: "desc" } },
+      take: limit,
+    });
+  } catch (error) {
+    console.warn("[GET /api/skills/trending] falling back to demo catalog:", error);
+    return fallback();
+  }
 
   // Zero-state: no sessions in window → fall back to newest listings so the
   // landing surface is never empty on a fresh seed.
   if (grouped.length === 0) {
-    const fallback = await prisma.skill.findMany({
+    const rows = await prisma.skill.findMany({
       orderBy: { createdAt: "desc" },
       take: limit,
       include: {
         creator: { select: { id: true, displayName: true, avatarUrl: true } },
+        workflow: {
+          select: {
+            id: true,
+            slug: true,
+            runCount: true,
+            forkCount: true,
+            trustScore: true,
+            royaltyBps: true,
+          },
+        },
       },
     });
+    if (rows.length === 0) {
+      return fallback();
+    }
     return NextResponse.json({
       window: { days, since: since.toISOString() },
       zeroState: true,
-      skills: fallback.map((s) => ({
+      skills: rows.map((s) => ({
         id: s.id,
         name: s.name,
         description: s.description,
         category: s.category,
         pricePerCall: s.pricePerCall,
         gatewaySlug: s.gatewaySlug,
-        trustScore: s.evaluationScore ?? 0,
+        trustScore: s.workflow?.trustScore ?? s.evaluationScore ?? 0,
         callCount: 0,
+        workflowId: s.workflow?.id ?? null,
+        workflowSlug: s.workflow?.slug ?? null,
+        workflowRunCount: s.workflow?.runCount ?? 0,
+        workflowForkCount: s.workflow?.forkCount ?? 0,
+        royaltyBps: s.workflow?.royaltyBps ?? null,
         recentSessions: 0,
         recentCalls: 0,
       })),
@@ -72,6 +109,16 @@ export async function GET(req: NextRequest) {
     include: {
       creator: { select: { id: true, displayName: true, avatarUrl: true } },
       _count: { select: { sessions: true } },
+      workflow: {
+        select: {
+          id: true,
+          slug: true,
+          runCount: true,
+          forkCount: true,
+          trustScore: true,
+          royaltyBps: true,
+        },
+      },
     },
   });
   const byId = new Map(rows.map((r) => [r.id, r]));
@@ -87,8 +134,13 @@ export async function GET(req: NextRequest) {
         category: s.category,
         pricePerCall: s.pricePerCall,
         gatewaySlug: s.gatewaySlug,
-        trustScore: s.evaluationScore ?? 0,
+        trustScore: s.workflow?.trustScore ?? s.evaluationScore ?? 0,
         callCount: s._count.sessions,
+        workflowId: s.workflow?.id ?? null,
+        workflowSlug: s.workflow?.slug ?? null,
+        workflowRunCount: s.workflow?.runCount ?? s._count.sessions,
+        workflowForkCount: s.workflow?.forkCount ?? 0,
+        royaltyBps: s.workflow?.royaltyBps ?? null,
         recentSessions: g._count._all,
         recentCalls: g._sum.callCount ?? 0,
       };
