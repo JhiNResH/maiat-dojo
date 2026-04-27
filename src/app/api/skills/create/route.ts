@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomBytes } from "crypto";
+import type { User } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { verifyPrivyAuth } from "@/lib/privy-server";
+import { authenticateWorkflowUser } from "@/lib/workflow-api-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -59,24 +61,35 @@ export async function POST(req: NextRequest) {
       exampleOutput,
     } = body;
 
-    // Validate required fields
-    if (!privyId) {
-      return NextResponse.json(
-        { error: "Missing required field: privyId" },
-        { status: 400 }
-      );
-    }
-
     // Auth — verify caller owns the privyId they're creating skills under
     const skipAuth =
       process.env.DOJO_SKIP_PRIVY_AUTH === 'true' &&
       process.env.NODE_ENV !== 'production';
 
-    if (!skipAuth) {
+    let apiKeyUser: User | null = null;
+    const bearer = req.headers.get('Authorization') ?? req.headers.get('authorization');
+    const isApiKeyAuth = bearer?.startsWith('Bearer dojo_sk_') ?? false;
+
+    if (!skipAuth && isApiKeyAuth) {
+      const auth = await authenticateWorkflowUser(req);
+      if (!auth.ok) return auth.response;
+      apiKeyUser = auth.user;
+    } else if (!skipAuth) {
+      if (!privyId) {
+        return NextResponse.json(
+          { error: "Missing required field: privyId" },
+          { status: 400 }
+        );
+      }
       const authResult = await verifyPrivyAuth(req.headers.get('Authorization'));
       if (!authResult.success || authResult.privyId !== privyId) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
       }
+    } else if (!privyId) {
+      return NextResponse.json(
+        { error: "Missing required field: privyId" },
+        { status: 400 }
+      );
     }
 
     if (!name || !description || !category) {
@@ -104,8 +117,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Upsert user from Privy identity
-    const user = await prisma.user.upsert({
+    // Upsert user from Privy identity, or use the authenticated API-key owner.
+    const user = apiKeyUser ?? await prisma.user.upsert({
       where: { privyId },
       update: {
         ...(email && { email }),
