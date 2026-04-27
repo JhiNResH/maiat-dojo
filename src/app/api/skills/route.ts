@@ -65,6 +65,27 @@ export async function GET(req: NextRequest) {
       include: {
         creator: { select: { id: true, displayName: true, avatarUrl: true } },
         _count: { select: { reviews: true, purchases: true, sessions: true } },
+        workflow: {
+          select: {
+            id: true,
+            slug: true,
+            pricePerRun: true,
+            runCount: true,
+            forkCount: true,
+            trustScore: true,
+            royaltyBps: true,
+            versions: {
+              orderBy: { version: "desc" },
+              take: 1,
+              select: {
+                id: true,
+                version: true,
+                summary: true,
+                slaMs: true,
+              },
+            },
+          },
+        },
       },
     }),
     prisma.skill.count({ where }),
@@ -73,7 +94,13 @@ export async function GET(req: NextRequest) {
   const mapped = skills.map((s) => ({
     ...s,
     callCount: s._count.sessions,
-    trustScore: s.evaluationScore ?? 0,
+    trustScore: s.workflow?.trustScore ?? s.evaluationScore ?? 0,
+    workflowId: s.workflow?.id ?? null,
+    workflowSlug: s.workflow?.slug ?? null,
+    workflowRunCount: s.workflow?.runCount ?? s._count.sessions,
+    workflowForkCount: s.workflow?.forkCount ?? 0,
+    royaltyBps: s.workflow?.royaltyBps ?? null,
+    workflowVersion: s.workflow?.versions[0] ?? null,
   }));
 
   return NextResponse.json({ total, skills: mapped });

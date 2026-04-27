@@ -1,15 +1,15 @@
 "use client";
 
 /**
- * LandingHero — marketplace skills grid.
+ * LandingHero — workflow marketplace grid.
  *
  * Layout (matching app.maiat.io):
  *   - Protocol stats row (3 stat-cards)
  *   - Horizontal activity ticker (scrolling event cards)
  *   - Category filter pills
- *   - Full-width skills grid (3-col desktop, 2-col tablet, 1-col mobile)
+ *   - Full-width workflow grid (3-col desktop, 2-col tablet, 1-col mobile)
  *
- * No sidebars. No editorial hierarchy. Just a marketplace grid.
+ * No sidebars. No editorial hierarchy. Just a workflow marketplace grid.
  */
 
 import { useEffect, useState, useRef } from "react";
@@ -35,24 +35,24 @@ type ActivityEvent = {
 
 /* ── Mock data ── */
 const SEED_EVENTS: ActivityEvent[] = [
-  { id: "e01", type: "call", agent: "0x4f2...c8a", skill: "Token Price Oracle", ts: Date.now() - 4000 },
+  { id: "e01", type: "call", agent: "0x4f2...c8a", skill: "Quick Audit Workflow", ts: Date.now() - 4000 },
   { id: "e02", type: "settle", agent: "0xb91...2d7", skill: "Echo Test", amount: "0.015", ts: Date.now() - 9000 },
   { id: "e03", type: "attest", agent: "0x7d1...3f2", trust: 87, verdict: "PASS", ts: Date.now() - 18000 },
-  { id: "e04", type: "call", agent: "0xe33...a01", skill: "Sentiment Analyzer", ts: Date.now() - 26000 },
+  { id: "e04", type: "call", agent: "0xe33...a01", skill: "Token Risk Workflow", ts: Date.now() - 26000 },
   { id: "e05", type: "settle", agent: "0x4f2...c8a", skill: "Token Price Oracle", amount: "0.008", ts: Date.now() - 35000 },
   { id: "e06", type: "attest", agent: "0xb91...2d7", trust: 92, verdict: "PASS", ts: Date.now() - 48000 },
-  { id: "e07", type: "list", skill: "Code Review Agent", ts: Date.now() - 65000 },
+  { id: "e07", type: "list", skill: "PR Review Workflow", ts: Date.now() - 65000 },
   { id: "e08", type: "call", agent: "0x1a8...f90", skill: "Echo Test", ts: Date.now() - 80000 },
 ];
 
 const DRIP_POOL: Omit<ActivityEvent, "id" | "ts">[] = [
-  { type: "call", agent: "0xc77...e12", skill: "Token Price Oracle" },
+  { type: "call", agent: "0xc77...e12", skill: "Quick Audit Workflow" },
   { type: "settle", agent: "0x4f2...c8a", skill: "Echo Test", amount: "0.012" },
   { type: "attest", agent: "0xc77...e12", trust: 71, verdict: "PASS" },
-  { type: "call", agent: "0xb91...2d7", skill: "Sentiment Analyzer" },
+  { type: "call", agent: "0xb91...2d7", skill: "Approval Risk Workflow" },
   { type: "settle", agent: "0xe33...a01", skill: "Token Price Oracle", amount: "0.009" },
-  { type: "list", skill: "Data Aggregator v2" },
-  { type: "call", agent: "0x1a8...f90", skill: "Code Review Agent" },
+  { type: "list", skill: "Bug Bounty Triage v2" },
+  { type: "call", agent: "0x1a8...f90", skill: "PR Review Workflow" },
   { type: "attest", agent: "0x4f2...c8a", trust: 95, verdict: "PASS" },
 ];
 
@@ -191,7 +191,7 @@ export function LandingHero(_props: LandingHeroProps) {
           <span className="text-[32px] font-bold leading-none text-[var(--text)]">
             {skillCount || "\u2014"}
           </span>
-          <span className="label-sm mt-2">Skills Listed</span>
+          <span className="label-sm mt-2">Workflows Listed</span>
         </div>
         <div className="stat-card glass-shimmer">
           <span className="text-[32px] font-bold leading-none text-[var(--text)]">
@@ -238,7 +238,7 @@ export function LandingHero(_props: LandingHeroProps) {
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search skills…"
+          placeholder="Search workflows..."
           className="w-full rounded-full border border-[var(--border)] bg-[var(--card-bg)] py-2.5 pl-9 pr-4 font-mono text-[13px] text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none focus:border-[var(--text)] transition-colors"
         />
         {query && (
@@ -264,27 +264,28 @@ export function LandingHero(_props: LandingHeroProps) {
         ))}
       </div>
 
-      {/* ═══ SKILLS GRID — full width, no sidebar ═══ */}
+      {/* ═══ WORKFLOW GRID — full width, no sidebar ═══ */}
       {filtered === null ? (
         <p className="text-center text-[14px] text-[var(--text-muted)]">
           Loading&hellip;
         </p>
       ) : filtered.length === 0 ? (
         <p className="text-center text-[14px] text-[var(--text-muted)]">
-          No skills found.
+          No workflows found.
         </p>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((s) => (
-            <Link
+            <div
               key={s.id}
-              href={`/skill/${s.id}`}
-              className="glass-card group block p-5"
+              className="glass-card group flex min-h-[220px] flex-col p-5"
             >
               <div className="flex items-start justify-between gap-3">
-                <h3 className="text-[15px] font-semibold leading-snug text-[var(--text)]">
-                  {s.name}
-                </h3>
+                <Link href={`/skill/${s.id}`} className="min-w-0">
+                  <h3 className="text-[15px] font-semibold leading-snug text-[var(--text)] transition-colors hover:text-[var(--text-secondary)]">
+                    {s.name}
+                  </h3>
+                </Link>
                 <span className="shrink-0 rounded-full border border-[var(--card-border)] bg-[var(--card-bg)] px-2.5 py-0.5 font-mono text-[11px] font-semibold text-[var(--text-secondary)] backdrop-blur-sm">
                   {s.pricePerCall != null && s.pricePerCall > 0
                     ? `$${s.pricePerCall.toFixed(3)}`
@@ -305,11 +306,31 @@ export function LandingHero(_props: LandingHeroProps) {
                     {Math.round(s.trustScore)}\u2605
                   </span>
                 )}
-                <span className="ml-auto text-[12px] text-[var(--text-muted)] opacity-0 transition-opacity group-hover:opacity-100">
-                  View &rarr;
+                <span className="ml-auto font-mono text-[10px] text-[var(--text-muted)]">
+                  {s.workflowRunCount ?? s.callCount ?? 0} runs · {s.workflowForkCount ?? 0} forks
                 </span>
               </div>
-            </Link>
+              <div className="mt-auto grid grid-cols-3 gap-2 pt-5">
+                <Link
+                  href={`/skill/${s.id}`}
+                  className="rounded-full bg-[var(--text)] px-3 py-2 text-center text-[11px] font-semibold uppercase tracking-wider text-[var(--bg)] transition-opacity hover:opacity-80"
+                >
+                  Run
+                </Link>
+                <Link
+                  href={`/create?fork=${s.workflowId ?? s.id}`}
+                  className="rounded-full border border-[var(--border)] px-3 py-2 text-center text-[11px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] transition-colors hover:text-[var(--text)]"
+                >
+                  Fork
+                </Link>
+                <Link
+                  href={`/create?deploy=${s.workflowId ?? s.id}`}
+                  className="rounded-full border border-[var(--border)] px-3 py-2 text-center text-[11px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] transition-colors hover:text-[var(--text)]"
+                >
+                  Deploy
+                </Link>
+              </div>
+            </div>
           ))}
         </div>
       )}

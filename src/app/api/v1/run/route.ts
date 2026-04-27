@@ -9,11 +9,18 @@ import { logError } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
+type WorkflowReceiptSummary = {
+  id: string;
+  workflowId: string;
+  versionId: string | null;
+  settlementStatus: string;
+};
+
 /**
  * POST /api/v1/run
  *
  * Dead-simple REST wrapper for agent developers.
- * One HTTP call = find skill → find/create session → call skill → evaluate → return.
+ * One HTTP call = find workflow/skill → find/create session → execute → evaluate → return.
  *
  * Auth: Bearer API key (not Privy JWT).
  * Agent developers never see sessions, nonces, or escrow.
@@ -48,6 +55,16 @@ export async function POST(req: NextRequest) {
   // --- Find skill ---
   const skill = await prisma.skill.findUnique({
     where: { gatewaySlug: skillSlug },
+    include: {
+      workflow: {
+        include: {
+          versions: {
+            orderBy: { version: 'desc' },
+            take: 1,
+          },
+        },
+      },
+    },
   });
 
   if (!skill) {
@@ -184,10 +201,11 @@ export async function POST(req: NextRequest) {
   // --- Write SkillCall + decrement budget atomically ---
   const shouldCharge = !failed && creatorStatus > 0;
   const cost = shouldCharge ? pricePerCall : 0;
+  let workflowReceipt: WorkflowReceiptSummary | null = null;
 
   try {
     await prisma.$transaction(async (tx) => {
-      await tx.skillCall.create({
+      const skillCall = await tx.skillCall.create({
         data: {
           sessionId: session!.id,
           nonce,
@@ -203,6 +221,47 @@ export async function POST(req: NextRequest) {
           score: evalResult.score,
         },
       });
+
+      if (skill.workflow) {
+        const latestVersion = skill.workflow.versions[0] ?? null;
+        const settlementStatus = shouldCharge ? 'paid' : 'refunded';
+        const receipt = await tx.workflowRunReceipt.create({
+          data: {
+            workflowId: skill.workflow.id,
+            versionId: latestVersion?.id,
+            skillCallId: skillCall.id,
+            sessionId: session!.id,
+            buyerAgentId: agent.id,
+            creatorId: skill.creatorId,
+            requestHash,
+            responseHash: evalResult.responseHash,
+            delivered: evalResult.delivered,
+            validFormat: evalResult.validFormat,
+            withinSla: evalResult.withinSla,
+            score: evalResult.score,
+            costUsdc: cost,
+            settlementStatus,
+          },
+        });
+        workflowReceipt = {
+          id: receipt.id,
+          workflowId: receipt.workflowId,
+          versionId: receipt.versionId,
+          settlementStatus: receipt.settlementStatus,
+        };
+
+        const nextRunCount = skill.workflow.runCount + 1;
+        const nextTrustScore =
+          ((skill.workflow.trustScore * skill.workflow.runCount) + (evalResult.score * 100)) /
+          nextRunCount;
+        await tx.workflow.update({
+          where: { id: skill.workflow.id },
+          data: {
+            runCount: { increment: 1 },
+            trustScore: nextTrustScore,
+          },
+        });
+      }
 
       if (shouldCharge) {
         // Decrement session budget
@@ -277,6 +336,7 @@ export async function POST(req: NextRequest) {
   } catch {
     // keep as string
   }
+  const receiptForResponse = workflowReceipt as WorkflowReceiptSummary | null;
 
   // --- Response ---
   if (failed) {
@@ -286,6 +346,14 @@ export async function POST(req: NextRequest) {
         cost: 0,
         balance: user.creditBalance,
         session_id: session.id,
+        ...(receiptForResponse ? {
+          workflow_receipt: {
+            id: receiptForResponse.id,
+            workflow_id: receiptForResponse.workflowId,
+            version_id: receiptForResponse.versionId,
+            settlement_status: receiptForResponse.settlementStatus,
+          },
+        } : {}),
       },
       { status: 502 },
     );
@@ -323,6 +391,14 @@ export async function POST(req: NextRequest) {
     balance: user.creditBalance - cost,
     score: evalResult.score,
     session_id: session.id,
+    ...(receiptForResponse ? {
+      workflow_receipt: {
+        id: receiptForResponse.id,
+        workflow_id: receiptForResponse.workflowId,
+        version_id: receiptForResponse.versionId,
+        settlement_status: receiptForResponse.settlementStatus,
+      },
+    } : {}),
     latency_ms: latencyMs,
     ...(settleTriggered && { settle_triggered: true }),
     ...(onchainPromise && {

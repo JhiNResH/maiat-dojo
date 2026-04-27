@@ -197,13 +197,13 @@ export default function DeckPage() {
                     Your deck is empty
                   </h2>
                   <p className="text-sm mb-8 max-w-sm mx-auto text-[var(--text-muted)]">
-                    Browse the marketplace to acquire your first skill cards.
+                    Browse the marketplace to acquire your first workflow cards.
                   </p>
                   <Link
                     href="/"
                     className="inline-flex items-center gap-2 px-7 py-4 rounded-full text-xs font-bold uppercase tracking-[0.15em] transition-all hover:scale-[1.02] bg-[var(--text)] text-[var(--bg)]"
                   >
-                    Browse skills
+                    Browse workflows
                   </Link>
                 </motion.div>
               )}

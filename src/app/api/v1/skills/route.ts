@@ -38,6 +38,20 @@ export async function GET() {
       outputShape: true,
       exampleInput: true,
       exampleOutput: true,
+      workflow: {
+        select: {
+          id: true,
+          slug: true,
+          runCount: true,
+          forkCount: true,
+          royaltyBps: true,
+          versions: {
+            orderBy: { version: 'desc' },
+            take: 1,
+            select: { version: true, summary: true, slaMs: true },
+          },
+        },
+      },
     },
     orderBy: { name: 'asc' },
   });
@@ -55,6 +69,16 @@ export async function GET() {
     output_shape: s.outputShape,
     example_input: safeJsonParse(s.exampleInput),
     example_output: safeJsonParse(s.exampleOutput),
+    workflow: s.workflow
+      ? {
+          id: s.workflow.id,
+          slug: s.workflow.slug,
+          runs: s.workflow.runCount,
+          forks: s.workflow.forkCount,
+          royalty_bps: s.workflow.royaltyBps,
+          version: s.workflow.versions[0] ?? null,
+        }
+      : null,
   }));
 
   return NextResponse.json({ skills: result, count: result.length });

@@ -22,9 +22,9 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "The Dojo — Maiat Skill Marketplace",
+  title: "The Dojo — Agent Workflow Marketplace",
   description:
-    "The daily dispatch of AI agent skills. Equip your agent, earn on-chain.",
+    "Run, fork, and monetize agent workflows with execution receipts and on-chain reputation.",
 };
 
 export default function RootLayout({

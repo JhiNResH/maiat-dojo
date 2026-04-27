@@ -1,11 +1,27 @@
 # Maiat Dojo — Spec Index
 
 > Auto-read this file FIRST when entering the repo to avoid re-discovering existing work.
-> Last updated: 2026-04-05
+> Last updated: 2026-04-27
 
 ---
 
-## 🟢 Active (Phase 1 — in progress)
+## Active Product Direction
+
+Dojo is now workflow-first:
+
+> Creators publish agent workflows that others can run, fork, and monetize. Dojo clears each execution with settlement and reputation.
+
+Current skills are one-step workflows. The API remains `/api/v1/run`; product work should move user-facing copy and data modeling toward workflows, fork lineage, execution receipts, and royalties.
+
+| Spec | What | Status |
+|---|---|---|
+| `2026-04-27-agent-workflow-marketplace.md` | Workflow marketplace pivot: run/fork/monetize agent workflows, with execution reputation | draft |
+| `2026-04-16-agent-commerce-protocol.md` | Tokenized capability interface + reputation-gated allocation | locked 2026-04-16 |
+| `2026-04-13-reputation-clearing-loop.md` | Every execution produces a verifiable reputation record | draft |
+
+---
+
+## Reference: Phase 1 Foundation
 
 ### Trust + Identity (KYA ladder)
 | Spec | What | Status |
@@ -23,38 +39,41 @@
 
 ---
 
-## 📋 Reference (Phase 1 foundation, don't modify without ADR)
+## Historical Product Specs
 
 | Spec | What |
 |---|---|
-| `2026-04-04-dojo-business-model.md` | Business model — skill marketplace, Dojo 5% take rate |
+| `2026-04-04-dojo-business-model.md` | Business model — skill marketplace, Dojo 5% take rate. Superseded as top-level positioning by workflow marketplace. |
 | `2026-04-04-dojo-card-ui.md` | Newspaper aesthetic card UI |
 | `2026-04-04-dojo-phase1-pipeline.md` | Phase 1 shipping pipeline (may be superseded — check) |
+| `2026-04-09-chat-first-ui.md` | Chat-first UI direction, superseded by marketplace landing / workflow surface |
 
 ---
 
-## 🔮 Planned (not yet written)
+## Planned Work
 
-### KYA (continuation of Spec B chain)
-- **PR B** — KYA-1 OAuth social handle binding (Twitter + GitHub)
-- **PR C** — KYA-2 veteran wallet verify (signed msg + on-chain activity check across ETH/Base/Arb/BNB/xLayer)
-- **PR D** — KYA discovery ranking in catalog
+### Workflow Marketplace
+- Workflow metadata model (input/output schema, steps, evaluator policy, SLA) — MVP implemented 2026-04-27
+- Fork lineage and version history — MVP implemented 2026-04-27
+- Workflow execution receipts — MVP implemented 2026-04-27
+- Creator royalties on fork-derived runs
+- Security workflow starter set — Quick Audit Workflow implemented 2026-04-27
 
-### Attestation wiring (implements Spec A gaps)
-- **Spec C** — Wire `SessionEvaluation` EAS attestation to `/api/sessions/[id]/close`
-- **Spec D** — `POST /api/sessions/[id]/review` (BuyerReview + SellerReview schemas)
-- **Spec E** — Move EAS schemas from Base Sepolia to Base Mainnet; drop placeholder UIDs
+### Reputation / Clearing
+- Public reputation API backed by execution receipts
+- Reputation-weighted workflow discovery
+- Non-zero reputation gates for high-risk workflows
 
-### Phase 2 (Q2-Q3)
-- KYA-3 slashable stake
-- Trust-gated post-pay (TrustScore ≥ 80 → unlock weekly batch settle)
-- CCIP cross-chain identity mirror (Base canonical → xLayer + BNB)
-- Creator stake / slashing on confirmed dispute
+### KYA / Identity
+- KYA-1 OAuth social handle binding
+- KYA-2 veteran wallet verify
+- KYA discovery ranking in catalog
 
 ---
 
 ## 📚 Related brain decisions (locked)
 
+- `~/brain/wiki/projects/dojo/specs/2026-04-27-agent-workflow-marketplace.md` — workflow marketplace pivot
 - `~/brain/wiki/decisions/2026-04-eas-on-chain-reviews.md` — EAS on Base = on-chain reviews
 - `~/brain/wiki/decisions/2026-04-maiat-default-evaluator.md` — Maiat = default evaluator Phase 1
 - `~/brain/wiki/decisions/2026-04-dojo-micro-evaluator-adapter.md` — session-as-job model
@@ -74,4 +93,4 @@
 
 When adding a spec: append under correct section + 1-line description + status.
 When superseding: move entry to a `Superseded` section, link the replacement.
-When Phase 1 ships: create v2 index, archive v1 section-by-section.
+When superseding positioning: keep the old spec as historical, add the replacement under Active Product Direction, and mirror to `brain/wiki/projects/dojo/specs/`.

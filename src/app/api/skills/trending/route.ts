@@ -46,6 +46,16 @@ export async function GET(req: NextRequest) {
       take: limit,
       include: {
         creator: { select: { id: true, displayName: true, avatarUrl: true } },
+        workflow: {
+          select: {
+            id: true,
+            slug: true,
+            runCount: true,
+            forkCount: true,
+            trustScore: true,
+            royaltyBps: true,
+          },
+        },
       },
     });
     return NextResponse.json({
@@ -58,8 +68,13 @@ export async function GET(req: NextRequest) {
         category: s.category,
         pricePerCall: s.pricePerCall,
         gatewaySlug: s.gatewaySlug,
-        trustScore: s.evaluationScore ?? 0,
+        trustScore: s.workflow?.trustScore ?? s.evaluationScore ?? 0,
         callCount: 0,
+        workflowId: s.workflow?.id ?? null,
+        workflowSlug: s.workflow?.slug ?? null,
+        workflowRunCount: s.workflow?.runCount ?? 0,
+        workflowForkCount: s.workflow?.forkCount ?? 0,
+        royaltyBps: s.workflow?.royaltyBps ?? null,
         recentSessions: 0,
         recentCalls: 0,
       })),
@@ -72,6 +87,16 @@ export async function GET(req: NextRequest) {
     include: {
       creator: { select: { id: true, displayName: true, avatarUrl: true } },
       _count: { select: { sessions: true } },
+      workflow: {
+        select: {
+          id: true,
+          slug: true,
+          runCount: true,
+          forkCount: true,
+          trustScore: true,
+          royaltyBps: true,
+        },
+      },
     },
   });
   const byId = new Map(rows.map((r) => [r.id, r]));
@@ -87,8 +112,13 @@ export async function GET(req: NextRequest) {
         category: s.category,
         pricePerCall: s.pricePerCall,
         gatewaySlug: s.gatewaySlug,
-        trustScore: s.evaluationScore ?? 0,
+        trustScore: s.workflow?.trustScore ?? s.evaluationScore ?? 0,
         callCount: s._count.sessions,
+        workflowId: s.workflow?.id ?? null,
+        workflowSlug: s.workflow?.slug ?? null,
+        workflowRunCount: s.workflow?.runCount ?? s._count.sessions,
+        workflowForkCount: s.workflow?.forkCount ?? 0,
+        royaltyBps: s.workflow?.royaltyBps ?? null,
         recentSessions: g._count._all,
         recentCalls: g._sum.callCount ?? 0,
       };

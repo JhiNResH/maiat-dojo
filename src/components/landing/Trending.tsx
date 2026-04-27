@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Trending — top skills by recent session volume (last 7 days).
+ * Trending — top workflows by recent session volume (last 7 days).
  *
  * Spec: specs/2026-04-09-chat-first-ui.md (landing hero §Leaderboard+Trending)
  *
