@@ -26,4 +26,19 @@ describe('databaseUrlWithPrismaPool', () => {
   it('leaves non-Postgres URLs unchanged', () => {
     expect(databaseUrlWithPrismaPool('file:./test.db')).toBe('file:./test.db');
   });
+
+  it('leaves missing database URLs unset for build-time imports', () => {
+    const originalDatabaseUrl = process.env.DATABASE_URL;
+    delete process.env.DATABASE_URL;
+
+    try {
+      expect(databaseUrlWithPrismaPool()).toBeUndefined();
+    } finally {
+      if (originalDatabaseUrl === undefined) {
+        delete process.env.DATABASE_URL;
+      } else {
+        process.env.DATABASE_URL = originalDatabaseUrl;
+      }
+    }
+  });
 });
