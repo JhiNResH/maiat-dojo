@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
+import { getDemoSkillById, toPublicSkill } from '@/lib/demo-catalog';
 import SkillPageClient from './SkillPageClient';
 
 export const dynamic = 'force-dynamic';
@@ -17,33 +18,108 @@ function median(values: number[]): number | null {
 }
 
 export default async function SkillPage({ params }: { params: { id: string } }) {
-  const skill = await prisma.skill.findUnique({
-    where: { id: params.id },
-    include: {
-      creator: true,
-      sessions: {
-        where: { status: { in: ['settled', 'refunded'] } },
-        orderBy: { settledAt: 'asc' },
-        select: {
-          id: true,
-          status: true,
-          callCount: true,
-          settledAt: true,
-          basAttestationUid: true,
-          calls: {
-            select: {
-              latencyMs: true,
-              delivered: true,
-              validFormat: true,
-              withinSla: true,
+  let skill = null;
+  try {
+    skill = await prisma.skill.findUnique({
+      where: { id: params.id },
+      include: {
+        creator: true,
+        sessions: {
+          where: { status: { in: ['settled', 'refunded'] } },
+          orderBy: { settledAt: 'asc' },
+          select: {
+            id: true,
+            status: true,
+            callCount: true,
+            settledAt: true,
+            basAttestationUid: true,
+            calls: {
+              select: {
+                latencyMs: true,
+                delivered: true,
+                validFormat: true,
+                withinSla: true,
+              },
             },
           },
         },
       },
-    },
-  });
+    });
+  } catch (error) {
+    console.warn('[GET /skill/[id]] falling back to demo catalog:', error);
+  }
 
-  if (!skill) notFound();
+  if (!skill) {
+    const demoSkill = getDemoSkillById(params.id);
+    if (!demoSkill) notFound();
+
+    const publicSkill = toPublicSkill(demoSkill);
+    const now = new Date().toISOString();
+
+    return (
+      <SkillPageClient
+        skill={{
+          id: publicSkill.id,
+          name: publicSkill.name,
+          description: publicSkill.description,
+          longDescription: publicSkill.longDescription,
+          category: publicSkill.category,
+          pricePerCall: publicSkill.pricePerCall,
+          price: publicSkill.price,
+          skillType: publicSkill.skillType,
+          gatewaySlug: publicSkill.gatewaySlug,
+          fileContent: publicSkill.fileContent,
+          evaluationScore: publicSkill.evaluationScore,
+          executionKind: publicSkill.executionKind,
+          inputShape: publicSkill.inputShape,
+          outputShape: publicSkill.outputShape,
+          estLatencyMs: publicSkill.estLatencyMs,
+          sandboxable: publicSkill.sandboxable,
+          authRequired: publicSkill.authRequired,
+          inputSchema: publicSkill.inputSchema,
+          outputSchema: publicSkill.outputSchema,
+          exampleInput: publicSkill.exampleInput,
+          exampleOutput: publicSkill.exampleOutput,
+          createdAt: now,
+          updatedAt: now,
+          creator: {
+            id: publicSkill.creator.id,
+            displayName: publicSkill.creator.displayName,
+            walletAddress: null,
+            erc8004TokenId: null,
+          },
+        }}
+        totalCalls={demoSkill.workflowRunCount}
+        totalSessions={demoSkill.workflowRunCount}
+        passRate={demoSkill.trustScore}
+        passedSessions={demoSkill.workflowRunCount}
+        failedSessions={Math.max(0, Math.round(demoSkill.workflowRunCount * 0.03))}
+        sparkline={[80, 84, 86, 88, 90, demoSkill.trustScore]}
+        medianLatencyMs={demoSkill.estLatencyMs}
+        heatmap={Array.from({ length: HEATMAP_DAYS }, (_, i) => ({
+          date: new Date(Date.now() - (HEATMAP_DAYS - 1 - i) * 24 * 60 * 60 * 1000)
+            .toISOString()
+            .slice(0, 10),
+          count: Math.max(1, Math.round(demoSkill.workflowRunCount / HEATMAP_DAYS / 2)),
+        }))}
+        attestations={[]}
+        reviews={[
+          {
+            id: `${demoSkill.id}-review-1`,
+            rating: 5,
+            comment: 'Demo workflow is ready to run, fork, and customize.',
+            createdAt: now,
+            user: {
+              id: 'demo-reviewer',
+              displayName: 'Dojo Preview',
+              walletAddress: null,
+            },
+            session: null,
+          },
+        ]}
+      />
+    );
+  }
 
   const totalCalls = skill.sessions.reduce((sum, s) => sum + s.callCount, 0);
   const totalSessions = skill.sessions.length;
@@ -127,6 +203,16 @@ export default async function SkillPage({ params }: { params: { id: string } }) 
         gatewaySlug: skill.gatewaySlug,
         fileContent: skill.fileContent,
         evaluationScore: skill.evaluationScore,
+        executionKind: skill.executionKind,
+        inputShape: skill.inputShape,
+        outputShape: skill.outputShape,
+        estLatencyMs: skill.estLatencyMs,
+        sandboxable: skill.sandboxable,
+        authRequired: skill.authRequired,
+        inputSchema: skill.inputSchema,
+        outputSchema: skill.outputSchema,
+        exampleInput: skill.exampleInput,
+        exampleOutput: skill.exampleOutput,
         createdAt: skill.createdAt.toISOString(),
         updatedAt: skill.updatedAt.toISOString(),
         creator: {

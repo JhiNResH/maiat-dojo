@@ -11,6 +11,8 @@ export type DemoSkill = {
   estLatencyMs: number;
   inputShape: string;
   outputShape: string;
+  inputSchema: string;
+  outputSchema: string;
   exampleInput: unknown;
   exampleOutput: unknown;
   trustScore: number;
@@ -73,6 +75,33 @@ export const DEMO_SKILLS: DemoSkill[] = [
     estLatencyMs: 1200,
     inputShape: "form",
     outputShape: "json",
+    inputSchema: JSON.stringify({
+      type: "object",
+      required: ["target"],
+      properties: {
+        target: {
+          type: "string",
+          title: "Contract Address or URL",
+          description: "BSC contract address, source URL, or GitHub file URL",
+          default: "0x0000000000000000000000000000000000000000",
+        },
+        chain: {
+          type: "string",
+          title: "Chain",
+          enum: ["bsc", "bsc-testnet"],
+          default: "bsc",
+        },
+      },
+    }),
+    outputSchema: JSON.stringify({
+      type: "object",
+      properties: {
+        workflow: { type: "string" },
+        risk_score: { type: "number" },
+        verdict: { type: "string" },
+        findings: { type: "array" },
+      },
+    }),
     exampleInput: {
       target: "0x0000000000000000000000000000000000000000",
       chain: "bsc",
@@ -105,6 +134,25 @@ export const DEMO_SKILLS: DemoSkill[] = [
     estLatencyMs: 1800,
     inputShape: "form",
     outputShape: "markdown",
+    inputSchema: JSON.stringify({
+      type: "object",
+      required: ["pull_request_url"],
+      properties: {
+        pull_request_url: {
+          type: "string",
+          title: "Pull Request URL",
+          description: "GitHub pull request URL",
+          default: "https://github.com/acme/app/pull/42",
+        },
+      },
+    }),
+    outputSchema: JSON.stringify({
+      type: "object",
+      properties: {
+        verdict: { type: "string" },
+        findings: { type: "array" },
+      },
+    }),
     exampleInput: { pull_request_url: "https://github.com/acme/app/pull/42" },
     exampleOutput: {
       verdict: "needs_changes",
@@ -132,6 +180,31 @@ export const DEMO_SKILLS: DemoSkill[] = [
     estLatencyMs: 1500,
     inputShape: "form",
     outputShape: "json",
+    inputSchema: JSON.stringify({
+      type: "object",
+      required: ["token"],
+      properties: {
+        token: {
+          type: "string",
+          title: "Token",
+          description: "Token symbol or address",
+          default: "BNB",
+        },
+        chain: {
+          type: "string",
+          title: "Chain",
+          enum: ["bsc", "bsc-testnet"],
+          default: "bsc",
+        },
+      },
+    }),
+    outputSchema: JSON.stringify({
+      type: "object",
+      properties: {
+        verdict: { type: "string" },
+        risk_score: { type: "number" },
+      },
+    }),
     exampleInput: { token: "BNB", chain: "bsc" },
     exampleOutput: { verdict: "low_risk", risk_score: 22 },
     trustScore: 84,
@@ -156,6 +229,25 @@ export const DEMO_SKILLS: DemoSkill[] = [
     estLatencyMs: 2000,
     inputShape: "form",
     outputShape: "json",
+    inputSchema: JSON.stringify({
+      type: "object",
+      required: ["url"],
+      properties: {
+        url: {
+          type: "string",
+          title: "URL",
+          description: "Public URL to scrape",
+          default: "https://example.com",
+        },
+      },
+    }),
+    outputSchema: JSON.stringify({
+      type: "object",
+      properties: {
+        title: { type: "string" },
+        word_count: { type: "number" },
+      },
+    }),
     exampleInput: { url: "https://example.com" },
     exampleOutput: { title: "Example Domain", word_count: 12 },
     trustScore: 79,
@@ -180,6 +272,25 @@ export const DEMO_SKILLS: DemoSkill[] = [
     estLatencyMs: 200,
     inputShape: "form",
     outputShape: "json",
+    inputSchema: JSON.stringify({
+      type: "object",
+      required: ["message"],
+      properties: {
+        message: {
+          type: "string",
+          title: "Message",
+          description: "Any text the workflow will echo back",
+          default: "hello dojo",
+        },
+      },
+    }),
+    outputSchema: JSON.stringify({
+      type: "object",
+      properties: {
+        echo: { type: "object" },
+        latency_ms: { type: "number" },
+      },
+    }),
     exampleInput: { message: "hello dojo" },
     exampleOutput: { echo: { message: "hello dojo" }, latency_ms: 12 },
     trustScore: 95,
@@ -217,6 +328,10 @@ export const DEMO_WORKFLOWS: DemoWorkflow[] = DEMO_SKILLS.map((skill) => ({
     slaMs: skill.estLatencyMs,
   },
 }));
+
+export function getDemoSkillById(id: string) {
+  return DEMO_SKILLS.find((skill) => skill.id === id) ?? null;
+}
 
 export function filterDemoSkills({
   q,
@@ -277,6 +392,20 @@ export function toPublicSkill(skill: DemoSkill) {
     rating: 5,
     installs: skill.workflowRunCount,
     evaluationScore: skill.trustScore,
+    skillType: "active",
+    endpointUrl: `/api/skills-internal/${skill.gatewaySlug}`,
+    executionKind: "sync",
+    inputShape: skill.inputShape,
+    outputShape: skill.outputShape,
+    estLatencyMs: skill.estLatencyMs,
+    sandboxable: true,
+    authRequired: false,
+    inputSchema: skill.inputSchema,
+    outputSchema: skill.outputSchema,
+    exampleInput: JSON.stringify(skill.exampleInput),
+    exampleOutput: JSON.stringify(skill.exampleOutput),
+    longDescription: `${skill.description}\n\nThis is a demo workflow in the preview catalog. Run it in sandbox mode to see the execution receipt shape before the production workflow DB is seeded.`,
+    fileContent: null,
     workflowVersion: {
       id: `${skill.workflowId}-v1`,
       version: 1,
@@ -313,4 +442,82 @@ export function toV1Skill(skill: DemoSkill) {
       },
     },
   };
+}
+
+export function runDemoSkill(skill: DemoSkill, input: Record<string, unknown>) {
+  const now = new Date().toISOString();
+  switch (skill.gatewaySlug) {
+    case "quick-audit-workflow": {
+      const target = String(input.target ?? "0x0000000000000000000000000000000000000000");
+      const chain = String(input.chain ?? "bsc");
+      return {
+        workflow: skill.gatewaySlug,
+        target,
+        chain,
+        risk_score: target.toLowerCase().includes("upgrade") ? 67 : 42,
+        verdict: target.toLowerCase().includes("upgrade") ? "high_risk" : "medium_risk",
+        findings: [
+          {
+            id: "QA-001",
+            severity: "medium",
+            title: "Owner-controlled privileged function",
+            detail: "Privileged paths should be timelocked or multisig-controlled before production use.",
+          },
+          {
+            id: "QA-002",
+            severity: "low",
+            title: "External call surface detected",
+            detail: "Review reentrancy assumptions around external calls and callbacks.",
+          },
+        ],
+        next_actions: [
+          "Review owner privileges",
+          "Run a full manual review before handling user funds",
+        ],
+        receipt: {
+          workflow_id: skill.workflowId,
+          trust_signal: "+1 successful sandbox execution",
+          generated_at: now,
+        },
+      };
+    }
+    case "pr-review-workflow":
+      return {
+        workflow: skill.gatewaySlug,
+        pull_request_url: input.pull_request_url,
+        verdict: "needs_review",
+        findings: [
+          "Migration path should be tested against an empty database.",
+          "Public API response changed; add a regression test before merge.",
+        ],
+        receipt: { workflow_id: skill.workflowId, generated_at: now },
+      };
+    case "token-risk-workflow":
+      return {
+        workflow: skill.gatewaySlug,
+        token: input.token ?? "BNB",
+        chain: input.chain ?? "bsc",
+        verdict: "low_risk",
+        risk_score: 22,
+        signals: ["ownership verified", "liquidity present", "no obvious transfer block"],
+        receipt: { workflow_id: skill.workflowId, generated_at: now },
+      };
+    case "web-scraper":
+      return {
+        workflow: skill.gatewaySlug,
+        url: input.url ?? "https://example.com",
+        title: "Example Domain",
+        content: "# Example Domain\n\nThis domain is for use in illustrative examples.",
+        word_count: 12,
+        receipt: { workflow_id: skill.workflowId, generated_at: now },
+      };
+    default:
+      return {
+        workflow: skill.gatewaySlug,
+        echo: input,
+        latency_ms: 12,
+        server_ts: now,
+        receipt: { workflow_id: skill.workflowId, generated_at: now },
+      };
+  }
 }
