@@ -38,6 +38,28 @@ const DEFAULT_EXAMPLE_INPUT = `{
   "target": "https://example.com"
 }`;
 
+const QUICK_AUDIT_SCHEMA = `{
+  "type": "object",
+  "required": ["target"],
+  "properties": {
+    "target": {
+      "type": "string",
+      "title": "Target",
+      "description": "Contract address, source URL, or repository to triage"
+    },
+    "chain": {
+      "type": "string",
+      "title": "Chain",
+      "default": "bsc"
+    }
+  }
+}`;
+
+const QUICK_AUDIT_EXAMPLE = `{
+  "target": "upgradeable ERC20 token",
+  "chain": "bsc"
+}`;
+
 type DryRunResult = {
   ok: boolean;
   status: number;
@@ -195,6 +217,22 @@ export default function CreateWorkflowPage() {
     }
   }
 
+  function useSampleWorkflow() {
+    const origin =
+      typeof window === 'undefined' ? 'https://maiat-dojo.vercel.app' : window.location.origin;
+    setName('Quick Audit Workflow');
+    setDescription('Run a focused smart-contract triage and return structured findings.');
+    setCategory('Security');
+    setPricePerRun('0.015');
+    setEndpointUrl(`${origin}/api/skills-internal/quick-audit`);
+    setInputSchema(QUICK_AUDIT_SCHEMA);
+    setExampleInput(QUICK_AUDIT_EXAMPLE);
+    setOutputShape('json');
+    setSlaMs(5000);
+    setDryRun(null);
+    setError(null);
+  }
+
   async function handlePublish() {
     if (!canPublish || !user?.id) return;
     setError(null);
@@ -306,6 +344,13 @@ export default function CreateWorkflowPage() {
               Register one endpoint as a versioned workflow. Dojo dry-runs it first, then lists it with pricing,
               sandbox execution, fork lineage, and receipts.
             </p>
+            <button
+              type="button"
+              onClick={useSampleWorkflow}
+              className="mt-6 inline-flex rounded-full border border-[var(--border)] px-4 py-2 text-[11px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] transition-colors hover:text-[var(--text)]"
+            >
+              Use sample workflow
+            </button>
           </div>
 
           <aside className="glass-card p-6">

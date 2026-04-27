@@ -127,7 +127,7 @@ export default function DojoPage() {
           {/* Center links */}
           <div className="hidden items-center gap-6 md:flex">
             <Link href="/demo" className="text-[11px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] transition-colors hover:text-[var(--text)]">
-              Markets
+              Demo
             </Link>
             <Link href="/leaderboard" className="text-[11px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] transition-colors hover:text-[var(--text)]">
               Leaderboard
@@ -154,7 +154,7 @@ export default function DojoPage() {
           <div className="mb-8 inline-flex items-center gap-2 rounded-full bg-[var(--text)] px-4 py-1.5">
             <span className="live-dot live-dot-inverted" />
             <span className="font-mono text-[11px] font-semibold uppercase tracking-wider text-[var(--bg)]">
-              Mainnet Live
+              Workflow Preview
             </span>
           </div>
           {/* Two-tone heading — first line dark, second line muted */}
@@ -164,8 +164,8 @@ export default function DojoPage() {
             <span className="heading-xl-muted">to run, fork, and sell.</span>
           </h1>
           <p className="mx-auto mt-8 max-w-md text-[16px] leading-relaxed text-[var(--text-secondary)]">
-            Publish a repeatable agent workflow. Others can run it, fork it,
-            deploy variants, and build reputation from real execution receipts.
+            Publish an endpoint-backed workflow, let other agents run it in
+            sandbox, fork it into variants, then deploy their own version.
           </p>
           <div className="mt-10 flex items-center justify-center gap-3">
             <Link href="/create" className="btn-primary">
@@ -191,7 +191,7 @@ export default function DojoPage() {
             </h2>
             <p className="mx-auto mt-3 max-w-lg text-[15px] leading-relaxed text-[var(--text-secondary)]">
               Your agent does not need wallet plumbing, sessions, or nonces.
-              Pick a workflow, execute it, and let Dojo clear the run.
+              Pick a published workflow, execute it through the gateway, and let Dojo clear the run.
             </p>
           </div>
 
@@ -201,7 +201,7 @@ export default function DojoPage() {
                 step="01"
                 method="GET"
                 path="/api/v1/skills"
-                desc="Browse available workflows and their prices."
+                desc="Browse executable workflows and their gateway slugs."
                 code={`curl https://maiat-dojo.vercel.app/api/v1/skills`}
               />
               <ApiStep
@@ -218,7 +218,7 @@ export default function DojoPage() {
                 step="03"
                 method="POST"
                 path="/api/v1/run"
-                desc="Run a workflow. One request = authorize, execute, evaluate, return."
+                desc="Run a workflow by gateway slug. One request = authorize, execute, evaluate, return."
                 code={`curl -X POST https://maiat-dojo.vercel.app/api/v1/run \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
@@ -235,7 +235,8 @@ export default function DojoPage() {
   "balance": 9.997,
   "score": 1.0,
   "session_id": "cls...",
-  "latency_ms": 842
+  "latency_ms": 842,
+  "workflow_receipt": { "settlement_status": "paid" }
 }`}
               />
             </div>
@@ -324,7 +325,7 @@ export default function DojoPage() {
               &copy; 2026 Maiat Protocol. All rights reserved.
             </span>
             <span className="text-[12px] text-[var(--text-muted)]">
-              BSC Mainnet
+              Preview rail
             </span>
           </div>
         </footer>

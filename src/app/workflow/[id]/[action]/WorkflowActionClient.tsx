@@ -160,7 +160,7 @@ function actionCopy(action: WorkflowAction) {
         label: "Deploy workflow",
         eyebrow: "Runtime",
         title: "Ship it behind a gateway.",
-        body: "Turn a workflow into an executable endpoint with pricing, receipts, and reputation tracking wired in.",
+        body: "Attach an endpoint to a workflow you own. If this is someone else's workflow, fork it first, then deploy your fork as an executable variant.",
       };
   }
 }
@@ -555,7 +555,11 @@ function DeployPanel({ workflow }: { workflow: WorkflowActionData }) {
         }),
       });
       const data = (await response.json()) as DeployResult;
-      setPlan(response.ok ? data : { error: data.error ?? "Deploy failed" });
+      const fallback =
+        response.status === 403
+          ? "Only the workflow creator can deploy this workflow. Fork it first, then deploy your fork."
+          : "Deploy failed";
+      setPlan(response.ok ? data : { error: data.error ?? fallback });
     } catch (error) {
       setPlan({ error: error instanceof Error ? error.message : "Deploy failed" });
     } finally {
@@ -567,6 +571,10 @@ function DeployPanel({ workflow }: { workflow: WorkflowActionData }) {
     <div className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
       <section className="glass-card p-6">
         <span className="label-sm">Deploy target</span>
+        <p className="mt-3 rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] px-4 py-3 text-[12px] leading-relaxed text-[var(--text-muted)]">
+          Deploy updates a workflow you own. To customize another creator&apos;s workflow, create a fork draft first,
+          then attach your endpoint to that fork.
+        </p>
         <div className="mt-5 space-y-4">
           <label className="block">
             <span className="label-sm mb-2 block">Creator endpoint</span>
