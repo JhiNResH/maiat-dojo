@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyPrivyAuth } from '@/lib/privy-server';
 import { evaluateCall } from '@/lib/session-evaluator';
+import { authenticateWorkflowUser } from '@/lib/workflow-api-auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +22,13 @@ export async function POST(req: NextRequest) {
       process.env.DOJO_SKIP_PRIVY_AUTH === 'true' &&
       process.env.NODE_ENV !== 'production';
 
-    if (!skipAuth) {
+    const bearer = req.headers.get('Authorization') ?? req.headers.get('authorization');
+    const isApiKeyAuth = bearer?.startsWith('Bearer dojo_sk_') ?? false;
+
+    if (!skipAuth && isApiKeyAuth) {
+      const auth = await authenticateWorkflowUser(req);
+      if (!auth.ok) return auth.response;
+    } else if (!skipAuth) {
       const auth = await verifyPrivyAuth(req.headers.get('Authorization'));
       if (!auth.success) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
