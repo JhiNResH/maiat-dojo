@@ -70,7 +70,7 @@ async function loadWorkflow(id: string): Promise<WorkflowActionData | null> {
         versions: {
           orderBy: { version: "desc" },
           take: 1,
-          select: { version: true, summary: true, slaMs: true },
+          select: { version: true, summary: true, slaMs: true, inputSchema: true },
         },
       },
     });
@@ -99,7 +99,7 @@ async function loadWorkflow(id: string): Promise<WorkflowActionData | null> {
         id: workflow.skill?.id ?? workflow.id,
         name: workflow.skill?.name ?? workflow.name,
         gatewaySlug: workflow.skill?.gatewaySlug ?? workflow.slug,
-        inputSchema: workflow.skill?.inputSchema ?? null,
+        inputSchema: workflow.skill?.inputSchema ?? latest?.inputSchema ?? null,
         exampleInput: workflow.skill?.exampleInput ?? null,
       },
       version: latest,

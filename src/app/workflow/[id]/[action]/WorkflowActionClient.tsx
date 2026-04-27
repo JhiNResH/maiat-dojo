@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, GitFork, Play, Rocket, ShieldCheck } from "lucide-react";
+import { ArrowLeft, GitFork, Play, Rocket, ShieldCheck } from "lucide-react";
 import { usePrivy } from "@privy-io/react-auth";
 
 type WorkflowAction = "run" | "fork" | "deploy";
@@ -51,9 +51,48 @@ type RunResult = {
   status?: number;
   latencyMs?: number;
   data?: unknown;
+  eval?: {
+    score: number;
+    delivered: boolean;
+    validFormat: boolean;
+    withinSla: boolean;
+  };
   error?: string;
   code?: string;
   demo?: boolean;
+};
+
+type ForkResult = {
+  workflow?: {
+    id: string;
+    slug: string;
+    name: string;
+    status: string;
+  };
+  version?: {
+    version: number;
+  };
+  fork?: {
+    id: string;
+    royaltyBps: number;
+  } | null;
+  error?: string;
+};
+
+type DeployResult = {
+  workflow?: {
+    id: string;
+    slug: string;
+    status: string;
+  };
+  skill?: {
+    id: string;
+    gatewaySlug: string | null;
+    endpointUrl: string | null;
+  };
+  runUrl?: string;
+  gateway?: string;
+  error?: string;
 };
 
 function safeParseSchema(raw: string | null): SchemaObject | null {
@@ -331,9 +370,44 @@ function RunPanel({ workflow }: { workflow: WorkflowActionData }) {
 }
 
 function ForkPanel({ workflow }: { workflow: WorkflowActionData }) {
+  const { authenticated, login, getAccessToken } = usePrivy();
   const [name, setName] = useState(`${workflow.name} Fork`);
   const [goal, setGoal] = useState("Customize evaluator policy and publish as my agent workflow.");
-  const [draft, setDraft] = useState<unknown>(null);
+  const [pending, setPending] = useState(false);
+  const [draft, setDraft] = useState<ForkResult | null>(null);
+
+  async function createFork() {
+    if (pending || !name.trim()) return;
+    const token = authenticated ? await getAccessToken() : null;
+    if (!token) {
+      login();
+      return;
+    }
+
+    setPending(true);
+    setDraft(null);
+    try {
+      const response = await fetch(`/api/workflows/${workflow.id}/fork`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: name.trim(),
+          slug: slugify(name),
+          description: goal.trim() || undefined,
+          changeNote: goal.trim() || undefined,
+        }),
+      });
+      const data = (await response.json()) as ForkResult;
+      setDraft(response.ok ? data : { error: data.error ?? "Fork failed" });
+    } catch (error) {
+      setDraft({ error: error instanceof Error ? error.message : "Fork failed" });
+    } finally {
+      setPending(false);
+    }
+  }
 
   return (
     <div className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
@@ -358,19 +432,11 @@ function ForkPanel({ workflow }: { workflow: WorkflowActionData }) {
             />
           </label>
           <button
-            onClick={() =>
-              setDraft({
-                status: "fork_draft_ready",
-                parent_workflow: workflow.id,
-                draft_slug: slugify(name),
-                royalty_to_parent_bps: workflow.royaltyBps,
-                inherited_reputation: workflow.trustScore,
-                next: ["Edit workflow graph", "Attach creator endpoint", "Deploy variant"],
-              })
-            }
-            className="w-full rounded-full bg-[var(--text)] px-5 py-3 text-[12px] font-semibold uppercase tracking-widest text-[var(--bg)] hover:opacity-80"
+            onClick={createFork}
+            disabled={pending || !name.trim()}
+            className="w-full rounded-full bg-[var(--text)] px-5 py-3 text-[12px] font-semibold uppercase tracking-widest text-[var(--bg)] hover:opacity-80 disabled:opacity-40"
           >
-            Create fork draft
+            {pending ? "Creating..." : "Create fork draft"}
           </button>
         </div>
       </section>
@@ -383,19 +449,119 @@ function ForkPanel({ workflow }: { workflow: WorkflowActionData }) {
               parent_runs: workflow.runs,
               parent_trust_score: workflow.trustScore,
               fork_count: workflow.forks,
-              note: "Fork keeps lineage and royalty routing attached.",
+              note: "Fork creates a draft workflow in your account, then Deploy attaches your endpoint.",
             },
           )}
         </pre>
+        {draft?.workflow && (
+          <Link
+            href={`/workflow/${draft.workflow.id}/deploy`}
+            className="mt-4 inline-flex rounded-full bg-[var(--text)] px-4 py-2 text-[11px] font-semibold uppercase tracking-widest text-[var(--bg)]"
+          >
+            Deploy fork
+          </Link>
+        )}
       </section>
     </div>
   );
 }
 
 function DeployPanel({ workflow }: { workflow: WorkflowActionData }) {
+  const { authenticated, login, getAccessToken } = usePrivy();
   const [endpoint, setEndpoint] = useState(`https://api.example.com/${workflow.slug}/run`);
-  const [environment, setEnvironment] = useState("preview");
-  const [plan, setPlan] = useState<unknown>(null);
+  const [pricePerRun, setPricePerRun] = useState(workflow.pricePerRun.toFixed(3));
+  const [inputSchema, setInputSchema] = useState(workflow.skill.inputSchema ?? "{}");
+  const [exampleInput, setExampleInput] = useState(workflow.skill.exampleInput ?? "{}");
+  const [dryRun, setDryRun] = useState<RunResult | null>(null);
+  const [pending, setPending] = useState<"dry-run" | "deploy" | null>(null);
+  const [plan, setPlan] = useState<DeployResult | null>(null);
+
+  async function getAuthToken() {
+    const token = authenticated ? await getAccessToken() : null;
+    if (!token) {
+      login();
+      return null;
+    }
+    return token;
+  }
+
+  function parseJsonInput(label: string, value: string) {
+    try {
+      return JSON.parse(value);
+    } catch {
+      throw new Error(`${label} must be valid JSON`);
+    }
+  }
+
+  async function runDeployDryRun() {
+    if (pending) return;
+    const token = await getAuthToken();
+    if (!token) return;
+
+    setPending("dry-run");
+    setDryRun(null);
+    setPlan(null);
+    try {
+      const payload = parseJsonInput("Example input", exampleInput);
+      const response = await fetch("/api/skills/dry-run", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          endpointUrl: endpoint,
+          input: payload,
+        }),
+      });
+      const data = (await response.json()) as RunResult;
+      setDryRun(response.ok ? data : { ok: false, error: data.error ?? "Dry run failed" });
+    } catch (error) {
+      setDryRun({
+        ok: false,
+        error: error instanceof Error ? error.message : "Dry run failed",
+      });
+    } finally {
+      setPending(null);
+    }
+  }
+
+  async function deployWorkflow() {
+    if (pending || dryRun?.ok !== true) return;
+    const token = await getAuthToken();
+    if (!token) return;
+
+    setPending("deploy");
+    setPlan(null);
+    try {
+      const parsedPrice = Number(pricePerRun);
+      if (!Number.isFinite(parsedPrice) || parsedPrice <= 0) {
+        throw new Error("Price per run must be greater than 0");
+      }
+
+      const response = await fetch(`/api/workflows/${workflow.id}/deploy`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          endpointUrl: endpoint,
+          pricePerRun: parsedPrice,
+          inputSchema: parseJsonInput("Input schema", inputSchema),
+          exampleInput: parseJsonInput("Example input", exampleInput),
+          outputShape: "json",
+          slaMs: workflow.version?.slaMs ?? 5000,
+        }),
+      });
+      const data = (await response.json()) as DeployResult;
+      setPlan(response.ok ? data : { error: data.error ?? "Deploy failed" });
+    } catch (error) {
+      setPlan({ error: error instanceof Error ? error.message : "Deploy failed" });
+    } finally {
+      setPending(null);
+    }
+  }
 
   return (
     <div className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
@@ -411,46 +577,75 @@ function DeployPanel({ workflow }: { workflow: WorkflowActionData }) {
             />
           </label>
           <label className="block">
-            <span className="label-sm mb-2 block">Environment</span>
-            <select
-              value={environment}
-              onChange={(event) => setEnvironment(event.target.value)}
+            <span className="label-sm mb-2 block">Price per run</span>
+            <input
+              type="number"
+              min="0.001"
+              step="0.001"
+              value={pricePerRun}
+              onChange={(event) => setPricePerRun(event.target.value)}
               className="w-full rounded-2xl border border-[var(--border)] bg-[var(--card-bg)] px-4 py-3 font-mono text-[13px] text-[var(--text)] outline-none focus:border-[var(--text)]"
-            >
-              <option value="preview">preview</option>
-              <option value="testnet">testnet</option>
-              <option value="mainnet">mainnet</option>
-            </select>
+            />
+          </label>
+          <label className="block">
+            <span className="label-sm mb-2 block">Input schema</span>
+            <textarea
+              value={inputSchema}
+              onChange={(event) => {
+                setInputSchema(event.target.value);
+                setDryRun(null);
+              }}
+              rows={6}
+              className="w-full resize-y rounded-2xl border border-[var(--border)] bg-[var(--card-bg)] px-4 py-3 font-mono text-[12px] text-[var(--text)] outline-none focus:border-[var(--text)]"
+            />
+          </label>
+          <label className="block">
+            <span className="label-sm mb-2 block">Example input</span>
+            <textarea
+              value={exampleInput}
+              onChange={(event) => {
+                setExampleInput(event.target.value);
+                setDryRun(null);
+              }}
+              rows={4}
+              className="w-full resize-y rounded-2xl border border-[var(--border)] bg-[var(--card-bg)] px-4 py-3 font-mono text-[12px] text-[var(--text)] outline-none focus:border-[var(--text)]"
+            />
           </label>
           <button
-            onClick={() =>
-              setPlan({
-                status: "deploy_plan_ready",
-                workflow: workflow.slug,
-                environment,
-                gateway_route: `/api/gateway/workflows/${workflow.slug}/run`,
-                creator_endpoint: endpoint,
-                metering: `$${workflow.pricePerRun.toFixed(3)} per run`,
-                reputation: "execution receipts update trust score after successful runs",
-              })
-            }
-            className="w-full rounded-full bg-[var(--text)] px-5 py-3 text-[12px] font-semibold uppercase tracking-widest text-[var(--bg)] hover:opacity-80"
+            onClick={runDeployDryRun}
+            disabled={pending !== null}
+            className="w-full rounded-full border border-[var(--border)] px-5 py-3 text-[12px] font-semibold uppercase tracking-widest text-[var(--text)] hover:border-[var(--text)] disabled:opacity-40"
           >
-            Generate deploy plan
+            {pending === "dry-run" ? "Testing..." : "Run dry-run"}
+          </button>
+          <button
+            onClick={deployWorkflow}
+            disabled={pending !== null || dryRun?.ok !== true}
+            className="w-full rounded-full bg-[var(--text)] px-5 py-3 text-[12px] font-semibold uppercase tracking-widest text-[var(--bg)] hover:opacity-80 disabled:opacity-40"
+          >
+            {pending === "deploy" ? "Deploying..." : "Deploy workflow"}
           </button>
         </div>
       </section>
       <section className="glass-card p-6">
-        <span className="label-sm">Gateway plan</span>
+        <span className="label-sm">Gateway state</span>
         <pre className="mt-5 min-h-[330px] overflow-auto rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4 font-mono text-[12px] leading-relaxed text-[var(--text-secondary)]">
           {formatJson(
             plan ?? {
               workflow: workflow.slug,
-              route: "Dojo Gateway will meter calls, settle payment, and write receipts.",
-              required_before_public_launch: ["creator endpoint", "evaluator policy", "pricing"],
+              dry_run: dryRun ?? "required_before_deploy",
+              deploy_effect: "Creates or updates active skill, links it to workflow, publishes workflow.",
             },
           )}
         </pre>
+        {plan?.runUrl && (
+          <Link
+            href={plan.runUrl}
+            className="mt-4 inline-flex rounded-full bg-[var(--text)] px-4 py-2 text-[11px] font-semibold uppercase tracking-widest text-[var(--bg)]"
+          >
+            Open run page
+          </Link>
+        )}
       </section>
     </div>
   );
