@@ -28,14 +28,20 @@ export function databaseUrlWithPrismaPool(url = process.env.DATABASE_URL) {
   }
 }
 
+const prismaDatabaseUrl = databaseUrlWithPrismaPool();
+
 export const prisma =
   globalForPrisma.prisma ??
-  new PrismaClient({
-    datasources: {
-      db: {
-        url: databaseUrlWithPrismaPool(),
-      },
-    },
-  });
+  new PrismaClient(
+    prismaDatabaseUrl
+      ? {
+          datasources: {
+            db: {
+              url: prismaDatabaseUrl,
+            },
+          },
+        }
+      : undefined,
+  );
 
 globalForPrisma.prisma = prisma;
