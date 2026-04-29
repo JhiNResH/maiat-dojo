@@ -52,6 +52,22 @@ type RunResult = {
   status?: number;
   latencyMs?: number;
   data?: unknown;
+  result?: unknown;
+  cost?: number;
+  balance?: number;
+  score?: number;
+  session_id?: string;
+  latency_ms?: number;
+  workflow_receipt?: {
+    id: string;
+    workflow_id: string;
+    version_id: string | null;
+    settlement_status: string;
+    anchor_status: string;
+    onchain_request_id?: string | null;
+    swap_tx_hash?: string | null;
+    settle_tx_hash?: string | null;
+  };
   eval?: {
     score: number;
     delivered: boolean;
@@ -239,7 +255,10 @@ function RunPanel({ workflow }: { workflow: WorkflowActionData }) {
     defaultsFromSchema(schema, example),
   );
   const [pending, setPending] = useState(false);
+  const [paidPending, setPaidPending] = useState(false);
+  const [apiKey, setApiKey] = useState("");
   const [result, setResult] = useState<RunResult | null>(null);
+  const [paidResult, setPaidResult] = useState<RunResult | null>(null);
 
   const fields = Object.entries(schema?.properties ?? {});
   const required = new Set(schema?.required ?? []);
@@ -282,6 +301,33 @@ function RunPanel({ workflow }: { workflow: WorkflowActionData }) {
     }
   }
 
+  async function runPaidWorkflow() {
+    if (paidPending || missingRequired || !apiKey.trim()) return;
+    setPaidPending(true);
+    setPaidResult(null);
+    try {
+      const response = await fetch("/api/v1/run", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey.trim()}`,
+        },
+        body: JSON.stringify({
+          skill: workflow.skill.gatewaySlug,
+          input: values,
+        }),
+      });
+      const data = (await response.json()) as RunResult;
+      setPaidResult(response.ok ? data : { error: data.error ?? "Paid run failed" });
+    } catch (error) {
+      setPaidResult({
+        error: error instanceof Error ? error.message : "Paid run failed",
+      });
+    } finally {
+      setPaidPending(false);
+    }
+  }
+
   return (
     <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
       <section className="dojo-card p-5">
@@ -307,33 +353,55 @@ function RunPanel({ workflow }: { workflow: WorkflowActionData }) {
               This workflow takes an empty payload.
             </p>
           )}
-          <button
-            onClick={runWorkflow}
-            disabled={pending || missingRequired}
-            className="dojo-action dojo-action-primary w-full disabled:opacity-40"
-          >
-            {pending ? "Running..." : "Run sandbox"}
-          </button>
+          <div className="grid gap-2">
+            <button
+              onClick={runWorkflow}
+              disabled={pending || missingRequired}
+              className="dojo-action w-full disabled:opacity-40"
+            >
+              {pending ? "Previewing..." : "Sandbox preview"}
+            </button>
+            <label className="block">
+              <span className="label-sm mb-2 block">API key for paid run</span>
+              <input
+                value={apiKey}
+                onChange={(event) => setApiKey(event.target.value)}
+                placeholder="dojo_sk_..."
+                className="dojo-input font-mono"
+                type="password"
+              />
+            </label>
+            <button
+              onClick={runPaidWorkflow}
+              disabled={paidPending || missingRequired || !apiKey.trim()}
+              className="dojo-action dojo-action-primary w-full disabled:opacity-40"
+            >
+              {paidPending ? "Running..." : `Paid run · $${workflow.pricePerRun.toFixed(3)}`}
+            </button>
+          </div>
         </div>
       </section>
 
       <section id="receipt" className="dojo-card p-5">
         <div className="mb-5 flex items-center justify-between">
-          <span className="label-sm">Sandbox receipt preview</span>
-          {result && (
+          <span className="label-sm">Execution result</span>
+          {(paidResult || result) && (
             <span className="font-mono text-[11px] text-[var(--text-muted)]">
-              {result.latencyMs ?? 0}ms
+              {(paidResult?.latency_ms ?? result?.latencyMs ?? 0)}ms
             </span>
           )}
         </div>
         <pre className="min-h-[360px] overflow-auto rounded-[8px] border border-[var(--border)] bg-[var(--bg-secondary)] p-4 font-mono text-[12px] leading-relaxed text-[var(--text-secondary)]">
           {formatJson(
-            result?.ok
-              ? result.data
+            paidResult
+              ? paidResult
+              : result?.ok
+              ? { sandbox: true, data: result.data }
               : result ?? {
                   status: "ready",
                   workflow: workflow.slug,
-                  receipt: "Run the workflow to preview the receipt shape.",
+                  sandbox: "Use Sandbox preview for a free endpoint check.",
+                  paid_run: "Use Paid run to write WorkflowRunReceipt and reputation.",
                 },
           )}
         </pre>
@@ -719,9 +787,9 @@ export function WorkflowActionClient({
               ))}
             </div>
             <div className="mt-3 flex items-center justify-between font-mono text-[10.5px] text-[var(--text-muted)]">
-              <span>balance</span>
-              <span className="font-semibold text-[var(--text)]">9.842 USDC</span>
-              <span>est. {Math.max(1, Math.floor(9.842 / Math.max(workflow.pricePerRun, 0.001)))} runs</span>
+              <span>paid run</span>
+              <span className="font-semibold text-[var(--text)]">API key</span>
+              <span>receipt-backed</span>
             </div>
           </aside>
         </section>

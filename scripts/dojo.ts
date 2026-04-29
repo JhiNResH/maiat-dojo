@@ -71,6 +71,39 @@ type PublishResponse = {
   error?: string;
 };
 
+type ForkResponse = {
+  workflow?: {
+    id?: string;
+    slug?: string;
+    name?: string;
+    status?: string;
+  };
+  version?: {
+    version?: number;
+  };
+  fork?: {
+    id?: string;
+    royaltyBps?: number;
+  } | null;
+  error?: string;
+};
+
+type DeployResponse = {
+  workflow?: {
+    id?: string;
+    slug?: string;
+    status?: string;
+  };
+  skill?: {
+    id?: string;
+    gatewaySlug?: string | null;
+    endpointUrl?: string | null;
+  };
+  runUrl?: string;
+  gateway?: string;
+  error?: string;
+};
+
 type LoadedManifest = {
   manifest: WorkflowManifest;
   raw: string;
@@ -320,7 +353,9 @@ async function publish(
         fileContent: source.raw,
         fileType: source.fileType,
         endpointUrl: manifest.endpointUrl,
-        executionKind: 'one_step_endpoint',
+        executionKind: 'sync',
+        inputShape: 'form',
+        outputShape: 'json',
         inputSchema: manifest.inputSchema,
         outputSchema: manifest.outputSchema,
         exampleInput: manifest.exampleInput,
@@ -344,6 +379,124 @@ async function publish(
   return data;
 }
 
+async function forkWorkflow(
+  baseUrl: string,
+  apiKey: string | undefined,
+  flags: Flags,
+) {
+  if (!apiKey) fail('DOJO_API_KEY or --api-key is required for fork.');
+
+  const workflowId = flagString(flags, 'workflow') ?? flagString(flags, 'id');
+  if (!workflowId) fail('Missing --workflow <workflow-id-or-slug>.');
+
+  const name = flagString(flags, 'name');
+  const slug = flagString(flags, 'slug');
+  const description = flagString(flags, 'description');
+  const changeNote = flagString(flags, 'change-note') ?? description;
+
+  const { ok, status, data } = await requestJson<ForkResponse>(
+    `${baseUrl}/api/workflows/${encodeURIComponent(workflowId)}/fork`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders(apiKey),
+      },
+      body: JSON.stringify({
+        ...(name ? { name } : {}),
+        ...(slug ? { slug } : {}),
+        ...(description ? { description } : {}),
+        ...(changeNote ? { changeNote } : {}),
+      }),
+    },
+  );
+
+  if (!ok) {
+    fail(`Fork failed (HTTP ${status}): ${data.error ?? JSON.stringify(data)}`);
+  }
+
+  console.log('Workflow fork created.');
+  if (data.workflow?.id) console.log(`  workflowId: ${data.workflow.id}`);
+  if (data.workflow?.slug) console.log(`  workflowSlug: ${data.workflow.slug}`);
+  if (data.version?.version) console.log(`  version: v${data.version.version}`);
+  return data;
+}
+
+async function deployWorkflow(
+  baseUrl: string,
+  apiKey: string | undefined,
+  flags: Flags,
+) {
+  if (!apiKey) fail('DOJO_API_KEY or --api-key is required for deploy.');
+
+  const workflowId = flagString(flags, 'workflow') ?? flagString(flags, 'id');
+  if (!workflowId) fail('Missing --workflow <workflow-id-or-slug>.');
+
+  const manifestFile = flagString(flags, 'file');
+  const source = manifestFile && existsSync(resolve(manifestFile))
+    ? readManifest(resolve(manifestFile))
+    : null;
+  const manifest = source ? source.manifest : {};
+  const endpointUrl =
+    flagString(flags, 'endpoint') ??
+    manifest.endpointUrl ??
+    manifest.endpoint_url ??
+    manifest.endpoint;
+  const priceValue =
+    flagString(flags, 'price') ??
+    manifest.pricePerRun ??
+    manifest.price_per_run ??
+    manifest.price;
+  const pricePerRun = Number(priceValue);
+  const slaValue = flagString(flags, 'sla-ms') ?? manifest.slaMs ?? manifest.sla_ms;
+  const slaMs = slaValue === undefined ? 5000 : Number(slaValue);
+  const inputSchema = manifest.inputSchema ?? manifest.input_schema;
+  const outputSchema = manifest.outputSchema ?? manifest.output_schema;
+  const exampleInput = manifest.exampleInput ?? manifest.example_input ?? {};
+  const exampleOutput = manifest.exampleOutput ?? manifest.example_output;
+
+  const missing: string[] = [];
+  if (!endpointUrl) missing.push('endpoint');
+  if (!Number.isFinite(pricePerRun) || pricePerRun <= 0) missing.push('price > 0');
+  if (!Number.isFinite(slaMs) || slaMs < 200) missing.push('sla-ms >= 200');
+  if (missing.length > 0) {
+    fail(`Invalid deploy input. Missing or invalid: ${missing.join(', ')}`);
+  }
+
+  const { ok, status, data } = await requestJson<DeployResponse>(
+    `${baseUrl}/api/workflows/${encodeURIComponent(workflowId)}/deploy`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders(apiKey),
+      },
+      body: JSON.stringify({
+        endpointUrl,
+        pricePerRun,
+        inputSchema,
+        outputSchema,
+        exampleInput,
+        exampleOutput,
+        outputShape: 'json',
+        slaMs,
+      }),
+    },
+  );
+
+  if (!ok) {
+    fail(`Deploy failed (HTTP ${status}): ${data.error ?? JSON.stringify(data)}`);
+  }
+
+  console.log('Workflow deployed.');
+  if (data.workflow?.id) console.log(`  workflowId: ${data.workflow.id}`);
+  if (data.workflow?.slug) console.log(`  workflowSlug: ${data.workflow.slug}`);
+  if (data.skill?.gatewaySlug) console.log(`  gatewaySlug: ${data.skill.gatewaySlug}`);
+  if (data.gateway) console.log(`  gateway: ${baseUrl}${data.gateway}`);
+  if (data.runUrl) console.log(`  runUrl: ${baseUrl}${data.runUrl}`);
+  return data;
+}
+
 function printHelp() {
   console.log(`Dojo creator CLI
 
@@ -352,6 +505,9 @@ Usage:
   DOJO_API_KEY=dojo_sk_... npm run dojo -- test [--file dojo.workflow.yaml] [--url http://localhost:3000]
   DOJO_API_KEY=dojo_sk_... npm run dojo -- publish [--file dojo.workflow.yaml] [--url http://localhost:3000]
   DOJO_API_KEY=dojo_sk_... npm run dojo -- publish --file SKILL.md
+  DOJO_API_KEY=dojo_sk_... npm run dojo -- fork --workflow <id-or-slug> [--name "My Fork"]
+  DOJO_API_KEY=dojo_sk_... npm run dojo -- deploy --workflow <id-or-slug> --endpoint https://... --price 0.25
+  DOJO_API_KEY=dojo_sk_... npm run dojo -- deploy --workflow <id-or-slug> --file dojo.workflow.yaml
 
 Environment:
   DOJO_API_KEY                 Creator API key for production publish
@@ -362,6 +518,7 @@ Notes:
   - Production endpoints must be public HTTPS.
   - publish runs dry-run first unless --skip-test is passed.
   - dojo.workflow.yaml is canonical; SKILL.md frontmatter is supported for compatibility.
+  - fork creates a draft workflow; deploy attaches your executable endpoint.
 `);
 }
 
@@ -402,6 +559,16 @@ async function main() {
       await dryRun(baseUrl, apiKey, manifest);
     }
     await publish(baseUrl, apiKey, manifest, source);
+    return;
+  }
+
+  if (command === 'fork') {
+    await forkWorkflow(baseUrl, apiKey, flags);
+    return;
+  }
+
+  if (command === 'deploy') {
+    await deployWorkflow(baseUrl, apiKey, flags);
     return;
   }
 

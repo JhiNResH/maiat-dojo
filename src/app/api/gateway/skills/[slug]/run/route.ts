@@ -30,6 +30,7 @@ import { evaluateCall } from '@/lib/session-evaluator';
 import { generateX402Headers } from '@/lib/x402';
 import { verifyGatewayAuth } from '@/lib/gateway-auth';
 import { recordWorkflowRun } from '@/lib/workflow-ledger';
+import { readCreatorResponseText } from '@/lib/creator-response';
 
 export const dynamic = 'force-dynamic';
 
@@ -438,6 +439,8 @@ export async function POST(
     let creatorRes: Response | null = null;
     let forwardError: unknown = null;
     let latencyMs = 0;
+    let responseTooLarge = false;
+    let responseReadError = '';
 
     // Only sign and forward HMAC when the skill has a secret configured.
     // Sending HMAC-SHA256(body, '') is forgeable by any caller — skip entirely.
@@ -476,16 +479,23 @@ export async function POST(
       forwardError instanceof Error && (forwardError as Error).name === 'AbortError';
     let creatorBodyText = '';
     if (creatorRes !== null) {
-      creatorBodyText = await creatorRes.text().catch((bodyErr) => {
-        console.warn('[gateway] body read failed — scoring 0.0:', bodyErr instanceof Error ? bodyErr.message : bodyErr);
-        return '';
+      const read = await readCreatorResponseText(creatorRes).catch((bodyErr) => {
+        const message = bodyErr instanceof Error ? bodyErr.message : String(bodyErr);
+        console.warn('[gateway] body read failed — scoring 0.0:', message);
+        return { ok: false as const, text: '' as const, error: message };
       });
+      if (read.ok) {
+        creatorBodyText = read.text;
+      } else {
+        responseTooLarge = true;
+        responseReadError = read.error;
+      }
     }
     const evalResult = evaluateCall(
       creatorRes?.status ?? 0,
       creatorBodyText,
       latencyMs,
-      timedOut || creatorRes === null
+      timedOut || creatorRes === null || responseTooLarge
     );
 
     // -------------------------------------------------------------------------
@@ -497,7 +507,7 @@ export async function POST(
     //
     // The @@unique([sessionId, nonce]) constraint catches replays → P2002 → 409
     // -------------------------------------------------------------------------
-    const creatorFailed = creatorRes === null; // network/timeout failure
+    const creatorFailed = creatorRes === null || responseTooLarge; // network/timeout/body-cap failure
 
     let skillCallStatus: string;
     let httpStatus: number;
@@ -640,9 +650,11 @@ export async function POST(
       );
       return errorJson(
         'creator-error',
-        isTimeout
-          ? 'Creator endpoint timed out after 30 seconds'
-          : 'Creator endpoint unreachable',
+        responseTooLarge
+          ? responseReadError || 'Creator response too large'
+          : isTimeout
+            ? 'Creator endpoint timed out after 30 seconds'
+            : 'Creator endpoint unreachable',
         502
       );
     }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import matter from 'gray-matter';
+import { randomBytes } from 'crypto';
 
 export const dynamic = 'force-dynamic';
 
@@ -125,9 +126,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  if (typeof price !== 'number' || price < 0) {
+  if (typeof price !== 'number' || price <= 0) {
     return NextResponse.json(
-      { error: '`price` must be a non-negative number (USDC per call)' },
+      { error: '`price` must be a positive number (USDC per call)' },
       { status: 400 },
     );
   }
@@ -140,8 +141,11 @@ export async function POST(req: NextRequest) {
 
   // Ensure uniqueness
   let gatewaySlug = baseSlug;
-  const existing = await prisma.skill.findUnique({ where: { gatewaySlug } });
-  if (existing) {
+  const [existingSkill, existingWorkflow] = await Promise.all([
+    prisma.skill.findUnique({ where: { gatewaySlug }, select: { id: true } }),
+    prisma.workflow.findUnique({ where: { slug: gatewaySlug }, select: { id: true } }),
+  ]);
+  if (existingSkill || existingWorkflow) {
     gatewaySlug = `${baseSlug}-${Date.now()}`;
   }
 
@@ -163,31 +167,77 @@ export async function POST(req: NextRequest) {
     ? JSON.stringify(frontmatter.example_output)
     : null;
 
-  // --- Create skill ---
-  let skill;
+  // --- Create workflow-backed skill ---
+  let created;
   try {
-    skill = await prisma.skill.create({
-      data: {
-        name: (name as string).trim(),
-        description: (description as string).trim(),
-        category: (category as string).trim(),
-        icon,
-        tags,
-        price: price as number,
-        pricePerCall: price as number,
-        skillType: 'active',
-        endpointUrl: endpoint as string,
-        gatewaySlug,
-        fileContent: fileContent || null,
-        fileType: 'markdown',
-        isGated: false,
-        creatorHmacSecret: hmacSecret,
-        inputSchema,
-        outputSchema,
-        exampleInput,
-        exampleOutput,
-        creatorId: user.id,
-      },
+    created = await prisma.$transaction(async (tx) => {
+      const skill = await tx.skill.create({
+        data: {
+          name: (name as string).trim(),
+          description: (description as string).trim(),
+          category: (category as string).trim(),
+          icon,
+          tags,
+          price: price as number,
+          pricePerCall: price as number,
+          skillType: 'active',
+          endpointUrl: endpoint as string,
+          gatewaySlug,
+          fileContent: fileContent || null,
+          fileType: 'markdown',
+          isGated: false,
+          creatorHmacSecret: hmacSecret ?? randomBytes(32).toString('hex'),
+          executionKind: 'sync',
+          inputShape: 'form',
+          outputShape: 'json',
+          sandboxable: true,
+          authRequired: Boolean(hmacSecret),
+          inputSchema,
+          outputSchema,
+          exampleInput,
+          exampleOutput,
+          creatorId: user.id,
+        },
+      });
+
+      const workflow = await tx.workflow.create({
+        data: {
+          slug: gatewaySlug,
+          name: skill.name,
+          description: skill.description,
+          category: skill.category,
+          icon: skill.icon,
+          status: 'published',
+          pricePerRun: price as number,
+          creatorId: user.id,
+          skillId: skill.id,
+        },
+      });
+
+      const version = await tx.workflowVersion.create({
+        data: {
+          workflowId: workflow.id,
+          version: 1,
+          title: skill.name,
+          summary: fileContent || skill.description,
+          inputSchema,
+          outputSchema,
+          stepGraph: JSON.stringify({
+            kind: 'one_step_endpoint',
+            skillId: skill.id,
+            gatewaySlug,
+          }),
+          evaluatorPolicy: JSON.stringify({
+            evaluator: 'dojo-sanity-v1',
+            delivered: true,
+            validFormat: true,
+            withinSla: true,
+          }),
+          slaMs: 5000,
+        },
+      });
+
+      return { skill, workflow: { ...workflow, latestVersion: version } };
     });
   } catch (err: unknown) {
     // P2002 = unique constraint violation (slug race between check and insert)
@@ -202,9 +252,12 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json(
     {
-      skillId: skill.id,
-      gatewaySlug: skill.gatewaySlug,
-      url: `/skill/${skill.id}`,
+      skillId: created.skill.id,
+      gatewaySlug: created.skill.gatewaySlug,
+      workflowId: created.workflow.id,
+      workflowSlug: created.workflow.slug,
+      url: `/workflow/${created.workflow.slug}/run`,
+      workflow: created.workflow,
     },
     { status: 201 },
   );

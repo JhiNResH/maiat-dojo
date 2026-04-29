@@ -7,6 +7,7 @@ import { prisma } from '@/lib/prisma';
 import { parseBody, v1RunInput } from '@/lib/validators';
 import { logError } from '@/lib/logger';
 import { recordWorkflowRun, type WorkflowReceiptSummary } from '@/lib/workflow-ledger';
+import { readCreatorResponseText } from '@/lib/creator-response';
 
 export const dynamic = 'force-dynamic';
 
@@ -136,6 +137,7 @@ export async function POST(req: NextRequest) {
   let creatorStatus = 0;
   let creatorBody = '';
   let failed = false;
+  let failureReason = '';
 
   try {
     const headers: Record<string, string> = {
@@ -158,22 +160,16 @@ export async function POST(req: NextRequest) {
     });
 
     creatorStatus = res.status;
-
-    // Cap response body at 1 MB to prevent OOM (F4)
-    const MAX_BODY_BYTES = 1_048_576;
-    const contentLength = Number(res.headers.get('content-length') ?? 0);
-    if (contentLength > MAX_BODY_BYTES) {
-      creatorBody = '';
-      failed = true;
+    const read = await readCreatorResponseText(res);
+    if (read.ok) {
+      creatorBody = read.text;
     } else {
-      creatorBody = await res.text();
-      if (Buffer.byteLength(creatorBody, 'utf8') > MAX_BODY_BYTES) {
-        creatorBody = '';
-        failed = true;
-      }
+      failed = true;
+      failureReason = read.error;
     }
-  } catch {
+  } catch (err) {
     failed = true;
+    failureReason = err instanceof Error ? err.message : 'Skill endpoint unreachable or timed out';
   }
 
   const latencyMs = Date.now() - start;
@@ -301,6 +297,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         error: 'Skill endpoint unreachable or timed out',
+        reason: failureReason || undefined,
         cost: 0,
         balance: user.creditBalance,
         session_id: session.id,
