@@ -262,6 +262,11 @@ export async function POST(req: NextRequest) {
     const exampleInputText = stringify(exampleInput);
     const exampleOutputText = stringify(exampleOutput);
     const effectivePricePerCall = pricePerCall ? Number(pricePerCall) : null;
+    const effectiveExecutionKind = executionKind ?? 'sync';
+    const effectiveInputShape = inputShape ?? 'form';
+    const effectiveOutputShape = outputShape ?? 'json';
+    const effectiveSandboxable = sandboxable ?? true;
+    const effectiveAuthRequired = authRequired ?? false;
 
     const created = await prisma.$transaction(async (tx) => {
       const skill = await tx.skill.create({
@@ -284,12 +289,12 @@ export async function POST(req: NextRequest) {
           endpointUrl: endpointUrl ?? null,
           creatorHmacSecret: finalHmacSecret ?? null,
           // Profile fields
-          executionKind: executionKind ?? null,
-          inputShape: inputShape ?? null,
-          outputShape: outputShape ?? null,
+          executionKind: effectiveExecutionKind,
+          inputShape: effectiveInputShape,
+          outputShape: effectiveOutputShape,
           estLatencyMs: estLatencyMs ? Number(estLatencyMs) : undefined,
-          sandboxable: sandboxable ?? null,
-          authRequired: authRequired ?? null,
+          sandboxable: effectiveSandboxable,
+          authRequired: effectiveAuthRequired,
           inputSchema: inputSchemaText,
           outputSchema: outputSchemaText,
           exampleInput: exampleInputText,
