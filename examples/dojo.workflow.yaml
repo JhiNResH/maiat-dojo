@@ -1,0 +1,38 @@
+name: Quick Audit Workflow
+description: Audit a repo, contract, or agent task and return a structured risk brief.
+category: Security
+price_per_run: 0.25
+endpoint: http://localhost:3000/api/skills-internal/quick-audit
+sla_ms: 8000
+tags:
+  - security
+  - audit
+  - agent-workflow
+
+input_schema:
+  type: object
+  required:
+    - target
+  properties:
+    target:
+      type: string
+    depth:
+      type: string
+      enum:
+        - quick
+        - standard
+
+example_input:
+  target: https://github.com/example/repo
+  depth: quick
+
+output_schema:
+  type: object
+  required:
+    - summary
+    - risks
+  properties:
+    summary:
+      type: string
+    risks:
+      type: array

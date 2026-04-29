@@ -165,6 +165,7 @@ Near-term changes:
 5. Add execution receipts as first-class records.
 6. Use reputation in marketplace ranking.
 7. Add royalty split for fork-derived workflow runs.
+8. Support creator CLI publish from `dojo.workflow.yaml` / `SKILL.md` via dry-run-gated `/api/skills/create`.
 
 ## Non-Goals
 
@@ -173,4 +174,3 @@ Near-term changes:
 - No generic agent launchpad.
 - No co-ownership narrative.
 - No broad vertical expansion before the security workflow wedge is usable.
-
