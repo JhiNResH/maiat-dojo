@@ -14,6 +14,17 @@ import type { ChatSkillSummary } from "../chat/types";
 export interface SkillRankItem extends ChatSkillSummary {
   recentSessions?: number;
   recentCalls?: number;
+  creator?: {
+    id?: string;
+    displayName?: string | null;
+    avatarUrl?: string | null;
+  } | null;
+  workflowVersion?: {
+    id?: string;
+    version?: number;
+    summary?: string | null;
+    slaMs?: number | null;
+  } | null;
 }
 
 export interface SkillRankListProps {
