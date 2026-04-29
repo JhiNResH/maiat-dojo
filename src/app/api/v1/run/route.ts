@@ -6,19 +6,9 @@ import { anchorExecutionAsync, PHASE2_ADDRESSES } from '@/lib/swap-router';
 import { prisma } from '@/lib/prisma';
 import { parseBody, v1RunInput } from '@/lib/validators';
 import { logError } from '@/lib/logger';
+import { recordWorkflowRun, type WorkflowReceiptSummary } from '@/lib/workflow-ledger';
 
 export const dynamic = 'force-dynamic';
-
-type WorkflowReceiptSummary = {
-  id: string;
-  workflowId: string;
-  versionId: string | null;
-  settlementStatus: string;
-  anchorStatus: string;
-  onchainRequestId: string | null;
-  swapTxHash: string | null;
-  settleTxHash: string | null;
-};
 
 /**
  * POST /api/v1/run
@@ -59,16 +49,6 @@ export async function POST(req: NextRequest) {
   // --- Find skill ---
   const skill = await prisma.skill.findUnique({
     where: { gatewaySlug: skillSlug },
-    include: {
-      workflow: {
-        include: {
-          versions: {
-            orderBy: { version: 'desc' },
-            take: 1,
-          },
-        },
-      },
-    },
   });
 
   if (!skill) {
@@ -226,50 +206,20 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      if (skill.workflow) {
-        const latestVersion = skill.workflow.versions[0] ?? null;
-        const settlementStatus = shouldCharge ? 'paid' : 'refunded';
-        const receipt = await tx.workflowRunReceipt.create({
-          data: {
-            workflowId: skill.workflow.id,
-            versionId: latestVersion?.id,
-            skillCallId: skillCall.id,
-            sessionId: session!.id,
-            buyerAgentId: agent.id,
-            creatorId: skill.creatorId,
-            requestHash,
-            responseHash: evalResult.responseHash,
-            delivered: evalResult.delivered,
-            validFormat: evalResult.validFormat,
-            withinSla: evalResult.withinSla,
-            score: evalResult.score,
-            costUsdc: cost,
-            settlementStatus,
-          },
-        });
-        workflowReceipt = {
-          id: receipt.id,
-          workflowId: receipt.workflowId,
-          versionId: receipt.versionId,
-          settlementStatus: receipt.settlementStatus,
-          anchorStatus: receipt.anchorStatus,
-          onchainRequestId: receipt.onchainRequestId,
-          swapTxHash: receipt.swapTxHash,
-          settleTxHash: receipt.settleTxHash,
-        };
-
-        const nextRunCount = skill.workflow.runCount + 1;
-        const nextTrustScore =
-          ((skill.workflow.trustScore * skill.workflow.runCount) + (evalResult.score * 100)) /
-          nextRunCount;
-        await tx.workflow.update({
-          where: { id: skill.workflow.id },
-          data: {
-            runCount: { increment: 1 },
-            trustScore: nextTrustScore,
-          },
-        });
-      }
+      workflowReceipt = await recordWorkflowRun(tx, {
+        skillId: skill.id,
+        skillCallId: skillCall.id,
+        sessionId: session!.id,
+        buyerAgentId: agent.id,
+        requestHash,
+        responseHash: evalResult.responseHash,
+        delivered: evalResult.delivered,
+        validFormat: evalResult.validFormat,
+        withinSla: evalResult.withinSla,
+        score: evalResult.score,
+        costUsdc: cost,
+        settlementStatus: shouldCharge ? 'paid' : 'refunded',
+      });
 
       if (shouldCharge) {
         // Decrement session budget

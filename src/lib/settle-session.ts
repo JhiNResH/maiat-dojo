@@ -21,6 +21,7 @@ import { prisma } from '@/lib/prisma';
 import { createSessionOnChain, closeAndSettleOnChain, getAcpConfig } from '@/lib/bsc-acp';
 import { signEvaluationProof } from '@/lib/gateway-signer';
 import { logInfo, logWarn, logError } from '@/lib/logger';
+import { reconcileSessionReceipts } from '@/lib/workflow-ledger';
 
 const PASS_THRESHOLD = 80; // ≥80% of calls must pass
 
@@ -190,15 +191,23 @@ export async function settleSession(sessionId: string): Promise<SettleResult> {
   const now = new Date();
   const newStatus = isPASS ? 'settled' : 'refunded';
 
-  const closeResult = await prisma.session.updateMany({
-    where: {
-      id: session.id,
-      status: { in: ['funded', 'active'] },
-    },
-    data: {
-      status: newStatus,
-      settledAt: now,
-    },
+  const closeResult = await prisma.$transaction(async (tx) => {
+    const result = await tx.session.updateMany({
+      where: {
+        id: session.id,
+        status: { in: ['funded', 'active'] },
+      },
+      data: {
+        status: newStatus,
+        settledAt: now,
+      },
+    });
+
+    if (result.count > 0) {
+      await reconcileSessionReceipts(tx, session.id, isPASS ? 'paid' : 'refunded');
+    }
+
+    return result;
   });
 
   if (closeResult.count === 0) {

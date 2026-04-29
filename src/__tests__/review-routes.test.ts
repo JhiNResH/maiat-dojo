@@ -13,6 +13,9 @@ vi.mock('@/lib/prisma', () => ({
       findUnique: vi.fn(),
       findMany: vi.fn(),
     },
+    workflowRunReceipt: {
+      findFirst: vi.fn(),
+    },
     user: {
       findUnique: vi.fn(),
     },
@@ -167,6 +170,7 @@ describe('POST /api/skills/[id]/review', () => {
       status: 'settled',
       agent: { ownerId: 'u1' },
     });
+    (prisma.workflowRunReceipt.findFirst as any).mockResolvedValue({ id: 'receipt1' });
     (prisma.review.findUnique as any).mockResolvedValue({ id: 'existing' });
 
     const res = await postReview(
@@ -182,6 +186,28 @@ describe('POST /api/skills/[id]/review', () => {
     expect(data.error).toMatch(/Already reviewed/);
   });
 
+  it('returns 403 if settled session has no final receipt', async () => {
+    (prisma.session.findUnique as any).mockResolvedValue({
+      id: 'sess1',
+      skillId: 'sk1',
+      status: 'settled',
+      agent: { ownerId: 'u1' },
+    });
+    (prisma.workflowRunReceipt.findFirst as any).mockResolvedValue(null);
+
+    const res = await postReview(
+      makeRequest('http://localhost/api/skills/sk1/review', {
+        method: 'POST',
+        body: JSON.stringify({ rating: 5, comment: 'Nice', sessionId: 'sess1', userId: 'u1' }),
+      }),
+      { params: { id: 'sk1' } }
+    );
+    const data = await res.json();
+
+    expect(res.status).toBe(403);
+    expect(data.error).toMatch(/No final receipt/);
+  });
+
   it('creates review successfully with settled session', async () => {
     (prisma.session.findUnique as any).mockResolvedValue({
       id: 'sess1',
@@ -189,6 +215,7 @@ describe('POST /api/skills/[id]/review', () => {
       status: 'settled',
       agent: { ownerId: 'u1' },
     });
+    (prisma.workflowRunReceipt.findFirst as any).mockResolvedValue({ id: 'receipt1' });
     (prisma.review.findUnique as any).mockResolvedValue(null);
     (prisma.review.create as any).mockResolvedValue({
       id: 'r1',
@@ -262,7 +289,13 @@ describe('GET /api/sessions', () => {
     (prisma.user.findUnique as any).mockResolvedValue({ id: 'u1', privyId: 'p1' });
     (prisma.agent.findMany as any).mockResolvedValue([{ id: 'a1' }]);
     (prisma.session.findMany as any).mockResolvedValue([
-      { id: 'sess1', callCount: 3, status: 'settled', settledAt: new Date('2026-04-14') },
+      {
+        id: 'sess1',
+        callCount: 3,
+        status: 'settled',
+        settledAt: new Date('2026-04-14'),
+        workflowRunReceipts: [{ id: 'receipt1', settlementStatus: 'paid' }],
+      },
     ]);
 
     const res = await getSessions(
@@ -273,6 +306,7 @@ describe('GET /api/sessions', () => {
     expect(res.status).toBe(200);
     expect(data.sessions).toHaveLength(1);
     expect(data.sessions[0].status).toBe('settled');
+    expect(data.sessions[0].receiptId).toBe('receipt1');
     expect(data.userId).toBe('u1');
   });
 });

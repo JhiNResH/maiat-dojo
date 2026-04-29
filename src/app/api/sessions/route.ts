@@ -54,6 +54,9 @@ export async function GET(req: NextRequest) {
       skillId,
       payerAgentId: { in: agentIds },
       status: { in: statusFilter },
+      workflowRunReceipts: {
+        some: {},
+      },
     },
     orderBy: { settledAt: 'desc' },
     take: 20,
@@ -62,6 +65,14 @@ export async function GET(req: NextRequest) {
       callCount: true,
       status: true,
       settledAt: true,
+      workflowRunReceipts: {
+        orderBy: { createdAt: 'desc' },
+        take: 1,
+        select: {
+          id: true,
+          settlementStatus: true,
+        },
+      },
     },
   });
 
@@ -71,6 +82,8 @@ export async function GET(req: NextRequest) {
       callCount: s.callCount,
       status: s.status,
       settledAt: s.settledAt?.toISOString() ?? null,
+      receiptId: s.workflowRunReceipts[0]?.id ?? null,
+      receiptStatus: s.workflowRunReceipts[0]?.settlementStatus ?? null,
     })),
     userId: user.id,
   });
