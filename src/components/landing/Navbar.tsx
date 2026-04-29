@@ -69,7 +69,7 @@ export function Navbar() {
               alt="The Dojo"
               width={32}
               height={32}
-              className="h-full w-full object-contain p-0.5"
+              className="h-full w-full object-cover"
               priority
             />
           </span>
