@@ -1,12 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { usePrivy } from "@privy-io/react-auth";
 
 interface SettledSession {
   id: string;
   callCount: number;
   status: string;
   settledAt: string | null;
+  receiptId?: string | null;
+  receiptStatus?: string | null;
 }
 
 export default function ReviewForm({
@@ -20,6 +23,7 @@ export default function ReviewForm({
   userId?: string;
   sessions?: SettledSession[];
 }) {
+  const { getAccessToken } = usePrivy();
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
   const [sessionId, setSessionId] = useState(sessions?.[0]?.id ?? "");
@@ -42,13 +46,23 @@ export default function ReviewForm({
   }
 
   const submit = async () => {
-    if (!comment.trim() || !sessionId || !userId) return;
+    if (!comment.trim() || !sessionId) return;
     setSubmitting(true);
     setError(null);
     try {
+      const token = await getAccessToken();
+      if (!token && !userId) {
+        setError("Sign in to submit a review.");
+        setSubmitting(false);
+        return;
+      }
+
       const res = await fetch(`/api/${targetType}s/${targetId}/review`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ rating, comment, userId, sessionId }),
       });
       if (res.status === 409) {

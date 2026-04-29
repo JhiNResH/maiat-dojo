@@ -29,6 +29,7 @@ import { prisma } from '@/lib/prisma';
 import { evaluateCall } from '@/lib/session-evaluator';
 import { generateX402Headers } from '@/lib/x402';
 import { verifyGatewayAuth } from '@/lib/gateway-auth';
+import { recordWorkflowRun } from '@/lib/workflow-ledger';
 
 export const dynamic = 'force-dynamic';
 
@@ -329,47 +330,90 @@ export async function POST(
     if (skill.skillType === 'passive') {
       const content = skill.fileContent ?? '(no content)';
       const evalResult = evaluateCall(200, content, 0, false);
+      let workflowReceiptId: string | null = null;
 
-      await prisma.$transaction(async (tx) => {
-        await tx.skillCall.create({
-          data: {
+      try {
+        await prisma.$transaction(async (tx) => {
+          const skillCall = await tx.skillCall.create({
+            data: {
+              sessionId: session.id,
+              nonce,
+              requestHash: hashHeader,
+              status: 'success',
+              httpStatus: 200,
+              latencyMs: 0,
+              costUsdc: session.pricePerCall,
+              responseHash: evalResult.responseHash,
+              delivered: evalResult.delivered,
+              validFormat: evalResult.validFormat,
+              withinSla: evalResult.withinSla,
+              score: evalResult.score,
+            },
+          });
+          const receipt = await recordWorkflowRun(tx, {
+            skillId: skill.id,
+            skillCallId: skillCall.id,
             sessionId: session.id,
-            nonce,
+            buyerAgentId: session.payerAgentId,
             requestHash: hashHeader,
-            status: 'success',
-            httpStatus: 200,
-            latencyMs: 0,
-            costUsdc: session.pricePerCall,
             responseHash: evalResult.responseHash,
             delivered: evalResult.delivered,
             validFormat: evalResult.validFormat,
             withinSla: evalResult.withinSla,
             score: evalResult.score,
-          },
+            costUsdc: session.pricePerCall,
+            settlementStatus: 'paid',
+          });
+          workflowReceiptId = receipt?.id ?? null;
+          const updateResult = await tx.session.updateMany({
+            where: {
+              id: session.id,
+              status: { in: ['funded', 'active'] },
+              budgetRemaining: { gte: session.pricePerCall },
+            },
+            data: {
+              budgetRemaining: { decrement: session.pricePerCall },
+              callCount: { increment: 1 },
+              status: 'active',
+            },
+          });
+
+          if (updateResult.count === 0) {
+            throw new Error('SESSION_CLOSED_OR_EXHAUSTED');
+          }
         });
-        await tx.session.updateMany({
-          where: {
-            id: session.id,
-            status: { in: ['funded', 'active'] },
-            budgetRemaining: { gte: session.pricePerCall },
-          },
-          data: {
-            budgetRemaining: { decrement: session.pricePerCall },
-            callCount: { increment: 1 },
-            status: 'active',
-          },
-        });
-      });
+      } catch (txErr: unknown) {
+        if (txErr instanceof Error && txErr.message === 'SESSION_CLOSED_OR_EXHAUSTED') {
+          return errorJson(
+            'session-closed',
+            'Session was closed or budget exhausted during request processing',
+            409
+          );
+        }
+        if (isPrismaP2002(txErr)) {
+          return errorJson(
+            'replay',
+            `Nonce ${nonce} already used for this session — replay detected`,
+            409
+          );
+        }
+        console.error('[POST /api/gateway/skills/[slug]/run] passive DB transaction failed:', txErr);
+        return errorJson('gateway-error', 'Failed to write call log', 500);
+      }
 
       const budgetAfter = Math.max(0, session.budgetRemaining - session.pricePerCall);
+      const responseHeaders = new Headers({
+        'Content-Type': 'application/json',
+        'X-Dojo-SessionId': session.id,
+        'X-Dojo-BudgetRemaining': String(budgetAfter),
+        'X-Dojo-CallCount': String(session.callCount + 1),
+      });
+      if (workflowReceiptId) {
+        responseHeaders.set('X-Dojo-WorkflowReceiptId', workflowReceiptId);
+      }
       return new NextResponse(JSON.stringify({ content }), {
         status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Dojo-SessionId': session.id,
-          'X-Dojo-BudgetRemaining': String(budgetAfter),
-          'X-Dojo-CallCount': String(session.callCount + 1),
-        },
+        headers: responseHeaders,
       });
     }
 
@@ -472,29 +516,47 @@ export async function POST(
       httpStatus = successRes!.status;
     }
 
+    let workflowReceiptId: string | null = null;
     try {
       if (creatorFailed) {
-        // Write SkillCall only — no budget decrement on gateway-layer failure
-        await prisma.skillCall.create({
-          data: {
+        // No budget decrement on gateway-layer failure, but still write the final ledger.
+        await prisma.$transaction(async (tx) => {
+          const skillCall = await tx.skillCall.create({
+            data: {
+              sessionId: session.id,
+              nonce,
+              requestHash: hashHeader,
+              status: skillCallStatus,
+              httpStatus,
+              latencyMs,
+              costUsdc: 0,
+              responseHash: evalResult.responseHash,
+              delivered: evalResult.delivered,
+              validFormat: evalResult.validFormat,
+              withinSla: evalResult.withinSla,
+              score: evalResult.score,
+            },
+          });
+          const receipt = await recordWorkflowRun(tx, {
+            skillId: skill.id,
+            skillCallId: skillCall.id,
             sessionId: session.id,
-            nonce,
+            buyerAgentId: session.payerAgentId,
             requestHash: hashHeader,
-            status: skillCallStatus,
-            httpStatus,
-            latencyMs,
-            costUsdc: 0, // no charge on gateway error
             responseHash: evalResult.responseHash,
             delivered: evalResult.delivered,
             validFormat: evalResult.validFormat,
             withinSla: evalResult.withinSla,
             score: evalResult.score,
-          },
+            costUsdc: 0,
+            settlementStatus: 'refunded',
+          });
+          workflowReceiptId = receipt?.id ?? null;
         });
       } else {
         // Creator returned something (2xx or error) — charge the call atomically
         await prisma.$transaction(async (tx) => {
-          await tx.skillCall.create({
+          const skillCall = await tx.skillCall.create({
             data: {
               sessionId: session.id,
               nonce,
@@ -510,6 +572,21 @@ export async function POST(
               score: evalResult.score,
             },
           });
+          const receipt = await recordWorkflowRun(tx, {
+            skillId: skill.id,
+            skillCallId: skillCall.id,
+            sessionId: session.id,
+            buyerAgentId: session.payerAgentId,
+            requestHash: hashHeader,
+            responseHash: evalResult.responseHash,
+            delivered: evalResult.delivered,
+            validFormat: evalResult.validFormat,
+            withinSla: evalResult.withinSla,
+            score: evalResult.score,
+            costUsdc: session.pricePerCall,
+            settlementStatus: 'paid',
+          });
+          workflowReceiptId = receipt?.id ?? null;
 
           const updateResult = await tx.session.updateMany({
             where: {
@@ -579,17 +656,21 @@ export async function POST(
         { slug: gatewaySlug, httpStatus: creatorRes!.status }
       );
       const creatorBody = creatorBodyText;
+      const responseHeaders = new Headers({
+        'Content-Type': creatorRes!.headers.get('Content-Type') ?? 'application/json',
+        'X-Dojo-SessionId': session.id,
+        'X-Dojo-BudgetRemaining': String(
+          Math.max(0, session.budgetRemaining - session.pricePerCall)
+        ),
+        'X-Dojo-CallCount': String(session.callCount + 1),
+        'X-Dojo-CreatorHttpStatus': String(creatorRes!.status),
+      });
+      if (workflowReceiptId) {
+        responseHeaders.set('X-Dojo-WorkflowReceiptId', workflowReceiptId);
+      }
       return new NextResponse(creatorBody, {
         status: 502,
-        headers: {
-          'Content-Type': creatorRes!.headers.get('Content-Type') ?? 'application/json',
-          'X-Dojo-SessionId': session.id,
-          'X-Dojo-BudgetRemaining': String(
-            Math.max(0, session.budgetRemaining - session.pricePerCall)
-          ),
-          'X-Dojo-CallCount': String(session.callCount + 1),
-          'X-Dojo-CreatorHttpStatus': String(creatorRes!.status),
-        },
+        headers: responseHeaders,
       });
     }
 
@@ -613,14 +694,19 @@ export async function POST(
       withinSla: evalResult.withinSla,
     });
 
+    const responseHeaders = new Headers({
+      'Content-Type': creatorRes!.headers.get('Content-Type') ?? 'application/json',
+      'X-Dojo-SessionId': session.id,
+      'X-Dojo-BudgetRemaining': String(budgetAfter),
+      'X-Dojo-CallCount': String(callCountAfter),
+    });
+    if (workflowReceiptId) {
+      responseHeaders.set('X-Dojo-WorkflowReceiptId', workflowReceiptId);
+    }
+
     return new NextResponse(creatorBody, {
       status: creatorRes!.status,
-      headers: {
-        'Content-Type': creatorRes!.headers.get('Content-Type') ?? 'application/json',
-        'X-Dojo-SessionId': session.id,
-        'X-Dojo-BudgetRemaining': String(budgetAfter),
-        'X-Dojo-CallCount': String(callCountAfter),
-      },
+      headers: responseHeaders,
     });
   } catch (err: unknown) {
     console.error('[POST /api/gateway/skills/[slug]/run]', err);

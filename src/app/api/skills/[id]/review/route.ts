@@ -56,6 +56,25 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     );
   }
 
+  const receipt = await prisma.workflowRunReceipt.findFirst({
+    where: {
+      sessionId,
+      skillCall: {
+        session: {
+          skillId: params.id,
+        },
+      },
+      settlementStatus: { in: ["paid", "refunded", "disputed"] },
+    },
+    select: { id: true },
+  });
+  if (!receipt) {
+    return NextResponse.json(
+      { error: "No final receipt for this session" },
+      { status: 403 }
+    );
+  }
+
   // Check duplicate review for same session
   const existing = await prisma.review.findUnique({
     where: { userId_skillId_sessionId: { userId, skillId: params.id, sessionId } },
