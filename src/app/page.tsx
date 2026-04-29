@@ -172,16 +172,16 @@ export default function DojoPage() {
               <span className="label-sm">Developers</span>
               <ul className="mt-3 space-y-2">
                 <li>
-                  <a
-                    href="#developers"
+                  <Link
+                    href="/#developers"
                     className="text-[13px] text-[var(--text-secondary)] transition-colors hover:text-[var(--text)]"
                   >
                     REST API
-                  </a>
+                  </Link>
                 </li>
                 <li>
                   <a
-                    href="https://github.com/maiat-protocol"
+                    href="https://github.com/JhiNResH/maiat-dojo"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-[13px] text-[var(--text-secondary)] transition-colors hover:text-[var(--text)]"
@@ -197,9 +197,9 @@ export default function DojoPage() {
                 <Link href="/create" className="btn-primary w-full justify-center text-[12px]">
                   Publish Workflow
                 </Link>
-                <a href="#developers" className="btn-outline w-full justify-center text-[12px]">
+                <Link href="/#developers" className="btn-outline w-full justify-center text-[12px]">
                   View Docs
-                </a>
+                </Link>
               </div>
             </div>
           </div>
