@@ -107,11 +107,11 @@ export default function AgentPageClient({
       <BackgroundEffect />
       <Navbar />
 
-      <main className="relative pt-32 pb-20 px-6">
-        <div className="max-w-6xl mx-auto">
+      <main className="dojo-page-shell">
+        <div>
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] mb-10 transition-opacity hover:opacity-70 text-[var(--text-muted)]"
+            className="dojo-back-link"
           >
             <ArrowLeft className="w-3 h-3" />
             Back to marketplace
@@ -120,7 +120,7 @@ export default function AgentPageClient({
           {/* Header */}
           <header className="flex items-start gap-6 mb-8">
             <div
-              className="w-20 h-20 rounded-3xl flex items-center justify-center text-4xl border border-[var(--border)] bg-[var(--card-bg)]"
+              className="w-20 h-20 rounded-[8px] flex items-center justify-center text-4xl border border-[var(--border)] bg-[var(--card-bg)]"
               style={glassStyle}
             >
               {agent.avatar}
@@ -158,7 +158,7 @@ export default function AgentPageClient({
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: i * 0.05 }}
-                  className={`rounded-2xl p-5 border ${glassCard}`}
+                  className={`rounded-[8px] p-5 border ${glassCard}`}
                   style={glassStyle}
                 >
                   <Icon className="w-3.5 h-3.5 mb-3 text-[var(--text-muted)]" />
@@ -175,7 +175,7 @@ export default function AgentPageClient({
 
           {/* Equipped build */}
           <section
-            className={`rounded-3xl p-8 border mb-6 ${glassCard}`}
+            className={`rounded-[8px] p-8 border mb-6 ${glassCard}`}
             style={glassStyle}
           >
             <div className="flex items-center justify-between mb-6">
@@ -212,7 +212,7 @@ export default function AgentPageClient({
                   >
                     <Link
                       href={`/skill/${skill.id}`}
-                      className="block rounded-2xl p-4 border transition-all hover:opacity-80 border-[var(--border-light)] bg-[var(--bg-secondary)]"
+                      className="block rounded-[8px] p-4 border transition-all hover:opacity-80 border-[var(--border-light)] bg-[var(--bg-secondary)]"
                     >
                       <div className="text-2xl mb-2">{skill.icon}</div>
                       <div className="font-sans font-semibold text-xs truncate text-[var(--text)]">
@@ -231,7 +231,7 @@ export default function AgentPageClient({
           {/* Job history */}
           {jobs.length > 0 && (
             <section
-              className={`rounded-3xl p-8 border mb-6 ${glassCard}`}
+              className={`rounded-[8px] p-8 border mb-6 ${glassCard}`}
               style={glassStyle}
             >
               <div className="text-[10px] font-bold uppercase tracking-[0.3em] mb-6 text-[var(--text-muted)]">
@@ -281,7 +281,7 @@ export default function AgentPageClient({
 
           {/* Reviews */}
           <section
-            className={`rounded-3xl p-8 border ${glassCard}`}
+            className={`rounded-[8px] p-8 border ${glassCard}`}
             style={glassStyle}
           >
             <div className="text-[10px] font-bold uppercase tracking-[0.3em] mb-6 text-[var(--text-muted)]">

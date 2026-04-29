@@ -286,10 +286,10 @@ export default function CreateWorkflowPage() {
       <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors duration-700">
         <BackgroundEffect />
         <Navbar />
-      <main className="relative px-6 pb-20 pt-28">
-        <section className="mx-auto max-w-xl text-center">
-          <div className="dojo-card p-8">
-            <div className="mx-auto mb-5 flex h-10 w-10 items-center justify-center rounded-[8px] bg-[var(--text)] text-[var(--bg)]">
+        <main className="dojo-page-shell dojo-page-shell-narrow">
+          <section className="text-center">
+            <div className="dojo-card p-8">
+              <div className="mx-auto mb-5 flex h-10 w-10 items-center justify-center rounded-[8px] bg-[var(--text)] text-[var(--bg)]">
                 <Rocket className="h-4 w-4" />
               </div>
               <span className="label-sm">Creator gateway</span>
@@ -318,10 +318,10 @@ export default function CreateWorkflowPage() {
       <BackgroundEffect />
       <Navbar />
 
-      <main className="relative mx-auto w-full max-w-7xl px-4 pb-20 pt-28 sm:px-6">
+      <main className="dojo-page-shell dojo-page-shell-wide">
         <Link
           href="/"
-          className="mb-10 inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-widest text-[var(--text-muted)] transition-colors hover:text-[var(--text)]"
+          className="dojo-back-link"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           Marketplace

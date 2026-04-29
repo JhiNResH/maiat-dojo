@@ -673,10 +673,10 @@ export function WorkflowActionClient({
     <div className="flex min-h-screen flex-col bg-[var(--bg)] text-[var(--text)]">
       <div className="atmosphere" />
       <Nav />
-      <main className="relative z-10 mx-auto w-full max-w-7xl px-4 pb-16 pt-28 sm:px-6">
+      <main className="dojo-page-shell dojo-page-shell-wide">
         <Link
           href="/"
-          className="mb-10 inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-widest text-[var(--text-muted)] transition-colors hover:text-[var(--text)]"
+          className="dojo-back-link"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           Marketplace

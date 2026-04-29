@@ -355,6 +355,11 @@ model WorkflowRunReceipt {
   costUsdc         Float    @default(0)
   settlementStatus String   @default("paid") // paid | refunded | disputed
   attestationUid   String?
+  anchorStatus     String   @default("not_started") // not_started | pending | settled | failed
+  onchainRequestId String?
+  swapTxHash       String?
+  settleTxHash     String?
+  anchorError      String?
   createdAt        DateTime @default(now())
 
   workflow   Workflow         @relation(fields: [workflowId], references: [id])

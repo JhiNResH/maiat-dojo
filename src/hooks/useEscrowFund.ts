@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { useAccount, useWriteContract, useReadContract } from 'wagmi';
-import { waitForTransactionReceipt } from 'wagmi/actions';
+import { readContract, waitForTransactionReceipt } from 'wagmi/actions';
 import { parseEventLogs } from 'viem';
 import { usePrivy } from '@privy-io/react-auth';
 import { ACP_ABI, USDC_ABI, getContracts } from '@/lib/contracts';
@@ -97,18 +97,29 @@ export function useEscrowFund() {
       if (!prepRes.ok) throw new Error((prep as { error?: string }).error || 'Prepare failed');
 
       const budgetWei = BigInt(prep.budgetUsdc);
+      const maxApproval = 2n ** 256n - 1n;
 
-      // 2. Approve USDC (always approve on testnet — idempotent, costs only gas)
-      setStep('approving');
-      const approveTx = await writeContractAsync({
+      // 2. Approve USDC only when allowance is insufficient.
+      // Testnet UX uses one-time max approval to avoid repeating approve on every session.
+      const allowance = await readContract(wagmiConfig, {
         address: prep.usdcAddress,
         abi: USDC_ABI,
-        functionName: 'approve',
-        args: [prep.acpAddress, budgetWei],
+        functionName: 'allowance',
+        args: [address, prep.acpAddress],
       });
-      // Wait for approve confirmation
-      await waitForTx(approveTx);
-      setTxCount(1);
+      const needsApproval = allowance < budgetWei;
+      setTotalTxs(needsApproval ? 4 : 3);
+      if (needsApproval) {
+        setStep('approving');
+        const approveTx = await writeContractAsync({
+          address: prep.usdcAddress,
+          abi: USDC_ABI,
+          functionName: 'approve',
+          args: [prep.acpAddress, maxApproval],
+        });
+        await waitForTx(approveTx);
+        setTxCount(1);
+      }
 
       // 3. createJob — agent becomes job.client
       setStep('creating_job');
@@ -125,7 +136,7 @@ export function useEscrowFund() {
         ],
       });
       const createReceipt = await waitForTx(createJobTx);
-      setTxCount(2);
+      setTxCount(needsApproval ? 2 : 1);
 
       // Extract jobId from JobCreated event
       const jobLogs = parseEventLogs({
@@ -145,7 +156,7 @@ export function useEscrowFund() {
         args: [jobId, budgetWei, '0x'],
       });
       await waitForTx(setBudgetTx);
-      setTxCount(3);
+      setTxCount(needsApproval ? 3 : 2);
 
       // 5. fund
       setStep('funding');
@@ -156,7 +167,7 @@ export function useEscrowFund() {
         args: [jobId, budgetWei, '0x'],
       });
       await waitForTx(fundTx);
-      setTxCount(4);
+      setTxCount(needsApproval ? 4 : 3);
 
       // 6. Confirm with backend
       setStep('confirming');
@@ -196,6 +207,7 @@ export function useEscrowFund() {
     setError(null);
     setResult(null);
     setTxCount(0);
+    setTotalTxs(4);
   }, []);
 
   return {

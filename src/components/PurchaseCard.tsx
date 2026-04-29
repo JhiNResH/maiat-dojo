@@ -85,10 +85,10 @@ async function syncUser(
 function escrowStepLabel(s: EscrowStep): string {
   switch (s) {
     case 'preparing': return 'Preparing...';
-    case 'approving': return 'Approve USDC (1/4)...';
-    case 'creating_job': return 'Create Job (2/4)...';
-    case 'setting_budget': return 'Set Budget (3/4)...';
-    case 'funding': return 'Fund Escrow (4/4)...';
+    case 'approving': return 'Approve USDC...';
+    case 'creating_job': return 'Create Job...';
+    case 'setting_budget': return 'Set Budget...';
+    case 'funding': return 'Fund Escrow...';
     case 'confirming': return 'Confirming...';
     default: return 'Fund & Start';
   }
@@ -247,7 +247,7 @@ function ActivePurchasePanel({ skill }: Props) {
         <span className={`font-mono text-xs ${faint} ml-1`}>/ call</span>
       </div>
       <p className={`font-mono text-[10px] ${muted} mb-4 pb-3 border-b border-dotted ${ruleLight}`}>
-        Agent-funded · ERC-8183 on-chain escrow
+        Agent-funded · BSC testnet escrow
       </p>
 
       {escrow.walletAddress && (
@@ -327,7 +327,7 @@ function ActivePurchasePanel({ skill }: Props) {
       )}
 
       <div className={`text-[10px] font-mono ${fainter} border-l-2 ${ruleLight} pl-2 mt-2`}>
-        Session expires in 24h · unused USD refunded
+        One-time USDC approval when needed · session expires in 24h
       </div>
     </div>
   );

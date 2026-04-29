@@ -113,8 +113,8 @@ export default function DojoPage() {
       <div className="atmosphere" />
 
       {/* ═══ FLOATING PILL NAVBAR ═══ */}
-      <div className="fixed left-0 right-0 top-0 z-50 flex justify-center px-6 pt-4">
-        <nav className="glass-nav flex w-full max-w-4xl items-center justify-between px-5 py-2.5">
+      <div className="fixed left-0 right-0 top-0 z-50 flex justify-center px-4 pt-4">
+        <nav className="glass-nav flex w-full max-w-7xl items-center justify-between px-5 py-2.5">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5">
             <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--text)]">
@@ -147,7 +147,7 @@ export default function DojoPage() {
         </nav>
       </div>
 
-      <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 flex-col px-4 pb-16 pt-24 sm:px-6">
+      <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 flex-col px-4 pb-16 pt-28 sm:px-6">
         <main className="mb-16">
           <LandingHero />
         </main>

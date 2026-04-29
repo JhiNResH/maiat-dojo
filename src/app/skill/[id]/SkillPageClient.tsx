@@ -153,11 +153,11 @@ export default function SkillPageClient({
       <BackgroundEffect />
       <Navbar />
 
-      <main className="relative pt-32 pb-20 px-6">
-        <div className="max-w-6xl mx-auto">
+      <main className="dojo-page-shell">
+        <div>
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] mb-10 transition-opacity hover:opacity-70 text-[var(--text-muted)]"
+            className="dojo-back-link"
           >
             <ArrowLeft className="w-3 h-3" />
             Back to marketplace

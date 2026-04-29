@@ -63,11 +63,11 @@ export default function CreatorPageClient({
       <BackgroundEffect />
       <Navbar />
 
-      <main className="relative pt-32 pb-20 px-6">
-        <div className="max-w-6xl mx-auto">
+      <main className="dojo-page-shell">
+        <div>
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] mb-10 transition-opacity hover:opacity-70 text-[var(--text-muted)]"
+            className="dojo-back-link"
           >
             <ArrowLeft className="w-3 h-3" />
             Back to marketplace
@@ -108,7 +108,7 @@ export default function CreatorPageClient({
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: i * 0.05 }}
-                  className={`rounded-2xl p-5 border ${glassCard}`}
+                  className={`rounded-[8px] p-5 border ${glassCard}`}
                   style={glassStyle}
                 >
                   <div className="flex items-center justify-between mb-3">
@@ -127,7 +127,7 @@ export default function CreatorPageClient({
 
           {/* Skills section */}
           <section
-            className={`rounded-3xl p-8 border ${glassCard}`}
+            className={`rounded-[8px] p-8 border ${glassCard}`}
             style={glassStyle}
           >
             <div className="flex items-center justify-between mb-6">
@@ -154,7 +154,7 @@ export default function CreatorPageClient({
                   >
                     <Link
                       href={`/skill/${skill.id}`}
-                      className="group block rounded-2xl p-5 border transition-all hover:opacity-80 border-[var(--border-light)] bg-[var(--bg-secondary)]"
+                      className="group block rounded-[8px] p-5 border transition-all hover:opacity-80 border-[var(--border-light)] bg-[var(--bg-secondary)]"
                     >
                       <div className="flex items-start gap-3 mb-3">
                         <span className="text-2xl">{skill.icon || '⚡'}</span>

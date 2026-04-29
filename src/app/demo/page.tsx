@@ -241,28 +241,26 @@ export default function DemoPage() {
       <BackgroundEffect />
       <Navbar />
 
-      <main className="relative pt-32 pb-20 px-6">
-        <div className="max-w-4xl mx-auto">
+      <main className="dojo-page-shell dojo-page-shell-narrow">
+        <div>
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] mb-10 transition-opacity hover:opacity-70 text-[var(--text-muted)]"
+            className="dojo-back-link"
           >
             <ArrowLeft className="w-3 h-3" />
             Back to marketplace
           </Link>
 
           {/* Header */}
-          <header className="mb-12 text-center">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[var(--border)] bg-[var(--card-bg)] mb-5">
+          <header className="dojo-page-header dojo-page-header-centered">
+            <div className="dojo-page-kicker">
               <Sparkles className="w-3 h-3" />
-              <span className="text-[9px] font-bold uppercase tracking-[0.2em]">
-                Live walkthrough
-              </span>
+              <span>Live walkthrough</span>
             </div>
-            <h1 className="font-sans font-semibold text-4xl md:text-6xl tracking-[-0.03em] leading-[0.95] mb-5 text-[var(--text)]">
+            <h1 className="dojo-page-title">
               Watch it settle.
             </h1>
-            <p className="text-base max-w-xl mx-auto text-[var(--text-muted)]">
+            <p className="dojo-page-subtitle">
               Six steps. Real API calls. The full agent-to-skill lifecycle — from KYA-0
               mint to on-chain settlement.
             </p>
@@ -278,11 +276,11 @@ export default function DemoPage() {
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: i * 0.05 }}
-                  className={`rounded-3xl p-6 border ${glassCard}`}
+                  className={`rounded-[8px] p-6 border ${glassCard}`}
                   style={glassStyle}
                 >
                   <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-2xl flex items-center justify-center border font-mono text-xs font-bold shrink-0 border-[var(--border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
+                    <div className="w-10 h-10 rounded-[8px] flex items-center justify-center border font-mono text-xs font-bold shrink-0 border-[var(--border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
                       {step.num}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -320,7 +318,7 @@ export default function DemoPage() {
                         )}
                       </div>
                       {r.data != null && (
-                        <pre className="font-mono text-[11px] rounded-2xl p-4 overflow-x-auto max-h-48 overflow-y-auto whitespace-pre-wrap bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--border)]">
+                        <pre className="font-mono text-[11px] rounded-[8px] p-4 overflow-x-auto max-h-48 overflow-y-auto whitespace-pre-wrap bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--border)]">
                           {JSON.stringify(r.data, null, 2)}
                         </pre>
                       )}
