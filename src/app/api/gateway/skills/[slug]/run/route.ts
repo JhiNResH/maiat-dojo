@@ -9,7 +9,7 @@
  *  2. Check expiresAt window (5-min max, must be future)
  *  3. Resolve skill by gatewaySlug (must be active)
  *  4. Verify requestHash = keccak256(rawBody)
- *  5. EIP-712 sig verify — STUBBED Phase 1; guarded by DOJO_GATEWAY_SKIP_SIG_CHECK
+ *  5. EIP-712 sig verify against BSC AgentIdentity; guarded by DOJO_GATEWAY_SKIP_SIG_CHECK in dev
  *  6. Resolve Session bound to (onchainJobId, skillId)
  *  7. Validate session state + expiry + budget
  *  8. Forward request to creator endpoint with HMAC header (30s timeout)
@@ -28,6 +28,7 @@ import { createHmac } from 'node:crypto';
 import { prisma } from '@/lib/prisma';
 import { evaluateCall } from '@/lib/session-evaluator';
 import { generateX402Headers } from '@/lib/x402';
+import { verifyGatewayAuth } from '@/lib/gateway-auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -114,13 +115,46 @@ export async function POST(
       );
     }
 
-    const nonce = parseInt(nonceHeader, 10);
-    const expiresAt = parseInt(expiresHeader, 10);
-
-    if (isNaN(nonce) || isNaN(expiresAt)) {
+    if (!/^\d+$/.test(nonceHeader) || !/^\d+$/.test(expiresHeader) || !/^\d+$/.test(tokenIdHeader)) {
       return errorJson(
         'missing-headers',
-        'X-Dojo-Nonce and X-Dojo-ExpiresAt must be valid integers',
+        'X-Dojo-Nonce, X-Dojo-ExpiresAt, and X-Dojo-AgentTokenId must be decimal integers',
+        400
+      );
+    }
+
+    const nonce = Number(nonceHeader);
+    const expiresAt = Number(expiresHeader);
+    let agentTokenId: bigint;
+    try {
+      agentTokenId = BigInt(tokenIdHeader);
+    } catch {
+      return errorJson(
+        'missing-headers',
+        'X-Dojo-AgentTokenId must be a valid uint256',
+        400
+      );
+    }
+
+    if (
+      !Number.isSafeInteger(nonce) ||
+      !Number.isSafeInteger(expiresAt) ||
+      nonce <= 0 ||
+      nonce > 2_147_483_647 ||
+      expiresAt <= 0 ||
+      agentTokenId <= 0n
+    ) {
+      return errorJson(
+        'missing-headers',
+        'X-Dojo-Nonce, X-Dojo-ExpiresAt, and X-Dojo-AgentTokenId must be positive bounded integers',
+        400
+      );
+    }
+
+    if (!/^0x[0-9a-fA-F]{64}$/.test(hashHeader)) {
+      return errorJson(
+        'missing-headers',
+        'X-Dojo-RequestHash must be a bytes32 hex string',
         400
       );
     }
@@ -181,35 +215,34 @@ export async function POST(
     }
 
     // -------------------------------------------------------------------------
-    // 5. EIP-712 signature verify — STUBBED Phase 1
-    //
-    // TODO (Phase 2): Recover signer from EIP-712 typed data and verify it
-    //   matches ownerOf(agentTokenId) on ERC-8004 contract on BSC mainnet.
-    //   Domain: { name: "DojoGateway", version: "1", chainId: 56, verifyingContract: "<addr>" }
-    //   Types:  GatewayAuth { agentTokenId, jobId, skillSlug, requestHash, nonce, expiresAt }
-    //   Use viem's recoverTypedDataAddress + publicClient.readContract("ownerOf", [tokenId])
+    // 5. EIP-712 signature verify.
+    // AgentIdentity is not ERC-721; validate recovered signer via agentIdOf(signer).
     // -------------------------------------------------------------------------
     const skipSigCheck =
       process.env.DOJO_GATEWAY_SKIP_SIG_CHECK === 'true' &&
       process.env.NODE_ENV !== 'production';
 
+    let verifiedSigner: `0x${string}` | null = null;
     if (!skipSigCheck) {
+      const auth = await verifyGatewayAuth({
+        signature: authSig,
+        jobId: jobIdHeader,
+        agentTokenId,
+        nonce: BigInt(nonce),
+        expiresAt: BigInt(expiresAt),
+        requestHash: hashHeader as `0x${string}`,
+        skill: gatewaySlug,
+      });
+      if (!auth.ok) {
+        return errorJson(auth.code, auth.error, 401);
+      }
+      verifiedSigner = auth.signer;
+    } else {
       console.log(
-        '[POST /api/gateway/skills/[slug]/run] EIP-712 sig verify would happen here (Phase 2). ' +
-          'Set DOJO_GATEWAY_SKIP_SIG_CHECK=true to bypass in dev.'
-      );
-      return errorJson(
-        'sig-verify-not-implemented',
-        'EIP-712 signature verification is not yet implemented (Phase 2). ' +
-          'Set DOJO_GATEWAY_SKIP_SIG_CHECK=true to enable dev bypass.',
-        501
+        '[POST /api/gateway/skills/[slug]/run] DOJO_GATEWAY_SKIP_SIG_CHECK=true — ' +
+          'skipping EIP-712 sig verify in dev mode'
       );
     }
-
-    console.log(
-      '[POST /api/gateway/skills/[slug]/run] DOJO_GATEWAY_SKIP_SIG_CHECK=true — ' +
-        'skipping EIP-712 sig verify (Phase 1 dev mode)'
-    );
 
     // -------------------------------------------------------------------------
     // 6. Session lookup — bound to (onchainJobId, skillId)
@@ -223,6 +256,13 @@ export async function POST(
           { id: jobIdHeader, skillId: skill.id },
         ],
       },
+      include: {
+        agent: {
+          select: {
+            walletAddress: true,
+          },
+        },
+      },
     });
 
     if (!session) {
@@ -231,6 +271,23 @@ export async function POST(
         `No session found for jobId=${jobIdHeader} bound to skill ${gatewaySlug}`,
         403
       );
+    }
+
+    if (!skipSigCheck) {
+      if (!session.agent.walletAddress) {
+        return errorJson(
+          'session-agent-wallet-missing',
+          'Session payer agent has no wallet address bound',
+          403
+        );
+      }
+      if (verifiedSigner?.toLowerCase() !== session.agent.walletAddress.toLowerCase()) {
+        return errorJson(
+          'signer-session-mismatch',
+          'EIP-712 signer does not match the session payer agent wallet',
+          403
+        );
+      }
     }
 
     // -------------------------------------------------------------------------

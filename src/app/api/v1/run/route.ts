@@ -14,6 +14,10 @@ type WorkflowReceiptSummary = {
   workflowId: string;
   versionId: string | null;
   settlementStatus: string;
+  anchorStatus: string;
+  onchainRequestId: string | null;
+  swapTxHash: string | null;
+  settleTxHash: string | null;
 };
 
 /**
@@ -248,6 +252,10 @@ export async function POST(req: NextRequest) {
           workflowId: receipt.workflowId,
           versionId: receipt.versionId,
           settlementStatus: receipt.settlementStatus,
+          anchorStatus: receipt.anchorStatus,
+          onchainRequestId: receipt.onchainRequestId,
+          swapTxHash: receipt.swapTxHash,
+          settleTxHash: receipt.settleTxHash,
         };
 
         const nextRunCount = skill.workflow.runCount + 1;
@@ -352,6 +360,7 @@ export async function POST(req: NextRequest) {
             workflow_id: receiptForResponse.workflowId,
             version_id: receiptForResponse.versionId,
             settlement_status: receiptForResponse.settlementStatus,
+            anchor_status: receiptForResponse.anchorStatus,
           },
         } : {}),
       },
@@ -368,21 +377,64 @@ export async function POST(req: NextRequest) {
   let onchainPromise: Promise<void> | null = null;
   if (shouldCharge && skill.gatewaySlug) {
     const onchainSkillId = keccak256(toBytes(skill.gatewaySlug));
+    if (receiptForResponse) {
+      receiptForResponse.anchorStatus = 'pending';
+      void prisma.workflowRunReceipt.update({
+        where: { id: receiptForResponse.id },
+        data: { anchorStatus: 'pending', anchorError: null },
+      }).catch((err) => logError('v1/run:anchor-pending', err, { receiptId: receiptForResponse.id }));
+    }
     onchainPromise = anchorExecutionAsync(
       onchainSkillId,
       !failed,
       evalResult.responseHash,
     )
-      .then((r) => {
+      .then(async (r) => {
+        if (receiptForResponse) {
+          receiptForResponse.anchorStatus = r.ok ? 'settled' : 'failed';
+          receiptForResponse.onchainRequestId = r.requestId ?? null;
+          receiptForResponse.swapTxHash = r.swapTxHash ?? null;
+          receiptForResponse.settleTxHash = r.settleTxHash ?? null;
+          await prisma.workflowRunReceipt.update({
+            where: { id: receiptForResponse.id },
+            data: {
+              anchorStatus: r.ok ? 'settled' : 'failed',
+              onchainRequestId: r.requestId ?? null,
+              swapTxHash: r.swapTxHash ?? null,
+              settleTxHash: r.settleTxHash ?? null,
+              anchorError: r.error ?? null,
+            },
+          });
+        }
         if (r.ok) {
           console.log('[v1/run] anchored', {
             skill: skillSlug,
+            requestId: r.requestId,
             swap: r.swapTxHash,
             settle: r.settleTxHash,
           });
+        } else {
+          console.warn('[v1/run] anchor failed', {
+            skill: skillSlug,
+            receiptId: receiptForResponse?.id,
+            error: r.error,
+          });
         }
       })
-      .catch((err) => logError('v1/run:anchor', err, { skill: skillSlug }));
+      .catch(async (err) => {
+        if (receiptForResponse) {
+          await prisma.workflowRunReceipt.update({
+            where: { id: receiptForResponse.id },
+            data: {
+              anchorStatus: 'failed',
+              anchorError: err instanceof Error ? err.message : String(err),
+            },
+          }).catch((updateErr) => logError('v1/run:anchor-update-failed', updateErr, {
+            receiptId: receiptForResponse.id,
+          }));
+        }
+        logError('v1/run:anchor', err, { skill: skillSlug });
+      });
   }
 
   return NextResponse.json({
@@ -397,6 +449,10 @@ export async function POST(req: NextRequest) {
         workflow_id: receiptForResponse.workflowId,
         version_id: receiptForResponse.versionId,
         settlement_status: receiptForResponse.settlementStatus,
+        anchor_status: receiptForResponse.anchorStatus,
+        onchain_request_id: receiptForResponse.onchainRequestId,
+        swap_tx_hash: receiptForResponse.swapTxHash,
+        settle_tx_hash: receiptForResponse.settleTxHash,
       },
     } : {}),
     latency_ms: latencyMs,
@@ -405,7 +461,8 @@ export async function POST(req: NextRequest) {
       onchain: {
         chain: 'bsc-testnet',
         router: PHASE2_ADDRESSES.swapRouter,
-        anchored: 'pending', // fire-and-forget; check logs for tx hashes
+        anchored: 'pending',
+        workflow_receipt_id: receiptForResponse?.id,
       },
     }),
   });

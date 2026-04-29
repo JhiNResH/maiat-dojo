@@ -14,9 +14,9 @@
  *     brain/wiki/decisions/2026-04-16-tokens-as-interface-reputation-as-allocation.md
  */
 
-import { createPublicClient, createWalletClient, http, type Hash, type Log } from 'viem';
+import { createPublicClient, createWalletClient, http, parseEventLogs, type Hash } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { bscTestnet } from './erc8004';
+import { bscTestnet, withRelayerLock } from './erc8004';
 import { logError } from './logger';
 
 // ─── Config ─────────────────────────────────────────────────────────────────
@@ -114,6 +114,14 @@ export async function anchorExecution(
   success: boolean,
   resultHash: `0x${string}`,
 ): Promise<AnchorResult> {
+  return withRelayerLock(async () => anchorExecutionUnlocked(skillId, success, resultHash));
+}
+
+async function anchorExecutionUnlocked(
+  skillId: `0x${string}`,
+  success: boolean,
+  resultHash: `0x${string}`,
+): Promise<AnchorResult> {
   try {
     const { pub, wallet, account } = getClients();
 
@@ -128,15 +136,14 @@ export async function anchorExecution(
 
     const swapReceipt = await pub.waitForTransactionReceipt({ hash: swapTx, confirmations: 1 });
 
-    // Extract requestId from ExecutionRequested event. Topic[1] = indexed requestId.
-    const EXEC_REQUESTED_TOPIC = '0x' + // keccak256("ExecutionRequested(bytes32,bytes32,address,uint256,bytes)")
-      // precomputed with cast keccak
-      '4c59eca71aa5ef9e9b3e2a1b5c7f3f7a6f8e4b1c9a8d7b3e6a5f9c1e2b4d7c8a'; // placeholder, we match by name instead
-
-    const evt = swapReceipt.logs.find((l: Log) =>
-      l.address.toLowerCase() === PHASE2_ADDRESSES.swapRouter.toLowerCase() && l.topics.length >= 4,
-    );
-    const requestId = evt?.topics[1] as `0x${string}` | undefined;
+    const requestedLogs = parseEventLogs({
+      abi: SWAP_ROUTER_ABI,
+      eventName: 'ExecutionRequested',
+      logs: swapReceipt.logs,
+    });
+    const requestId = requestedLogs.find(
+      (log) => log.address.toLowerCase() === PHASE2_ADDRESSES.swapRouter.toLowerCase(),
+    )?.args.requestId;
 
     if (!requestId) {
       return { ok: false, swapTxHash: swapTx, error: 'ExecutionRequested event not found' };
