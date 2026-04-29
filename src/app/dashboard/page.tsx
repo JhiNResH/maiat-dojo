@@ -90,13 +90,13 @@ export default function DashboardPage() {
       <BackgroundEffect />
       <Navbar />
 
-      <main className="relative pt-32 pb-20 px-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="mb-12">
-            <div className="text-[10px] font-bold uppercase tracking-[0.3em] mb-3 text-[var(--text-muted)]">
+      <main className="dojo-page-shell">
+        <div>
+          <div className="dojo-page-header">
+            <div className="label-sm mb-3">
               Dashboard
             </div>
-            <h1 className="font-sans font-semibold text-4xl md:text-6xl tracking-[-0.03em] leading-[0.95] text-[var(--text)]">
+            <h1 className="dojo-page-title">
               Your sessions,
               <br />
               <span className="text-[var(--text-muted)]">on-chain.</span>
@@ -105,7 +105,7 @@ export default function DashboardPage() {
 
           {!ready ? null : !authenticated ? (
             <div
-              className={`rounded-3xl p-16 text-center border ${glassCard}`}
+              className={`rounded-[8px] p-16 text-center border ${glassCard}`}
               style={glassStyle}
             >
               <Wallet className="w-12 h-12 mx-auto mb-5 text-[var(--text-muted)]" />
@@ -122,7 +122,7 @@ export default function DashboardPage() {
             </div>
           ) : error ? (
             <div
-              className={`rounded-3xl p-16 text-center border ${glassCard}`}
+              className={`rounded-[8px] p-16 text-center border ${glassCard}`}
               style={glassStyle}
             >
               <p className="text-base text-[var(--text-secondary)]">
@@ -158,7 +158,7 @@ export default function DashboardPage() {
               {/* Creator skills */}
               {data.creator.skillCount > 0 && (
                 <section
-                  className={`rounded-3xl p-8 border transition-colors duration-700 ${glassCard}`}
+                  className={`rounded-[8px] p-8 border transition-colors duration-700 ${glassCard}`}
                   style={glassStyle}
                 >
                   <div className="flex items-center justify-between mb-6">
@@ -178,7 +178,7 @@ export default function DashboardPage() {
                       <Link
                         key={skill.id}
                         href={`/skill/${skill.id}`}
-                        className="flex items-center justify-between p-4 rounded-2xl border transition-all hover:opacity-80 border-[var(--border-light)] bg-[var(--bg-secondary)]"
+                        className="flex items-center justify-between p-4 rounded-[8px] border transition-all hover:opacity-80 border-[var(--border-light)] bg-[var(--bg-secondary)]"
                       >
                         <div className="flex items-baseline gap-3 min-w-0">
                           <span className="font-sans font-semibold text-base truncate text-[var(--text)]">
@@ -202,7 +202,7 @@ export default function DashboardPage() {
               {/* Agents */}
               {data.agent.agents.length > 0 && (
                 <section
-                  className={`rounded-3xl p-8 border transition-colors duration-700 ${glassCard}`}
+                  className={`rounded-[8px] p-8 border transition-colors duration-700 ${glassCard}`}
                   style={glassStyle}
                 >
                   <div className="text-[10px] font-bold uppercase tracking-[0.3em] mb-6 text-[var(--text-muted)]">
@@ -213,7 +213,7 @@ export default function DashboardPage() {
                       <Link
                         key={agent.id}
                         href={`/agent/${agent.id}`}
-                        className="flex items-center justify-between p-4 rounded-2xl border transition-all hover:opacity-80 border-[var(--border-light)] bg-[var(--bg-secondary)]"
+                        className="flex items-center justify-between p-4 rounded-[8px] border transition-all hover:opacity-80 border-[var(--border-light)] bg-[var(--bg-secondary)]"
                       >
                         <span className="font-sans font-semibold text-base text-[var(--text)]">
                           {agent.name}
@@ -229,7 +229,7 @@ export default function DashboardPage() {
 
               {/* Sessions */}
               <section
-                className={`rounded-3xl p-8 border transition-colors duration-700 ${glassCard}`}
+                className={`rounded-[8px] p-8 border transition-colors duration-700 ${glassCard}`}
                 style={glassStyle}
               >
                 <div className="text-[10px] font-bold uppercase tracking-[0.3em] mb-6 text-[var(--text-muted)]">
@@ -264,7 +264,7 @@ function StatCard({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="rounded-2xl p-5 border transition-colors duration-700 border-[var(--border)] bg-[var(--card-bg)]"
+      className="rounded-[8px] p-5 border transition-colors duration-700 border-[var(--border)] bg-[var(--card-bg)]"
       style={{
         backdropFilter: 'blur(40px) saturate(180%)',
         WebkitBackdropFilter: 'blur(40px) saturate(180%)',

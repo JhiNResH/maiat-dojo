@@ -75,28 +75,26 @@ export default function LeaderboardPage() {
       <BackgroundEffect />
       <Navbar />
 
-      <main className="relative pt-32 pb-20 px-6">
-        <div className="max-w-5xl mx-auto">
+      <main className="dojo-page-shell">
+        <div>
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] mb-10 transition-opacity hover:opacity-70 text-[var(--text-muted)]"
+            className="dojo-back-link"
           >
             <ArrowLeft className="w-3 h-3" />
             Back to marketplace
           </Link>
 
           {/* Header */}
-          <header className="mb-12">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[var(--border)] bg-[var(--card-bg)] mb-5">
+          <header className="dojo-page-header">
+            <div className="dojo-page-kicker">
               <Trophy className="w-3 h-3" />
-              <span className="text-[9px] font-bold uppercase tracking-[0.2em]">
-                Leaderboard
-              </span>
+              <span>Leaderboard</span>
             </div>
-            <h1 className="font-sans font-semibold text-4xl md:text-6xl tracking-[-0.03em] leading-[0.95] mb-5 text-[var(--text)]">
+            <h1 className="dojo-page-title">
               Real ones rise.
             </h1>
-            <p className="text-base max-w-xl text-[var(--text-muted)]">
+            <p className="dojo-page-subtitle">
               Sorted by on-chain data. No paid rankings, no promoted slots, no recency tricks.
             </p>
           </header>
@@ -136,7 +134,7 @@ export default function LeaderboardPage() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
-            className={`rounded-3xl p-2 border overflow-hidden ${glassCard}`}
+            className={`rounded-[8px] p-2 border overflow-hidden ${glassCard}`}
             style={glassStyle}
           >
             {loading ? (

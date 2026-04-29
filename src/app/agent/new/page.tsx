@@ -44,7 +44,7 @@ export default function NewAgentPage() {
   } as const;
 
   const inputBase =
-    'w-full bg-transparent border rounded-2xl px-4 py-3 font-sans text-sm focus:outline-none transition-colors placeholder:opacity-30 border-[var(--border)] text-[var(--text)] focus:border-[var(--text-secondary)] placeholder:text-[var(--text)]';
+    'w-full bg-transparent border rounded-[8px] px-4 py-3 font-sans text-sm focus:outline-none transition-colors placeholder:opacity-30 border-[var(--border)] text-[var(--text)] focus:border-[var(--text-secondary)] placeholder:text-[var(--text)]';
 
   const labelClass =
     'block text-[10px] font-bold uppercase tracking-[0.2em] mb-2 text-[var(--text-muted)]';
@@ -128,13 +128,13 @@ export default function NewAgentPage() {
       <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors duration-700">
         <BackgroundEffect />
         <Navbar />
-        <main className="relative pt-32 pb-20 px-6">
-          <div className="max-w-xl mx-auto text-center">
+        <main className="dojo-page-shell dojo-page-shell-narrow">
+          <div className="text-center">
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
-              className={`rounded-3xl p-12 border ${glassCard}`}
+              className={`rounded-[8px] p-12 border ${glassCard}`}
               style={glassStyle}
             >
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border mb-6 border-[var(--border)] bg-[var(--card-bg)]">
@@ -170,11 +170,11 @@ export default function NewAgentPage() {
       <BackgroundEffect />
       <Navbar />
 
-      <main className="relative pt-32 pb-20 px-6">
-        <div className="max-w-3xl mx-auto">
+      <main className="dojo-page-shell dojo-page-shell-narrow">
+        <div>
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] mb-10 transition-opacity hover:opacity-70 text-[var(--text-muted)]"
+            className="dojo-back-link"
           >
             <ArrowLeft className="w-3 h-3" />
             Back to marketplace
@@ -205,7 +205,7 @@ export default function NewAgentPage() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45 }}
-              className={`rounded-3xl p-8 border ${glassCard}`}
+              className={`rounded-[8px] p-8 border ${glassCard}`}
               style={glassStyle}
             >
               <div className={labelClass}>01 — Identity</div>
@@ -255,7 +255,7 @@ export default function NewAgentPage() {
                   </button>
                   {showEmojiPicker && (
                     <div
-                      className={`absolute top-full left-0 right-0 mt-2 rounded-2xl border p-3 grid grid-cols-8 gap-1 z-20 ${glassCard}`}
+                      className={`absolute top-full left-0 right-0 mt-2 rounded-[8px] border p-3 grid grid-cols-8 gap-1 z-20 ${glassCard}`}
                       style={glassStyle}
                     >
                       {EMOJI_OPTIONS.map((emoji) => (
@@ -286,7 +286,7 @@ export default function NewAgentPage() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45, delay: 0.05 }}
-              className={`rounded-3xl p-8 border ${glassCard}`}
+              className={`rounded-[8px] p-8 border ${glassCard}`}
               style={glassStyle}
             >
               <div className={labelClass}>02 — Equip skills</div>
@@ -308,7 +308,7 @@ export default function NewAgentPage() {
                         key={skill.id}
                         type="button"
                         onClick={() => toggleSkill(skill.id)}
-                        className={`rounded-2xl p-4 border text-left transition-colors ${
+                        className={`rounded-[8px] p-4 border text-left transition-colors ${
                           selected
                             ? 'border-[var(--text)] bg-[var(--bg-secondary)]'
                             : 'border-[var(--border)] hover:border-[var(--text-secondary)]'
@@ -342,7 +342,7 @@ export default function NewAgentPage() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45, delay: 0.1 }}
-              className={`rounded-3xl p-8 border ${glassCard}`}
+              className={`rounded-[8px] p-8 border ${glassCard}`}
               style={glassStyle}
             >
               <div className={labelClass}>03 — Confirm & launch</div>
@@ -351,7 +351,7 @@ export default function NewAgentPage() {
               </h2>
 
               {error && (
-                <div className="mb-6 p-4 rounded-2xl border text-xs font-mono border-[var(--error)]/20 bg-[var(--error)]/5 text-[var(--error)]">
+                <div className="mb-6 p-4 rounded-[8px] border text-xs font-mono border-[var(--error)]/20 bg-[var(--error)]/5 text-[var(--error)]">
                   {error}
                 </div>
               )}

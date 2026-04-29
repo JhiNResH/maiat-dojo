@@ -98,11 +98,11 @@ export default function DeckPage() {
       <BackgroundEffect />
       <Navbar />
 
-      <main className="relative pt-32 pb-20 px-6">
-        <div className="max-w-6xl mx-auto">
+      <main className="dojo-page-shell">
+        <div>
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] mb-10 transition-opacity hover:opacity-70 text-[var(--text-muted)]"
+            className="dojo-back-link"
           >
             <ArrowLeft className="w-3 h-3" />
             Back to marketplace
@@ -113,10 +113,10 @@ export default function DeckPage() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4 }}
-              className={`rounded-3xl p-12 border text-center max-w-xl mx-auto ${glassCard}`}
+              className={`rounded-[8px] p-12 border text-center max-w-xl mx-auto ${glassCard}`}
               style={glassStyle}
             >
-              <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-6 border border-[var(--border)] bg-[var(--card-bg)]">
+              <div className="inline-flex items-center justify-center w-14 h-14 rounded-[8px] mb-6 border border-[var(--border)] bg-[var(--card-bg)]">
                 <Layers className="w-5 h-5" />
               </div>
               <h1 className="font-sans font-semibold text-4xl md:text-5xl tracking-[-0.03em] leading-[0.95] mb-4 text-[var(--text)]">
@@ -175,7 +175,7 @@ export default function DeckPage() {
 
               {error && (
                 <div
-                  className={`rounded-3xl p-8 border text-center ${glassCard}`}
+                  className={`rounded-[8px] p-8 border text-center ${glassCard}`}
                   style={glassStyle}
                 >
                   <p className="font-mono text-xs text-[var(--error)]">{error}</p>
@@ -187,10 +187,10 @@ export default function DeckPage() {
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4 }}
-                  className={`rounded-3xl p-16 border text-center max-w-xl mx-auto ${glassCard}`}
+                  className={`rounded-[8px] p-16 border text-center max-w-xl mx-auto ${glassCard}`}
                   style={glassStyle}
                 >
-                  <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-6 border border-[var(--border)] bg-[var(--card-bg)]">
+                  <div className="inline-flex items-center justify-center w-14 h-14 rounded-[8px] mb-6 border border-[var(--border)] bg-[var(--card-bg)]">
                     <Layers className="w-5 h-5" />
                   </div>
                   <h2 className="font-sans font-semibold text-2xl mb-3 text-[var(--text)]">
@@ -237,7 +237,7 @@ export default function DeckPage() {
                           >
                             <Link
                               href={`/skill/${skill.id}`}
-                              className="block rounded-2xl p-4 border transition-all hover:opacity-80 border-[var(--border-light)] bg-[var(--bg-secondary)]"
+                              className="block rounded-[8px] p-4 border transition-all hover:opacity-80 border-[var(--border-light)] bg-[var(--bg-secondary)]"
                             >
                               <div className="text-2xl mb-3">{skill.icon}</div>
                               <div className="font-sans font-semibold text-xs truncate text-[var(--text)]">

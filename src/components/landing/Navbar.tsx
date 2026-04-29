@@ -119,7 +119,7 @@ export function Navbar() {
       initial={{ y: -100, x: '-50%', opacity: 0 }}
       animate={{ y: navVisible ? 0 : -100, x: '-50%', opacity: navVisible ? 1 : 0 }}
       transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-      className={`fixed top-6 left-1/2 z-50 w-[95%] max-w-5xl rounded-full px-6 py-3 flex items-center justify-between border transition-all duration-500 ${
+      className={`fixed top-4 left-1/2 z-50 w-[calc(100%-2rem)] max-w-6xl rounded-[8px] px-5 py-2.5 flex items-center justify-between border transition-all duration-500 ${
         isDark
           ? 'bg-white/5 border-white/[0.08] shadow-[inset_0_0_30px_rgba(255,255,255,0.02),0_30px_100px_rgba(0,0,0,0.3)]'
           : 'bg-white/70 border-black/[0.08] shadow-[0_20px_50px_rgba(0,0,0,0.05)]'
@@ -131,7 +131,7 @@ export function Navbar() {
     >
       <Link href="/" className="flex items-center gap-2.5 group cursor-pointer shrink-0 no-underline">
         <div
-          className={`w-7 h-7 rounded-full flex items-center justify-center font-mono text-[9px] font-bold ${
+          className={`w-7 h-7 rounded-[6px] flex items-center justify-center font-mono text-[9px] font-bold ${
             isDark ? 'bg-white text-black' : 'bg-black text-white'
           }`}
         >
@@ -158,7 +158,7 @@ export function Navbar() {
 
       <div className="flex items-center gap-3">
         <div
-          className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border ${
+          className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] text-[10px] font-bold uppercase tracking-widest border ${
             isDark ? 'border-white/10 text-gray-400' : 'border-black/[0.08] text-gray-500'
           }`}
         >
@@ -168,7 +168,7 @@ export function Navbar() {
         <button
           onClick={toggleDark}
           aria-label="Toggle theme"
-          className={`w-9 h-9 rounded-full flex items-center justify-center border transition-all active:scale-90 ${
+          className={`w-8 h-8 rounded-[6px] flex items-center justify-center border transition-all active:scale-90 ${
             isDark
               ? 'bg-white/10 border-white/10 text-yellow-400'
               : 'bg-black/5 border-black/5 text-gray-500'
