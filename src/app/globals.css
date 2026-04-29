@@ -328,7 +328,7 @@ body {
 .dojo-page-shell {
   position: relative;
   width: 100%;
-  max-width: 72rem;
+  max-width: 80rem;
   margin: 0 auto;
   padding: 8rem 1.5rem 5rem;
 }
@@ -339,7 +339,12 @@ body {
   }
 }
 .dojo-page-shell-narrow {
+  max-width: 80rem;
+}
+.dojo-page-shell-narrow > div {
   max-width: 56rem;
+  margin-left: auto;
+  margin-right: auto;
 }
 .dojo-page-shell-wide {
   max-width: 80rem;

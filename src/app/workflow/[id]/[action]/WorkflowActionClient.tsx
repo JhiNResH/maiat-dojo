@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, GitFork, Play, Rocket, ShieldCheck } from "lucide-react";
 import { usePrivy } from "@privy-io/react-auth";
+import { Navbar } from "@/components/landing/Navbar";
 
 type WorkflowAction = "run" | "fork" | "deploy";
 
@@ -179,34 +180,6 @@ function slugify(value: string) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "")
     .slice(0, 64);
-}
-
-function Nav() {
-  return (
-    <div className="fixed left-0 right-0 top-0 z-50 flex justify-center px-6 pt-4">
-      <nav className="glass-nav flex w-full max-w-4xl items-center justify-between px-5 py-2.5">
-        <Link href="/" className="flex items-center gap-2.5">
-          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--text)]">
-            <span className="text-[11px] font-black text-[var(--bg)]">D</span>
-          </span>
-          <span className="text-[14px] font-bold tracking-tight text-[var(--text)]">
-            The Dojo
-          </span>
-        </Link>
-        <div className="hidden items-center gap-6 md:flex">
-          <Link href="/" className="text-[11px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] hover:text-[var(--text)]">
-            Marketplace
-          </Link>
-          <Link href="/leaderboard" className="text-[11px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] hover:text-[var(--text)]">
-            Leaderboard
-          </Link>
-          <a href="#receipt" className="text-[11px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] hover:text-[var(--text)]">
-            Receipt
-          </a>
-        </div>
-      </nav>
-    </div>
-  );
 }
 
 function FieldInput({
@@ -672,7 +645,7 @@ export function WorkflowActionClient({
   return (
     <div className="flex min-h-screen flex-col bg-[var(--bg)] text-[var(--text)]">
       <div className="atmosphere" />
-      <Nav />
+      <Navbar />
       <main className="dojo-page-shell dojo-page-shell-wide">
         <Link
           href="/"
