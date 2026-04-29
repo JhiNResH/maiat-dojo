@@ -71,6 +71,24 @@ Current listed skills are one-step workflows. Workflow metadata, versions, fork 
 
 Two workflow modes: **Active** (pay-per-run via gateway sessions) and **Passive** (buy-to-download / forkable package).
 
+### Creator CLI
+
+Creators can publish an executable workflow endpoint from a manifest:
+
+```bash
+npm run dojo -- init
+DOJO_API_KEY=dojo_sk_... npm run dojo -- test --file dojo.workflow.yaml
+DOJO_API_KEY=dojo_sk_... npm run dojo -- publish --file dojo.workflow.yaml
+```
+
+`publish` runs `/api/skills/dry-run` first, then creates the active `Skill`, `Workflow`, and first `WorkflowVersion` through `/api/skills/create`. Use `examples/dojo.workflow.yaml` as the starter manifest. Production creator endpoints must be public HTTPS URLs.
+
+`dojo.workflow.yaml` is the canonical format. `SKILL.md` files with YAML frontmatter are also supported for compatibility:
+
+```bash
+DOJO_API_KEY=dojo_sk_... npm run dojo -- publish --file SKILL.md
+```
+
 ## Stack
 
 | Layer | Tech |
