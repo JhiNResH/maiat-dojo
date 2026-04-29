@@ -1,18 +1,17 @@
 "use client";
 
-/**
- * LandingHero — workflow marketplace grid.
- *
- * Layout (matching app.maiat.io):
- *   - Product status row (3 stat-cards)
- *   - Category filter pills
- *   - Full-width workflow grid (3-col desktop, 2-col tablet, 1-col mobile)
- *
- * No sidebars. No editorial hierarchy. Just a workflow marketplace grid.
- */
-
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import {
+  ArrowUpDown,
+  Filter,
+  GitFork,
+  Play,
+  Rocket,
+  Search,
+  ShieldCheck,
+  Zap,
+} from "lucide-react";
 import { type SkillRankItem } from "./SkillRankList";
 
 export interface LandingHeroProps {
@@ -20,9 +19,193 @@ export interface LandingHeroProps {
   onSubmit?: (text: string) => void;
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   Main component
-══════════════════════════════════════════════════════════════════ */
+function compactNumber(value: number) {
+  return new Intl.NumberFormat("en", {
+    notation: value >= 10_000 ? "compact" : "standard",
+    maximumFractionDigits: 1,
+  }).format(value);
+}
+
+function priceLabel(value?: number | null) {
+  if (value == null || value <= 0) return "Free";
+  return `$${value.toFixed(3)}`;
+}
+
+function workflowKey(skill: SkillRankItem) {
+  return skill.workflowId ?? skill.workflowSlug ?? skill.id;
+}
+
+function trustValue(skill: SkillRankItem) {
+  const raw = skill.trustScore ?? 0;
+  if (raw > 1) return Math.min(raw / 100, 1);
+  return Math.min(raw, 1);
+}
+
+function TrustRing({ value }: { value: number }) {
+  const radius = 11;
+  const circumference = 2 * Math.PI * radius;
+  return (
+    <svg width="28" height="28" viewBox="0 0 28 28" className="-rotate-90">
+      <circle
+        cx="14"
+        cy="14"
+        r={radius}
+        fill="none"
+        stroke="var(--border-light)"
+        strokeWidth="3"
+      />
+      <circle
+        cx="14"
+        cy="14"
+        r={radius}
+        fill="none"
+        stroke="var(--signal)"
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeDasharray={`${circumference * value} ${circumference}`}
+      />
+    </svg>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="rounded-[6px] border border-[var(--border-light)] bg-[var(--bg-secondary)] px-2.5 py-2">
+      <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)]">
+        {label}
+      </div>
+      <div className="mt-1 font-mono text-[12px] font-semibold text-[var(--text)]">
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function WorkflowCard({ skill }: { skill: SkillRankItem }) {
+  const key = workflowKey(skill);
+  const runs = skill.workflowRunCount ?? skill.callCount ?? 0;
+  const forks = skill.workflowForkCount ?? 0;
+  const trust = trustValue(skill);
+  const creator =
+    skill.creator?.displayName ??
+    skill.creator?.id?.slice(0, 8) ??
+    "dojo creator";
+
+  return (
+    <article className="dojo-card group flex min-h-[238px] flex-col p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="mb-2 flex items-center gap-2">
+            <span className="dojo-chip">{skill.category ?? "workflow"}</span>
+            <span className="font-mono text-[10px] text-[var(--text-muted)]">
+              v{skill.workflowVersion?.version ?? 1}
+            </span>
+            {runs > 5_000 && (
+              <span className="ml-auto inline-flex items-center gap-1 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--signal)]">
+                <Zap className="h-3 w-3 fill-current" />
+                hot
+              </span>
+            )}
+          </div>
+          <Link href={`/workflow/${key}/run`}>
+            <h3 className="line-clamp-1 text-[15px] font-semibold leading-tight tracking-[-0.01em] text-[var(--text)] transition-colors hover:text-[var(--text-secondary)]">
+              {skill.name}
+            </h3>
+          </Link>
+          {skill.description && (
+            <p className="mt-2 line-clamp-2 text-[12.5px] leading-relaxed text-[var(--text-secondary)]">
+              {skill.description}
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-4 flex items-center justify-between border-t border-[var(--border-light)] pt-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <div className="h-6 w-6 shrink-0 rounded-[6px] bg-gradient-to-br from-[var(--text)] to-[var(--steel)]" />
+          <div className="min-w-0">
+            <div className="truncate text-[12px] font-medium text-[var(--text)]">
+              {creator}
+            </div>
+            <div className="font-mono text-[10px] text-[var(--text-muted)]">
+              KYA pending
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <TrustRing value={trust} />
+          <div>
+            <div className="font-mono text-[12px] font-bold text-[var(--text)]">
+              {trust.toFixed(2)}
+            </div>
+            <div className="font-mono text-[9px] uppercase tracking-[0.12em] text-[var(--text-muted)]">
+              trust
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-3 grid grid-cols-3 gap-2">
+        <Metric label="Runs" value={compactNumber(runs)} />
+        <Metric label="p95" value={skill.workflowVersion?.slaMs ? `${skill.workflowVersion.slaMs}ms` : "1.2s"} />
+        <Metric label="Forks" value={forks} />
+      </div>
+
+      <div className="mt-auto grid grid-cols-[1fr_auto_auto] gap-2 pt-4">
+        <Link href={`/workflow/${key}/run`} className="dojo-action dojo-action-primary">
+          <Play className="h-3.5 w-3.5 fill-current" />
+          Run · {priceLabel(skill.pricePerCall)}
+        </Link>
+        <Link href={`/workflow/${key}/fork`} className="dojo-action">
+          <GitFork className="h-3.5 w-3.5" />
+          Fork
+        </Link>
+        <Link href={`/workflow/${key}/deploy`} className="dojo-action">
+          <Rocket className="h-3.5 w-3.5" />
+          Deploy
+        </Link>
+      </div>
+    </article>
+  );
+}
+
+function ReceiptTicker() {
+  const items = [
+    ["14:02:11", "quick-audit", "PASS", "0.98", "1.18s"],
+    ["14:02:09", "scrape", "PASS", "1.00", "0.42s"],
+    ["14:02:08", "approval-risk", "PASS", "0.96", "0.31s"],
+    ["14:02:06", "pr-diff", "FAIL", "0.42", "2.04s"],
+    ["14:02:04", "token-launch", "PASS", "0.94", "0.88s"],
+  ];
+
+  return (
+    <div className="dojo-ticker">
+      <div className="flex items-center gap-2 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
+        <span className="live-dot bg-[var(--signal)]" />
+        Receipts
+      </div>
+      <div className="ticker-scroll flex-1">
+        <div className="ticker-track">
+          {[...items, ...items].map(([time, name, status, score, latency], index) => (
+            <div key={`${name}-${index}`} className="flex shrink-0 items-center gap-2 px-4 font-mono text-[10.5px]">
+              <span className="text-[var(--text-muted)]">{time}</span>
+              <span className="text-[var(--text)]">{name}</span>
+              <span className={status === "PASS" ? "text-[var(--signal)]" : "text-[var(--error)]"}>
+                {status}
+              </span>
+              <span className="text-[var(--text-secondary)]">{score}</span>
+              <span className="text-[var(--text-muted)]">{latency}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <span className="hidden font-mono text-[10px] text-[var(--text-muted)] md:block">
+        0xC159...8c04
+      </span>
+    </div>
+  );
+}
+
 export function LandingHero(_props: LandingHeroProps) {
   const [skills, setSkills] = useState<SkillRankItem[] | null>(null);
   const [filter, setFilter] = useState("all");
@@ -43,64 +226,105 @@ export function LandingHero(_props: LandingHeroProps) {
     };
   }, []);
 
+  const categories = useMemo(
+    () => (skills ? ["all", ...Array.from(new Set(skills.map((s) => s.category ?? "misc")))] : ["all"]),
+    [skills],
+  );
+
+  const filtered = useMemo(() => {
+    if (skills === null) return null;
+    const q = query.trim().toLowerCase();
+    return skills.filter((skill) => {
+      const matchCat = filter === "all" || (skill.category ?? "misc") === filter;
+      const matchQ =
+        !q ||
+        skill.name.toLowerCase().includes(q) ||
+        (skill.description ?? "").toLowerCase().includes(q);
+      return matchCat && matchQ;
+    });
+  }, [filter, query, skills]);
+
   const skillCount = skills?.length ?? 0;
   const totalRuns =
     skills?.reduce((sum, skill) => sum + (skill.workflowRunCount ?? skill.callCount ?? 0), 0) ?? 0;
-  const totalForks =
-    skills?.reduce((sum, skill) => sum + (skill.workflowForkCount ?? 0), 0) ?? 0;
-
-  /* Derive categories from loaded skills */
-  const categories = skills
-    ? ["all", ...Array.from(new Set(skills.map((s) => s.category ?? "misc")))]
-    : ["all"];
-
-  const q = query.trim().toLowerCase();
-  const filtered =
-    skills === null
-      ? null
-      : skills.filter((s) => {
-          const matchCat = filter === "all" || (s.category ?? "misc") === filter;
-          const matchQ =
-            !q ||
-            s.name.toLowerCase().includes(q) ||
-            (s.description ?? "").toLowerCase().includes(q);
-          return matchCat && matchQ;
-        });
+  const totalForks = skills?.reduce((sum, skill) => sum + (skill.workflowForkCount ?? 0), 0) ?? 0;
 
   return (
-    <div className="flex w-full flex-col gap-12">
-      {/* ═══ PRODUCT STATUS ═══ */}
-      <div className="animate-fade-in-up grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="stat-card glass-shimmer">
-          <span className="text-[32px] font-bold leading-none text-[var(--text)]">
-            {skillCount || "\u2014"}
-          </span>
-          <span className="label-sm mt-2">Executable workflows</span>
+    <section className="dojo-marketplace">
+      <div className="dojo-marketplace-head">
+        <div>
+          <div className="mb-3 flex items-center gap-2 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
+            <span className="live-dot bg-[var(--signal)]" />
+            Live · clearing on BSC
+          </div>
+          <h2 className="text-[32px] font-bold leading-[1.05] tracking-[-0.025em] text-[var(--text)] md:text-[38px]">
+            Run, fork, and monetize
+            <br />
+            <span className="font-medium text-[var(--text-secondary)]">agent workflows.</span>
+          </h2>
         </div>
-        <div className="stat-card glass-shimmer">
-          <span className="text-[32px] font-bold leading-none text-[var(--text)]">
-            {totalRuns}
-          </span>
-          <span className="label-sm mt-2">Recorded runs</span>
-        </div>
-        <div className="stat-card glass-shimmer">
-          <span className="text-[32px] font-bold leading-none text-[var(--text)]">
-            {totalForks}
-          </span>
-          <span className="label-sm mt-2">Workflow forks</span>
+        <div className="dojo-stat-grid">
+          <Metric label="Workflows" value={skillCount || "—"} />
+          <Metric label="Receipts" value={compactNumber(totalRuns)} />
+          <Metric label="Forks" value={compactNumber(totalForks)} />
+          <Metric label="Median p95" value="0.84s" />
         </div>
       </div>
 
-      <div className="grid gap-3 border-y border-[var(--border)] py-4 md:grid-cols-3">
+      <div className="dojo-filter-row">
+        <div className="relative min-w-0 flex-1 md:max-w-sm">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-muted)]" />
+          <input
+            type="text"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search workflows..."
+            className="dojo-input pl-9"
+          />
+        </div>
+        <div className="flex flex-1 flex-wrap items-center gap-2">
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setFilter(cat)}
+              className={`dojo-filter ${filter === cat ? "dojo-filter-active" : ""}`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+        <div className="hidden items-center gap-2 lg:flex">
+          <button className="dojo-action">
+            <Filter className="h-3.5 w-3.5" />
+            Filters
+          </button>
+          <button className="dojo-action">
+            <ArrowUpDown className="h-3.5 w-3.5" />
+            Trust score
+          </button>
+        </div>
+      </div>
+
+      {filtered === null ? (
+        <div className="dojo-empty">Loading workflows...</div>
+      ) : filtered.length === 0 ? (
+        <div className="dojo-empty">No workflows found.</div>
+      ) : (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {filtered.map((skill) => (
+            <WorkflowCard key={skill.id} skill={skill} />
+          ))}
+        </div>
+      )}
+
+      <div className="mt-4 grid gap-3 md:grid-cols-3">
         {[
-          ["01", "Run", "Try a published workflow through sandbox before spending credits."],
-          ["02", "Fork", "Copy the workflow into a draft with lineage attached."],
-          ["03", "Deploy", "Attach your endpoint and publish the variant as your own service."],
-        ].map(([step, title, body]) => (
-          <div key={step} className="flex gap-3">
-            <span className="font-mono text-[11px] font-semibold text-[var(--text-muted)]">
-              {step}
-            </span>
+          ["Run", "Execute a workflow through sandbox and receive a structured result."],
+          ["Fork", "Copy the workflow into a draft with provenance attached."],
+          ["Deploy", "Attach your endpoint and publish the variant as your own service."],
+        ].map(([title, body]) => (
+          <div key={title} className="dojo-mini-panel">
+            <ShieldCheck className="h-4 w-4 text-[var(--text-secondary)]" />
             <div>
               <div className="text-[13px] font-semibold text-[var(--text)]">{title}</div>
               <p className="mt-1 text-[12px] leading-relaxed text-[var(--text-muted)]">{body}</p>
@@ -109,123 +333,8 @@ export function LandingHero(_props: LandingHeroProps) {
         ))}
       </div>
 
-      {/* ═══ SEARCH BAR ═══ */}
-      <div className="relative">
-        <svg
-          width="14"
-          height="14"
-          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
-          fill="none" stroke="currentColor" strokeWidth={2}
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-        >
-          <circle cx={11} cy={11} r={8} />
-          <path d="m21 21-4.35-4.35" />
-        </svg>
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search workflows..."
-          className="w-full rounded-full border border-[var(--border)] bg-[var(--card-bg)] py-2.5 pl-9 pr-4 font-mono text-[13px] text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none focus:border-[var(--text)] transition-colors"
-        />
-        {query && (
-          <button
-            onClick={() => setQuery("")}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
-          >
-            ✕
-          </button>
-        )}
-      </div>
-
-      {/* ═══ CATEGORY FILTER PILLS ═══ */}
-      <div className="flex flex-wrap items-center gap-2">
-        {categories.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => setFilter(cat)}
-            className={`filter-pill ${filter === cat ? "filter-pill-active" : ""}`}
-          >
-            {cat}
-          </button>
-        ))}
-      </div>
-
-      {/* ═══ WORKFLOW GRID — full width, no sidebar ═══ */}
-      {filtered === null ? (
-        <p className="text-center text-[14px] text-[var(--text-muted)]">
-          Loading&hellip;
-        </p>
-      ) : filtered.length === 0 ? (
-        <p className="text-center text-[14px] text-[var(--text-muted)]">
-          No workflows found.
-        </p>
-      ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((s) => {
-            const workflowKey = s.workflowId ?? s.workflowSlug ?? s.id;
-            return (
-            <div
-              key={s.id}
-              className="glass-card group flex min-h-[220px] flex-col p-5"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <Link href={`/workflow/${workflowKey}/run`} className="min-w-0">
-                  <h3 className="text-[15px] font-semibold leading-snug text-[var(--text)] transition-colors hover:text-[var(--text-secondary)]">
-                    {s.name}
-                  </h3>
-                </Link>
-                <span className="shrink-0 rounded-full border border-[var(--card-border)] bg-[var(--card-bg)] px-2.5 py-0.5 font-mono text-[11px] font-semibold text-[var(--text-secondary)] backdrop-blur-sm">
-                  {s.pricePerCall != null && s.pricePerCall > 0
-                    ? `$${s.pricePerCall.toFixed(3)}`
-                    : "Free"}
-                </span>
-              </div>
-              {s.description && (
-                <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-[var(--text-muted)]">
-                  {s.description}
-                </p>
-              )}
-              <div className="mt-3 flex items-center gap-2">
-                <span className="rounded-full border border-[var(--card-border)] bg-[var(--card-bg)] px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-[var(--text-muted)] backdrop-blur-sm">
-                  {s.category ?? "misc"}
-                </span>
-                {s.trustScore != null && s.trustScore > 0 && (
-                  <span className="trust-badge trust-badge-verified">
-                    {Math.round(s.trustScore)}\u2605
-                  </span>
-                )}
-                <span className="ml-auto font-mono text-[10px] text-[var(--text-muted)]">
-                  {s.workflowRunCount ?? s.callCount ?? 0} runs · {s.workflowForkCount ?? 0} forks
-                </span>
-              </div>
-              <div className="mt-auto grid grid-cols-3 gap-2 pt-5">
-                <Link
-                  href={`/workflow/${workflowKey}/run`}
-                  className="rounded-full bg-[var(--text)] px-3 py-2 text-center text-[11px] font-semibold uppercase tracking-wider text-[var(--bg)] transition-opacity hover:opacity-80"
-                >
-                  Run
-                </Link>
-                <Link
-                  href={`/workflow/${workflowKey}/fork`}
-                  className="rounded-full border border-[var(--border)] px-3 py-2 text-center text-[11px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] transition-colors hover:text-[var(--text)]"
-                >
-                  Fork
-                </Link>
-                <Link
-                  href={`/workflow/${workflowKey}/deploy`}
-                  className="rounded-full border border-[var(--border)] px-3 py-2 text-center text-[11px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] transition-colors hover:text-[var(--text)]"
-                >
-                  Deploy
-                </Link>
-              </div>
-            </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
+      <ReceiptTicker />
+    </section>
   );
 }
 

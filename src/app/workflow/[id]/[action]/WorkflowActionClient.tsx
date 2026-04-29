@@ -223,7 +223,7 @@ function FieldInput({
   const label = prop.title ?? name;
   const current = value ?? "";
   const base =
-    "w-full rounded-2xl border border-[var(--border)] bg-[var(--card-bg)] px-4 py-3 font-mono text-[13px] text-[var(--text)] outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--text)]";
+    "dojo-input font-mono";
 
   return (
     <label className="block">
@@ -310,8 +310,8 @@ function RunPanel({ workflow }: { workflow: WorkflowActionData }) {
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
-      <section className="glass-card p-6">
+    <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
+      <section className="dojo-card p-5">
         <div className="mb-5 flex items-center justify-between">
           <span className="label-sm">Input</span>
           <span className="font-mono text-[11px] text-[var(--text-muted)]">
@@ -337,14 +337,14 @@ function RunPanel({ workflow }: { workflow: WorkflowActionData }) {
           <button
             onClick={runWorkflow}
             disabled={pending || missingRequired}
-            className="w-full rounded-full bg-[var(--text)] px-5 py-3 text-[12px] font-semibold uppercase tracking-widest text-[var(--bg)] transition-opacity hover:opacity-80 disabled:opacity-40"
+            className="dojo-action dojo-action-primary w-full disabled:opacity-40"
           >
             {pending ? "Running..." : "Run sandbox"}
           </button>
         </div>
       </section>
 
-      <section id="receipt" className="glass-card p-6">
+      <section id="receipt" className="dojo-card p-5">
         <div className="mb-5 flex items-center justify-between">
           <span className="label-sm">Sandbox receipt preview</span>
           {result && (
@@ -353,7 +353,7 @@ function RunPanel({ workflow }: { workflow: WorkflowActionData }) {
             </span>
           )}
         </div>
-        <pre className="min-h-[360px] overflow-auto rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4 font-mono text-[12px] leading-relaxed text-[var(--text-secondary)]">
+        <pre className="min-h-[360px] overflow-auto rounded-[8px] border border-[var(--border)] bg-[var(--bg-secondary)] p-4 font-mono text-[12px] leading-relaxed text-[var(--text-secondary)]">
           {formatJson(
             result?.ok
               ? result.data
@@ -410,8 +410,8 @@ function ForkPanel({ workflow }: { workflow: WorkflowActionData }) {
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
-      <section className="glass-card p-6">
+    <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
+      <section className="dojo-card p-5">
         <span className="label-sm">Fork draft</span>
         <div className="mt-5 space-y-4">
           <label className="block">
@@ -419,7 +419,7 @@ function ForkPanel({ workflow }: { workflow: WorkflowActionData }) {
             <input
               value={name}
               onChange={(event) => setName(event.target.value)}
-              className="w-full rounded-2xl border border-[var(--border)] bg-[var(--card-bg)] px-4 py-3 text-[14px] text-[var(--text)] outline-none focus:border-[var(--text)]"
+              className="dojo-input"
             />
           </label>
           <label className="block">
@@ -428,21 +428,21 @@ function ForkPanel({ workflow }: { workflow: WorkflowActionData }) {
               value={goal}
               onChange={(event) => setGoal(event.target.value)}
               rows={5}
-              className="w-full resize-none rounded-2xl border border-[var(--border)] bg-[var(--card-bg)] px-4 py-3 text-[14px] leading-relaxed text-[var(--text)] outline-none focus:border-[var(--text)]"
+              className="dojo-input resize-none leading-relaxed"
             />
           </label>
           <button
             onClick={createFork}
             disabled={pending || !name.trim()}
-            className="w-full rounded-full bg-[var(--text)] px-5 py-3 text-[12px] font-semibold uppercase tracking-widest text-[var(--bg)] hover:opacity-80 disabled:opacity-40"
+            className="dojo-action dojo-action-primary w-full disabled:opacity-40"
           >
             {pending ? "Creating..." : "Create fork draft"}
           </button>
         </div>
       </section>
-      <section className="glass-card p-6">
+      <section className="dojo-card p-5">
         <span className="label-sm">Provenance</span>
-        <pre className="mt-5 min-h-[330px] overflow-auto rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4 font-mono text-[12px] leading-relaxed text-[var(--text-secondary)]">
+        <pre className="mt-5 min-h-[330px] overflow-auto rounded-[8px] border border-[var(--border)] bg-[var(--bg-secondary)] p-4 font-mono text-[12px] leading-relaxed text-[var(--text-secondary)]">
           {formatJson(
             draft ?? {
               parent: workflow.slug,
@@ -456,7 +456,7 @@ function ForkPanel({ workflow }: { workflow: WorkflowActionData }) {
         {draft?.workflow && (
           <Link
             href={`/workflow/${draft.workflow.id}/deploy`}
-            className="mt-4 inline-flex rounded-full bg-[var(--text)] px-4 py-2 text-[11px] font-semibold uppercase tracking-widest text-[var(--bg)]"
+            className="dojo-action dojo-action-primary mt-4"
           >
             Deploy fork
           </Link>
@@ -568,10 +568,10 @@ function DeployPanel({ workflow }: { workflow: WorkflowActionData }) {
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
-      <section className="glass-card p-6">
+    <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
+      <section className="dojo-card p-5">
         <span className="label-sm">Deploy target</span>
-        <p className="mt-3 rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] px-4 py-3 text-[12px] leading-relaxed text-[var(--text-muted)]">
+        <p className="mt-3 rounded-[8px] border border-[var(--border)] bg-[var(--bg-secondary)] px-4 py-3 text-[12px] leading-relaxed text-[var(--text-muted)]">
           Deploy updates a workflow you own. To customize another creator&apos;s workflow, create a fork draft first,
           then attach your endpoint to that fork.
         </p>
@@ -581,7 +581,7 @@ function DeployPanel({ workflow }: { workflow: WorkflowActionData }) {
             <input
               value={endpoint}
               onChange={(event) => setEndpoint(event.target.value)}
-              className="w-full rounded-2xl border border-[var(--border)] bg-[var(--card-bg)] px-4 py-3 font-mono text-[13px] text-[var(--text)] outline-none focus:border-[var(--text)]"
+              className="dojo-input font-mono"
             />
           </label>
           <label className="block">
@@ -592,7 +592,7 @@ function DeployPanel({ workflow }: { workflow: WorkflowActionData }) {
               step="0.001"
               value={pricePerRun}
               onChange={(event) => setPricePerRun(event.target.value)}
-              className="w-full rounded-2xl border border-[var(--border)] bg-[var(--card-bg)] px-4 py-3 font-mono text-[13px] text-[var(--text)] outline-none focus:border-[var(--text)]"
+              className="dojo-input font-mono"
             />
           </label>
           <label className="block">
@@ -604,7 +604,7 @@ function DeployPanel({ workflow }: { workflow: WorkflowActionData }) {
                 setDryRun(null);
               }}
               rows={6}
-              className="w-full resize-y rounded-2xl border border-[var(--border)] bg-[var(--card-bg)] px-4 py-3 font-mono text-[12px] text-[var(--text)] outline-none focus:border-[var(--text)]"
+              className="dojo-input resize-y font-mono text-[12px]"
             />
           </label>
           <label className="block">
@@ -616,28 +616,28 @@ function DeployPanel({ workflow }: { workflow: WorkflowActionData }) {
                 setDryRun(null);
               }}
               rows={4}
-              className="w-full resize-y rounded-2xl border border-[var(--border)] bg-[var(--card-bg)] px-4 py-3 font-mono text-[12px] text-[var(--text)] outline-none focus:border-[var(--text)]"
+              className="dojo-input resize-y font-mono text-[12px]"
             />
           </label>
           <button
             onClick={runDeployDryRun}
             disabled={pending !== null}
-            className="w-full rounded-full border border-[var(--border)] px-5 py-3 text-[12px] font-semibold uppercase tracking-widest text-[var(--text)] hover:border-[var(--text)] disabled:opacity-40"
+            className="dojo-action w-full disabled:opacity-40"
           >
             {pending === "dry-run" ? "Testing..." : "Run dry-run"}
           </button>
           <button
             onClick={deployWorkflow}
             disabled={pending !== null || dryRun?.ok !== true}
-            className="w-full rounded-full bg-[var(--text)] px-5 py-3 text-[12px] font-semibold uppercase tracking-widest text-[var(--bg)] hover:opacity-80 disabled:opacity-40"
+            className="dojo-action dojo-action-primary w-full disabled:opacity-40"
           >
             {pending === "deploy" ? "Deploying..." : "Deploy workflow"}
           </button>
         </div>
       </section>
-      <section className="glass-card p-6">
+      <section className="dojo-card p-5">
         <span className="label-sm">Gateway state</span>
-        <pre className="mt-5 min-h-[330px] overflow-auto rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4 font-mono text-[12px] leading-relaxed text-[var(--text-secondary)]">
+        <pre className="mt-5 min-h-[330px] overflow-auto rounded-[8px] border border-[var(--border)] bg-[var(--bg-secondary)] p-4 font-mono text-[12px] leading-relaxed text-[var(--text-secondary)]">
           {formatJson(
             plan ?? {
               workflow: workflow.slug,
@@ -649,7 +649,7 @@ function DeployPanel({ workflow }: { workflow: WorkflowActionData }) {
         {plan?.runUrl && (
           <Link
             href={plan.runUrl}
-            className="mt-4 inline-flex rounded-full bg-[var(--text)] px-4 py-2 text-[11px] font-semibold uppercase tracking-widest text-[var(--bg)]"
+            className="dojo-action dojo-action-primary mt-4"
           >
             Open run page
           </Link>
@@ -673,7 +673,7 @@ export function WorkflowActionClient({
     <div className="flex min-h-screen flex-col bg-[var(--bg)] text-[var(--text)]">
       <div className="atmosphere" />
       <Nav />
-      <main className="relative z-10 mx-auto w-full max-w-6xl px-6 pb-16 pt-28">
+      <main className="relative z-10 mx-auto w-full max-w-7xl px-4 pb-16 pt-28 sm:px-6">
         <Link
           href="/"
           className="mb-10 inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-widest text-[var(--text-muted)] transition-colors hover:text-[var(--text)]"
@@ -682,71 +682,76 @@ export function WorkflowActionClient({
           Marketplace
         </Link>
 
-        <section className="mb-10 grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-end">
+        <section className="mb-5 flex flex-col gap-5 border-b border-[var(--border-light)] pb-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-[var(--text)] px-4 py-1.5 text-[var(--bg)]">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-[6px] bg-[var(--text)] px-3 py-1.5 text-[var(--bg)]">
               <Icon className="h-3.5 w-3.5" />
               <span className="font-mono text-[11px] font-semibold uppercase tracking-wider">
                 {copy.eyebrow}
               </span>
             </div>
-            <h1 className="heading-xl text-left">
-              {copy.title}
-              <br />
-              <span className="heading-xl-muted">{workflow.name}</span>
-            </h1>
-            <p className="mt-6 max-w-xl text-[16px] leading-relaxed text-[var(--text-secondary)]">
-              {copy.body}
-            </p>
-          </div>
-
-          <aside className="glass-card p-6">
-            <div className="mb-5 flex items-start justify-between gap-4">
-              <div>
-                <span className="label-sm">{workflow.category}</span>
-                <h2 className="mt-2 text-[20px] font-semibold text-[var(--text)]">
-                  {workflow.name}
-                </h2>
-              </div>
-              <span className="rounded-full border border-[var(--border)] px-3 py-1 font-mono text-[12px] text-[var(--text-secondary)]">
-                ${workflow.pricePerRun.toFixed(3)}
-              </span>
+            <div className="mb-2 flex flex-wrap items-center gap-3 font-mono text-[10.5px] uppercase tracking-[0.12em] text-[var(--text-muted)]">
+              <Link href="/" className="hover:text-[var(--text)]">Workflows</Link>
+              <span>/</span>
+              <span>{workflow.category}</span>
+              <span>/</span>
+              <span className="text-[var(--text)]">{workflow.slug}</span>
             </div>
-            <p className="text-[14px] leading-relaxed text-[var(--text-muted)]">
-              {workflow.description}
+            <h1 className="text-[28px] font-bold leading-tight tracking-[-0.025em] text-[var(--text)] md:text-[34px]">
+              {workflow.name}
+              <span className="ml-3 align-middle font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--signal-deep)]">
+                active
+              </span>
+            </h1>
+            <p className="mt-3 max-w-3xl text-[14px] leading-relaxed text-[var(--text-secondary)]">
+              {workflow.description || copy.body}
             </p>
-            <div className="mt-6 grid grid-cols-3 gap-3 border-t border-[var(--border)] pt-5">
+            <div className="mt-4 flex flex-wrap items-center gap-4 text-[12px]">
               {[
-                ["runs", workflow.runs],
-                ["forks", workflow.forks],
-                ["trust", workflow.trustScore],
+                ["Runs", workflow.runs],
+                ["Trust", workflow.trustScore],
+                ["p95", workflow.version?.slaMs ? `${workflow.version.slaMs}ms` : "1.2s"],
+                ["Forks", workflow.forks],
+                ["Creator", workflow.creatorName],
               ].map(([label, value]) => (
-                <div key={label}>
-                  <div className="font-mono text-[20px] font-semibold text-[var(--text)]">
+                <div key={label} className="flex flex-col gap-1">
+                  <span className="font-mono text-[9.5px] uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                    {label}
+                  </span>
+                  <span className="font-mono text-[12px] font-semibold text-[var(--text)]">
                     {value}
-                  </div>
-                  <div className="label-sm mt-1">{label}</div>
+                  </span>
                 </div>
               ))}
             </div>
+          </div>
+
+          <aside className="dojo-card min-w-[330px] p-3">
+            <div className="grid grid-cols-3 overflow-hidden rounded-[8px] border border-[var(--border)]">
+              {(["run", "fork", "deploy"] as const).map((item) => (
+                <Link
+                  key={item}
+                  href={`/workflow/${workflow.id}/${item}`}
+                  className={`inline-flex items-center justify-center gap-2 border-r border-[var(--border)] px-4 py-3 text-[12px] font-semibold capitalize last:border-r-0 ${
+                    action === item
+                      ? "bg-[var(--text)] text-[var(--bg)]"
+                      : "bg-[var(--card-bg)] text-[var(--text-secondary)] hover:text-[var(--text)]"
+                  }`}
+                >
+                  {item === "run" && <Play className="h-3.5 w-3.5 fill-current" />}
+                  {item === "fork" && <GitFork className="h-3.5 w-3.5" />}
+                  {item === "deploy" && <Rocket className="h-3.5 w-3.5" />}
+                  {item === "run" ? `Run · $${workflow.pricePerRun.toFixed(3)}` : item}
+                </Link>
+              ))}
+            </div>
+            <div className="mt-3 flex items-center justify-between font-mono text-[10.5px] text-[var(--text-muted)]">
+              <span>balance</span>
+              <span className="font-semibold text-[var(--text)]">9.842 USDC</span>
+              <span>est. {Math.max(1, Math.floor(9.842 / Math.max(workflow.pricePerRun, 0.001)))} runs</span>
+            </div>
           </aside>
         </section>
-
-        <div className="mb-6 flex flex-wrap gap-2">
-          {(["run", "fork", "deploy"] as const).map((item) => (
-            <Link
-              key={item}
-              href={`/workflow/${workflow.id}/${item}`}
-              className={`rounded-full border px-4 py-2 text-[11px] font-semibold uppercase tracking-widest transition-colors ${
-                action === item
-                  ? "border-[var(--text)] bg-[var(--text)] text-[var(--bg)]"
-                  : "border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text)]"
-              }`}
-            >
-              {item}
-            </Link>
-          ))}
-        </div>
 
         {action === "run" && <RunPanel workflow={workflow} />}
         {action === "fork" && <ForkPanel workflow={workflow} />}
@@ -758,7 +763,7 @@ export function WorkflowActionClient({
             ["Version", workflow.version ? `v${workflow.version.version}` : "demo"],
             ["Creator", workflow.creatorName],
           ].map(([label, value]) => (
-            <div key={label} className="glass-card flex items-center gap-3 p-5">
+            <div key={label} className="dojo-card flex items-center gap-3 p-5">
               <ShieldCheck className="h-4 w-4 text-[var(--text-secondary)]" />
               <div>
                 <div className="label-sm">{label}</div>

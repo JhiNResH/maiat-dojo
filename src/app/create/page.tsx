@@ -132,7 +132,7 @@ function SectionHeader({
 }) {
   return (
     <div className="mb-6 flex items-center gap-3">
-      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--text)] text-[var(--bg)]">
+      <div className="flex h-9 w-9 items-center justify-center rounded-[8px] bg-[var(--text)] text-[var(--bg)]">
         <Icon className="h-4 w-4" />
       </div>
       <div>
@@ -167,7 +167,7 @@ export default function CreateWorkflowPage() {
   const [isPublishing, setIsPublishing] = useState(false);
 
   const inputClass =
-    'w-full rounded-2xl border border-[var(--border)] bg-[var(--card-bg)] px-4 py-3 text-[14px] text-[var(--text)] outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--text)]';
+    'dojo-input min-h-[42px] text-[13px]';
 
   const parsedPrice = useMemo(() => Number(pricePerRun), [pricePerRun]);
   const canDryRun =
@@ -286,10 +286,10 @@ export default function CreateWorkflowPage() {
       <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors duration-700">
         <BackgroundEffect />
         <Navbar />
-        <main className="relative px-6 pb-20 pt-32">
-          <section className="mx-auto max-w-xl text-center">
-            <div className="glass-card p-8">
-              <div className="mx-auto mb-5 flex h-10 w-10 items-center justify-center rounded-full bg-[var(--text)] text-[var(--bg)]">
+      <main className="relative px-6 pb-20 pt-28">
+        <section className="mx-auto max-w-xl text-center">
+          <div className="dojo-card p-8">
+            <div className="mx-auto mb-5 flex h-10 w-10 items-center justify-center rounded-[8px] bg-[var(--text)] text-[var(--bg)]">
                 <Rocket className="h-4 w-4" />
               </div>
               <span className="label-sm">Creator gateway</span>
@@ -301,7 +301,7 @@ export default function CreateWorkflowPage() {
               </p>
               <button
                 onClick={login}
-                className="mt-7 inline-flex items-center justify-center rounded-full bg-[var(--text)] px-6 py-3 text-[12px] font-semibold uppercase tracking-widest text-[var(--bg)] transition-opacity hover:opacity-80"
+                className="dojo-action dojo-action-primary mt-7 px-6"
               >
                 Sign in to publish
               </button>
@@ -318,7 +318,7 @@ export default function CreateWorkflowPage() {
       <BackgroundEffect />
       <Navbar />
 
-      <main className="relative mx-auto w-full max-w-6xl px-6 pb-20 pt-32">
+      <main className="relative mx-auto w-full max-w-7xl px-4 pb-20 pt-28 sm:px-6">
         <Link
           href="/"
           className="mb-10 inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-widest text-[var(--text-muted)] transition-colors hover:text-[var(--text)]"
@@ -327,35 +327,29 @@ export default function CreateWorkflowPage() {
           Marketplace
         </Link>
 
-        <section className="mb-10 grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-end">
+        <section className="mb-5 flex flex-col gap-4 border-b border-[var(--border-light)] pb-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-[var(--text)] px-4 py-1.5 text-[var(--bg)]">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-[6px] bg-[var(--text)] px-3 py-1.5 text-[var(--bg)]">
               <Rocket className="h-3.5 w-3.5" />
               <span className="font-mono text-[11px] font-semibold uppercase tracking-wider">
                 Publish workflow
               </span>
             </div>
-            <h1 className="heading-xl text-left">
-              Ship a workflow
-              <br />
-              <span className="heading-xl-muted">agents can actually run.</span>
+            <h1 className="text-[28px] font-bold leading-tight tracking-[-0.025em] text-[var(--text)] md:text-[34px]">
+              quick-audit-workflow
+              <span className="ml-3 align-middle font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                draft
+              </span>
             </h1>
-            <p className="mt-6 max-w-xl text-[16px] leading-relaxed text-[var(--text-secondary)]">
+            <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-[var(--text-secondary)]">
               Register one endpoint as a versioned workflow. Dojo dry-runs it first, then lists it with pricing,
               sandbox execution, fork lineage, and receipts.
             </p>
-            <button
-              type="button"
-              onClick={useSampleWorkflow}
-              className="mt-6 inline-flex rounded-full border border-[var(--border)] px-4 py-2 text-[11px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] transition-colors hover:text-[var(--text)]"
-            >
-              Use sample workflow
-            </button>
           </div>
 
-          <aside className="glass-card p-6">
+          <aside className="dojo-card min-w-[280px] p-4">
             <span className="label-sm">Publish gate</span>
-            <div className="mt-5 space-y-4">
+            <div className="mt-4 space-y-3">
               {[
                 ['Endpoint', isValidHttpsUrl(endpointUrl)],
                 ['Dry run', dryRun?.ok === true],
@@ -369,21 +363,39 @@ export default function CreateWorkflowPage() {
                 </div>
               ))}
             </div>
-            <p className="mt-5 border-t border-[var(--border)] pt-5 text-[13px] leading-relaxed text-[var(--text-muted)]">
-              MVP scope: publish creates a one-step workflow backed by your endpoint. Multi-step graph editing comes after
-              the marketplace demo is validated.
-            </p>
+            <button type="button" onClick={useSampleWorkflow} className="dojo-action mt-4 w-full">
+              Use sample workflow
+            </button>
           </aside>
         </section>
 
+        <div className="mb-5 flex flex-wrap items-center gap-3 border-b border-[var(--border-light)] pb-4 font-mono text-[10.5px] uppercase tracking-[0.1em]">
+          {[
+            ['01', 'Manifest', true],
+            ['02', 'Endpoint', isValidHttpsUrl(endpointUrl)],
+            ['03', 'Dry-run', dryRun?.ok === true],
+            ['04', 'Pricing', Number.isFinite(parsedPrice) && parsedPrice > 0],
+            ['05', 'Publish', canPublish],
+          ].map(([step, label, done]) => (
+            <div key={String(step)} className="flex items-center gap-2 text-[var(--text-secondary)]">
+              <span className={`flex h-5 w-5 items-center justify-center rounded-full border text-[10px] ${
+                done ? 'border-[var(--signal)] bg-[var(--signal)] text-white' : 'border-[var(--border)] text-[var(--text-muted)]'
+              }`}>
+                {done ? '✓' : step}
+              </span>
+              <span>{label}</span>
+            </div>
+          ))}
+        </div>
+
         {error && (
-          <div className="mb-6 rounded-2xl border border-red-500/20 bg-red-500/5 px-4 py-3 font-mono text-[12px] text-red-600">
+          <div className="mb-6 rounded-[8px] border border-red-500/20 bg-red-500/5 px-4 py-3 font-mono text-[12px] text-red-600">
             {error}
           </div>
         )}
 
-        <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
-          <section className="glass-card p-6">
+        <div className="grid gap-4 lg:grid-cols-[300px_1fr_360px]">
+          <section className="dojo-card p-5">
             <SectionHeader icon={Code2} label="01 Metadata" title="Define the workflow listing." />
             <div className="space-y-4">
               <Field label="Workflow name">
@@ -425,7 +437,7 @@ export default function CreateWorkflowPage() {
             </div>
           </section>
 
-          <section className="glass-card p-6">
+          <section className="dojo-card p-5 lg:col-span-2">
             <SectionHeader icon={Play} label="02 Runtime" title="Attach the endpoint Dojo will call." />
             <div className="space-y-4">
               <Field
@@ -469,7 +481,7 @@ export default function CreateWorkflowPage() {
             </div>
           </section>
 
-          <section className="glass-card p-6 lg:col-span-2">
+          <section className="dojo-card p-5 lg:col-span-3">
             <SectionHeader icon={ShieldCheck} label="03 Contract" title="Dry-run the workflow before it can publish." />
             <div className="grid gap-4 lg:grid-cols-2">
               <Field label="Input schema" hint="JSON Schema used to render the Run form.">
@@ -489,7 +501,7 @@ export default function CreateWorkflowPage() {
                     className={`${inputClass} resize-y font-mono text-[12px] leading-relaxed`}
                   />
                 </Field>
-                <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4">
+                <div className="rounded-[8px] border border-[var(--border)] bg-[var(--bg-secondary)] p-4">
                   <div className="mb-3 flex items-center justify-between">
                     <span className="label-sm">Dry-run result</span>
                     {dryRun && (
@@ -514,7 +526,7 @@ export default function CreateWorkflowPage() {
                     type="button"
                     onClick={handleDryRun}
                     disabled={!canDryRun || isTesting}
-                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-[var(--border)] px-5 py-3 text-[12px] font-semibold uppercase tracking-widest text-[var(--text)] transition-colors hover:border-[var(--text)] disabled:opacity-40"
+                    className="dojo-action flex-1 disabled:opacity-40"
                   >
                     {isTesting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
                     {isTesting ? 'Testing' : 'Run dry-run'}
@@ -523,7 +535,7 @@ export default function CreateWorkflowPage() {
                     type="button"
                     onClick={handlePublish}
                     disabled={!canPublish}
-                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-[var(--text)] px-5 py-3 text-[12px] font-semibold uppercase tracking-widest text-[var(--bg)] transition-opacity hover:opacity-80 disabled:opacity-40"
+                    className="dojo-action dojo-action-primary flex-1 disabled:opacity-40"
                   >
                     {isPublishing ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />

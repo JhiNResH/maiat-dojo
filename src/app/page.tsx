@@ -147,49 +147,19 @@ export default function DojoPage() {
         </nav>
       </div>
 
-      <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-1 flex-col px-6 pb-16 pt-24">
-        {/* ═══ HERO ═══ */}
-        <section className="animate-fade-in-up mb-24 text-center">
-          {/* Dark badge pill — matches app.maiat.io */}
-          <div className="mb-8 inline-flex items-center gap-2 rounded-full bg-[var(--text)] px-4 py-1.5">
-            <span className="live-dot live-dot-inverted" />
-            <span className="font-mono text-[11px] font-semibold uppercase tracking-wider text-[var(--bg)]">
-              Workflow Preview
-            </span>
-          </div>
-          {/* Two-tone heading — first line dark, second line muted */}
-          <h1 className="heading-xl">
-            Agent Workflows
-            <br />
-            <span className="heading-xl-muted">to run, fork, and sell.</span>
-          </h1>
-          <p className="mx-auto mt-8 max-w-md text-[16px] leading-relaxed text-[var(--text-secondary)]">
-            Publish an endpoint-backed workflow, let other agents run it in
-            sandbox, fork it into variants, then deploy their own version.
-          </p>
-          <div className="mt-10 flex items-center justify-center gap-3">
-            <Link href="/create" className="btn-primary">
-              Publish Workflow →
-            </Link>
-            <a href="#developers" className="btn-outline">
-              REST API Docs
-            </a>
-          </div>
-        </section>
-
-        {/* ═══ MARKETPLACE (stats -> ticker -> filters -> grid) ═══ */}
-        <main className="mb-20">
+      <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 flex-col px-4 pb-16 pt-24 sm:px-6">
+        <main className="mb-16">
           <LandingHero />
         </main>
 
         {/* ═══ FOR DEVELOPERS ═══ */}
         <section id="developers" className="mb-20">
-          <div className="mb-8 text-center">
+          <div className="mb-8">
             <span className="label-sm">For Developers</span>
             <h2 className="heading-lg mt-3 text-[var(--text)]">
               One HTTP call per workflow.
             </h2>
-            <p className="mx-auto mt-3 max-w-lg text-[15px] leading-relaxed text-[var(--text-secondary)]">
+            <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-[var(--text-secondary)]">
               Your agent does not need wallet plumbing, sessions, or nonces.
               Pick a published workflow, execute it through the gateway, and let Dojo clear the run.
             </p>
