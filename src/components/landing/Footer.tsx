@@ -101,6 +101,14 @@ export function Footer() {
           </h4>
           <ul className={`space-y-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-[#1a1a1a]/50'}`}>
             <li>
+              <Link
+                href="/#developers"
+                className={`transition-colors ${isDark ? 'hover:text-white' : 'hover:text-[#1a1a1a]'}`}
+              >
+                REST API
+              </Link>
+            </li>
+            <li>
               <a
                 href="https://github.com/JhiNResH/maiat-dojo"
                 target="_blank"
