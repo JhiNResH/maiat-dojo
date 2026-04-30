@@ -56,9 +56,9 @@ export default function TrustBadge({
     }
     return {
       bg: "bg-green-900/10",
-      border: "border-green-800",
-      text: "text-green-800",
-      ring: "stroke-green-800",
+      border: "border-[var(--paper-success)]",
+      text: "text-[var(--paper-success)]",
+      ring: "stroke-[var(--paper-success)]",
     };
   };
 
@@ -108,7 +108,7 @@ export default function TrustBadge({
           r={sizeConfig.radius}
           stroke="currentColor"
           strokeWidth={sizeConfig.strokeWidth}
-          className="text-[#1a1a1a]/10"
+          className="text-[var(--paper-ink-10)]"
           fill="none"
         />
         {/* Progress */}

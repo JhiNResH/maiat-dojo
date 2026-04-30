@@ -54,6 +54,29 @@
   --card-border: rgba(11, 12, 14, 0.08);
   --glass-shadow-hover: 0 8px 32px rgba(0, 0, 0, 0.09);
   --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --paper-bg: #f8f5ef;
+  --paper-bg-muted: #f0ece2;
+  --paper-border-strong: #b8a990;
+  --paper-ink: #1a1a1a;
+  --paper-ink-70: rgba(26, 26, 26, 0.70);
+  --paper-ink-65: rgba(26, 26, 26, 0.65);
+  --paper-ink-60: rgba(26, 26, 26, 0.60);
+  --paper-ink-55: rgba(26, 26, 26, 0.55);
+  --paper-ink-50: rgba(26, 26, 26, 0.50);
+  --paper-ink-40: rgba(26, 26, 26, 0.40);
+  --paper-ink-35: rgba(26, 26, 26, 0.35);
+  --paper-ink-30: rgba(26, 26, 26, 0.30);
+  --paper-ink-25: rgba(26, 26, 26, 0.25);
+  --paper-ink-20: rgba(26, 26, 26, 0.20);
+  --paper-ink-15: rgba(26, 26, 26, 0.15);
+  --paper-ink-10: rgba(26, 26, 26, 0.10);
+  --paper-ink-5: rgba(26, 26, 26, 0.05);
+  --paper-ink-3: rgba(26, 26, 26, 0.035);
+  --paper-accent: #b08d57;
+  --paper-danger: #dc2626;
+  --paper-danger-bg: rgba(220, 38, 38, 0.05);
+  --paper-success: #166534;
+  --paper-success-bg: rgba(22, 101, 52, 0.10);
   --error: #ef4444;
   --success: #22c55e;
   --radius-sm: 8px;
@@ -103,6 +126,29 @@
   --card-border: rgba(255, 255, 255, 0.06);
   --glass-shadow-hover: 0 8px 40px rgba(0, 0, 0, 0.45);
   --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --paper-bg: #111111;
+  --paper-bg-muted: #171717;
+  --paper-border-strong: rgba(255, 255, 255, 0.24);
+  --paper-ink: #f5f5f5;
+  --paper-ink-70: rgba(245, 245, 245, 0.70);
+  --paper-ink-65: rgba(245, 245, 245, 0.65);
+  --paper-ink-60: rgba(245, 245, 245, 0.60);
+  --paper-ink-55: rgba(245, 245, 245, 0.55);
+  --paper-ink-50: rgba(245, 245, 245, 0.50);
+  --paper-ink-40: rgba(245, 245, 245, 0.40);
+  --paper-ink-35: rgba(245, 245, 245, 0.35);
+  --paper-ink-30: rgba(245, 245, 245, 0.30);
+  --paper-ink-25: rgba(245, 245, 245, 0.25);
+  --paper-ink-20: rgba(245, 245, 245, 0.20);
+  --paper-ink-15: rgba(245, 245, 245, 0.15);
+  --paper-ink-10: rgba(245, 245, 245, 0.10);
+  --paper-ink-5: rgba(245, 245, 245, 0.05);
+  --paper-ink-3: rgba(245, 245, 245, 0.035);
+  --paper-accent: #d6b06c;
+  --paper-danger: #f87171;
+  --paper-danger-bg: rgba(248, 113, 113, 0.10);
+  --paper-success: #4ade80;
+  --paper-success-bg: rgba(74, 222, 128, 0.10);
   --error: #f87171;
   --success: #4ade80;
 }
@@ -553,6 +599,11 @@ body {
 .dark .dojo-mini-panel,
 .dark .dojo-action {
   background: rgba(255,255,255,0.04);
+}
+.dark .dojo-action-primary {
+  border-color: var(--text);
+  background: var(--text);
+  color: var(--bg);
 }
 .dojo-ticker {
   display: flex;

@@ -389,7 +389,7 @@ export default function CreateWorkflowPage() {
         </div>
 
         {error && (
-          <div className="mb-6 rounded-[8px] border border-red-500/20 bg-red-500/5 px-4 py-3 font-mono text-[12px] text-red-600">
+          <div className="mb-6 rounded-[8px] border border-red-500/20 bg-red-500/5 px-4 py-3 font-mono text-[12px] text-[var(--paper-danger)]">
             {error}
           </div>
         )}

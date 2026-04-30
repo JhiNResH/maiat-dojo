@@ -22,7 +22,7 @@ export function JsonOutput({ data, example, mode = "sandbox" }: JsonOutputProps)
 
   if (value === undefined || value === null) {
     return (
-      <div className="border border-dashed border-[#b8a990] bg-[#f8f5ef] p-3 font-mono text-[10px] text-[#1a1a1a]/40">
+      <div className="border border-dashed border-[var(--paper-border-strong)] bg-[var(--paper-bg)] p-3 font-mono text-[10px] text-[var(--paper-ink-40)]">
         No example output yet.
       </div>
     );
@@ -38,15 +38,15 @@ export function JsonOutput({ data, example, mode = "sandbox" }: JsonOutputProps)
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between">
-        <span className="font-mono text-[9px] uppercase tracking-wider text-[#1a1a1a]/50">
+        <span className="font-mono text-[9px] uppercase tracking-wider text-[var(--paper-ink-50)]">
           {isPlaceholder ? "Example output" : `Response (${mode})`}
         </span>
       </div>
       <pre
-        className={`whitespace-pre-wrap break-words border bg-[#f8f5ef] p-3 font-mono text-[11px] leading-snug text-[#1a1a1a] ${
+        className={`whitespace-pre-wrap break-words border bg-[var(--paper-bg)] p-3 font-mono text-[11px] leading-snug text-[var(--paper-ink)] ${
           isPlaceholder
-            ? "border-dashed border-[#b8a990] text-[#1a1a1a]/50"
-            : "border-[#1a1a1a]"
+            ? "border-dashed border-[var(--paper-border-strong)] text-[var(--paper-ink-50)]"
+            : "border-[var(--paper-ink)]"
         }`}
       >
         {formatted}

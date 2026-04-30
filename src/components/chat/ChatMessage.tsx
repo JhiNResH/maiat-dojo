@@ -46,12 +46,12 @@ function Row({
       <div className="mb-1.5 flex items-center gap-2">
         <span
           className={`font-mono text-[9px] uppercase tracking-[0.2em] ${
-            role === "user" ? "text-[#1a1a1a]/50" : "text-[#b08d57]/70"
+            role === "user" ? "text-[var(--paper-ink-50)]" : "text-[var(--paper-accent)]"
           }`}
         >
           {role === "user" ? "You" : "Dojo"}
         </span>
-        <span className="h-px flex-1 bg-[#1a1a1a]/10" />
+        <span className="h-px flex-1 bg-[var(--paper-ink-10)]" />
       </div>
       <div>{children}</div>
     </div>
@@ -71,15 +71,15 @@ function Body({
   const isUser = role === "user";
   const toneColor =
     tone === "warn"
-      ? "border-l-[#dc2626]"
+      ? "border-l-[var(--paper-danger)]"
       : tone === "ok"
-        ? "border-l-[#1a1a1a]"
-        : "border-l-[#1a1a1a]/40";
+        ? "border-l-[var(--paper-ink)]"
+        : "border-l-[var(--paper-ink-40)]";
 
   if (isUser) {
     return (
       <div
-        className={`whitespace-pre-wrap break-words border-l-2 bg-[#1a1a1a]/[0.035] px-4 py-3 font-serif text-[15px] leading-[1.65] text-[#1a1a1a] ${toneColor}`}
+        className={`whitespace-pre-wrap break-words border-l-2 bg-[var(--paper-ink-3)] px-4 py-3 font-serif text-[15px] leading-[1.65] text-[var(--paper-ink)] ${toneColor}`}
       >
         {content}
       </div>
@@ -88,8 +88,8 @@ function Body({
 
   return (
     <div
-      className={`whitespace-pre-wrap break-words font-serif text-[15px] leading-[1.65] text-[#1a1a1a] ${
-        tone === "warn" ? "border-l-2 border-l-[#dc2626] pl-4" : ""
+      className={`whitespace-pre-wrap break-words font-serif text-[15px] leading-[1.65] text-[var(--paper-ink)] ${
+        tone === "warn" ? "border-l-2 border-l-[var(--paper-danger)] pl-4" : ""
       }`}
     >
       {content}

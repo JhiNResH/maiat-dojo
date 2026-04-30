@@ -58,12 +58,12 @@ export default function ReviewSection({ reviews }: { reviews: ReviewData[] }) {
           >
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-[#b08d57]">
+                <span className="text-sm text-[var(--paper-accent)]">
                   {"★".repeat(r.rating)}
                   {"★".repeat(5 - r.rating).split("").map(() => "☆").join("")}
                 </span>
                 {r.session && (
-                  <span className="font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#b08d57]/10 text-[#b08d57]">
+                  <span className="font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-[var(--signal-soft)] text-[var(--paper-accent)]">
                     Verified
                   </span>
                 )}

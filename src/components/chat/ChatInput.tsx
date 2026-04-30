@@ -96,23 +96,23 @@ export function ChatInput({
   // for a classified-ad feel. Compact: the original docked composer.
   const wrapperClass = isHero ? "" : "px-6 pb-5 pt-2";
   const containerClass = isHero
-    ? "relative border-2 bg-[#f8f5ef]"
-    : "border bg-[#f8f5ef] shadow-[0_-1px_0_0_rgba(26,26,26,0.06),0_1px_0_0_rgba(26,26,26,0.04)]";
+    ? "relative border-2 bg-[var(--paper-bg)]"
+    : "border bg-[var(--paper-bg)] shadow-[0_-1px_0_0_rgba(26,26,26,0.06),0_1px_0_0_rgba(26,26,26,0.04)]";
   const textareaClass = isHero
-    ? "relative block w-full resize-none border-0 bg-transparent px-5 pt-5 pb-3 font-serif text-[18px] leading-[1.5] text-[#1a1a1a] placeholder:font-serif placeholder:italic placeholder:text-[#1a1a1a]/30 focus:outline-none"
-    : "relative block w-full resize-none border-0 bg-transparent px-4 pt-4 pb-2 font-serif text-[15px] leading-[1.55] text-[#1a1a1a] placeholder:font-serif placeholder:italic placeholder:text-[#1a1a1a]/30 focus:outline-none";
+    ? "relative block w-full resize-none border-0 bg-transparent px-5 pt-5 pb-3 font-serif text-[18px] leading-[1.5] text-[var(--paper-ink)] placeholder:font-serif placeholder:italic placeholder:text-[var(--paper-ink-30)] focus:outline-none"
+    : "relative block w-full resize-none border-0 bg-transparent px-4 pt-4 pb-2 font-serif text-[15px] leading-[1.55] text-[var(--paper-ink)] placeholder:font-serif placeholder:italic placeholder:text-[var(--paper-ink-30)] focus:outline-none";
   const textareaRows = isHero ? 3 : 2;
   const textareaMaxHeight = isHero ? "220px" : "160px";
 
   return (
     <div className={wrapperClass}>
-      <div className={containerClass} style={{ borderColor: "#1a1a1a" }}>
+      <div className={containerClass} style={{ borderColor: "var(--paper-ink)" }}>
         {/* Notched editorial label — hero only. Sits on top of the border
             with the page background knocking out the rule beneath, the
             same trick .classified::before uses in globals.css. Reads as a
             newspaper classified ad rather than a generic search bar. */}
         {isHero && (
-          <span className="pointer-events-none absolute -top-[9px] left-4 z-10 bg-[#f0ece2] px-2 font-mono text-[9px] font-bold uppercase tracking-[0.25em] text-[#1a1a1a]/65">
+          <span className="pointer-events-none absolute -top-[9px] left-4 z-10 bg-[var(--paper-bg-muted)] px-2 font-mono text-[9px] font-bold uppercase tracking-[0.25em] text-[var(--paper-ink-65)]">
             [ Ask the Dojo ]
           </span>
         )}
@@ -125,7 +125,7 @@ export function ChatInput({
           <div className="pointer-events-none absolute inset-x-5 top-5 z-0">
             <span
               key={placeholderIdx}
-              className="reveal-row block font-serif text-[18px] italic leading-[1.5] text-[#1a1a1a]/30"
+              className="reveal-row block font-serif text-[18px] italic leading-[1.5] text-[var(--paper-ink-30)]"
             >
               {heroPlaceholder}
             </span>
@@ -145,19 +145,19 @@ export function ChatInput({
           autoFocus
         />
 
-        <div className="flex items-center justify-between border-t border-dotted border-[#1a1a1a]/20 px-4 py-2">
-          <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-[#1a1a1a]/35">
-            <span className="text-[#1a1a1a]/55">⏎</span>{" "}
-            <span className="text-[#1a1a1a]/25">submit</span>
-            <span className="mx-2 text-[#1a1a1a]/15">·</span>
-            <span className="text-[#1a1a1a]/55">⇧⏎</span>{" "}
-            <span className="text-[#1a1a1a]/25">newline</span>
+        <div className="flex items-center justify-between border-t border-dotted border-[var(--paper-ink-20)] px-4 py-2">
+          <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-[var(--paper-ink-35)]">
+            <span className="text-[var(--paper-ink-55)]">⏎</span>{" "}
+            <span className="text-[var(--paper-ink-25)]">submit</span>
+            <span className="mx-2 text-[var(--paper-ink-15)]">·</span>
+            <span className="text-[var(--paper-ink-55)]">⇧⏎</span>{" "}
+            <span className="text-[var(--paper-ink-25)]">newline</span>
           </span>
           <button
             type="button"
             onClick={send}
             disabled={!canSend}
-            className="letterpress flex items-center gap-1.5 border border-[#1a1a1a] bg-[#1a1a1a] px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-[#f0ece2] transition-colors hover:border-[#b08d57] hover:bg-[#b08d57] disabled:cursor-not-allowed disabled:opacity-25"
+            className="letterpress flex items-center gap-1.5 border border-[var(--paper-ink)] bg-[var(--paper-ink)] px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--paper-bg)] transition-colors hover:border-[var(--paper-accent)] hover:bg-[var(--paper-accent)] disabled:cursor-not-allowed disabled:opacity-25"
           >
             Send
             <CornerDownLeft size={11} />

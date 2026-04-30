@@ -195,12 +195,12 @@ export default function BuyWithX402Button({
         disabled={isDisabled}
         className={`w-full font-mono text-sm uppercase tracking-widest py-3 transition-colors ${
           status === 'done'
-            ? 'bg-green-800 text-[#f0ece2] cursor-default'
+            ? 'bg-[var(--paper-success)] text-[var(--paper-bg)] cursor-default'
             : isDisabled
-            ? 'bg-[#1a1a1a]/50 text-[#f0ece2] cursor-wait'
+            ? 'bg-[var(--paper-ink-50)] text-[var(--paper-bg)] cursor-wait'
             : status === 'error'
-            ? 'bg-[#dc2626] text-[#f0ece2] hover:bg-[#1a1a1a]'
-            : 'bg-[#1a1a1a] text-[#f0ece2] hover:bg-[#b08d57]'
+            ? 'bg-[var(--paper-danger)] text-[var(--paper-bg)] hover:bg-[var(--paper-ink)]'
+            : 'bg-[var(--paper-ink)] text-[var(--paper-bg)] hover:bg-[var(--paper-accent)]'
         }`}
       >
         {buttonText()}
@@ -211,15 +211,15 @@ export default function BuyWithX402Button({
         <div className="flex justify-center gap-2 mt-2">
           <span
             className={`font-mono text-[10px] ${
-              status === 'signing' ? 'text-[#b08d57]' : 'text-[#1a1a1a]/30'
+              status === 'signing' ? 'text-[var(--paper-accent)]' : 'text-[var(--paper-ink-30)]'
             }`}
           >
             ① Sign
           </span>
-          <span className="font-mono text-[10px] text-[#1a1a1a]/30">→</span>
+          <span className="font-mono text-[10px] text-[var(--paper-ink-30)]">→</span>
           <span
             className={`font-mono text-[10px] ${
-              status === 'verifying' ? 'text-[#b08d57]' : 'text-[#1a1a1a]/30'
+              status === 'verifying' ? 'text-[var(--paper-accent)]' : 'text-[var(--paper-ink-30)]'
             }`}
           >
             ② Verify
@@ -228,24 +228,24 @@ export default function BuyWithX402Button({
       )}
 
       {status === 'error' && (
-        <p className="font-mono text-[10px] text-red-600 text-center mt-2">
+        <p className="font-mono text-[10px] text-[var(--paper-danger)] text-center mt-2">
           {errorMsg}
         </p>
       )}
 
       {status === 'done' && purchaseId && (
-        <p className="font-mono text-[10px] text-green-800 text-center mt-2">
+        <p className="mt-2 text-center font-mono text-[10px] text-[var(--paper-success)]">
           Purchase #{purchaseId.slice(0, 8)}... confirmed
         </p>
       )}
 
       {/* Chain info */}
-      <p className="font-mono text-[10px] text-[#1a1a1a]/40 text-center mt-2">
+      <p className="font-mono text-[10px] text-[var(--paper-ink-40)] text-center mt-2">
         Powered by x402 on X Layer
       </p>
 
       {authenticated && address && balance !== undefined && (
-        <p className="font-mono text-[10px] text-[#1a1a1a]/40 text-center mt-1">
+        <p className="font-mono text-[10px] text-[var(--paper-ink-40)] text-center mt-1">
           Balance: {formatUnits(balance, 6)} USDC
         </p>
       )}

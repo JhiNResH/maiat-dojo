@@ -106,13 +106,13 @@ export function FormRenderer({
   if (fields.length === 0) {
     return (
       <form onSubmit={handleSubmit} className="space-y-3">
-        <p className="font-mono text-xs text-[#1a1a1a]/60">
+        <p className="font-mono text-xs text-[var(--paper-ink-60)]">
           No declared inputs — this skill takes an empty payload.
         </p>
         <button
           type="submit"
           disabled={pending}
-          className="border border-[#1a1a1a] bg-[#1a1a1a] px-4 py-2 font-mono text-xs uppercase tracking-wider text-[#f8f5ef] disabled:opacity-50"
+          className="border border-[var(--paper-ink)] bg-[var(--paper-ink)] px-4 py-2 font-mono text-xs uppercase tracking-wider text-[var(--paper-bg)] disabled:opacity-50"
         >
           {pending ? "Running…" : submitLabel}
         </button>
@@ -132,10 +132,10 @@ export function FormRenderer({
           <div key={key} className="space-y-1">
             <label
               htmlFor={id}
-              className="block font-mono text-[10px] uppercase tracking-wider text-[#1a1a1a]"
+              className="block font-mono text-[10px] uppercase tracking-wider text-[var(--paper-ink)]"
             >
               {label}
-              {required && <span className="ml-1 text-[#dc2626]">*</span>}
+              {required && <span className="ml-1 text-[var(--paper-danger)]">*</span>}
             </label>
 
             {isEnum ? (
@@ -148,7 +148,7 @@ export function FormRenderer({
                     [key]: coerce(prop, e.target.value),
                   }))
                 }
-                className="w-full border border-[#b8a990] bg-[#f8f5ef] px-3 py-2 font-mono text-xs text-[#1a1a1a] focus:border-[#1a1a1a] focus:outline-none"
+                className="w-full border border-[var(--paper-border-strong)] bg-[var(--paper-bg)] px-3 py-2 font-mono text-xs text-[var(--paper-ink)] focus:border-[var(--paper-ink)] focus:outline-none"
               >
                 {!required && <option value="">—</option>}
                 {prop.enum!.map((opt) => (
@@ -167,7 +167,7 @@ export function FormRenderer({
                     [key]: e.target.value === "true",
                   }))
                 }
-                className="w-full border border-[#b8a990] bg-[#f8f5ef] px-3 py-2 font-mono text-xs text-[#1a1a1a] focus:border-[#1a1a1a] focus:outline-none"
+                className="w-full border border-[var(--paper-border-strong)] bg-[var(--paper-bg)] px-3 py-2 font-mono text-xs text-[var(--paper-ink)] focus:border-[var(--paper-ink)] focus:outline-none"
               >
                 <option value="false">false</option>
                 <option value="true">true</option>
@@ -188,12 +188,12 @@ export function FormRenderer({
                     [key]: coerce(prop, e.target.value),
                   }))
                 }
-                className="w-full border border-[#b8a990] bg-[#f8f5ef] px-3 py-2 font-mono text-xs text-[#1a1a1a] placeholder:text-[#1a1a1a]/30 focus:border-[#1a1a1a] focus:outline-none"
+                className="w-full border border-[var(--paper-border-strong)] bg-[var(--paper-bg)] px-3 py-2 font-mono text-xs text-[var(--paper-ink)] placeholder:text-[var(--paper-ink-30)] focus:border-[var(--paper-ink)] focus:outline-none"
               />
             )}
 
             {prop.description && !isEnum && (
-              <p className="font-mono text-[9px] text-[#1a1a1a]/50">
+              <p className="font-mono text-[9px] text-[var(--paper-ink-50)]">
                 {prop.description}
               </p>
             )}
@@ -204,7 +204,7 @@ export function FormRenderer({
       <button
         type="submit"
         disabled={pending || missingRequired}
-        className="border border-[#1a1a1a] bg-[#1a1a1a] px-4 py-2 font-mono text-xs uppercase tracking-wider text-[#f8f5ef] transition disabled:opacity-40"
+        className="border border-[var(--paper-ink)] bg-[var(--paper-ink)] px-4 py-2 font-mono text-xs uppercase tracking-wider text-[var(--paper-bg)] transition disabled:opacity-40"
       >
         {pending ? "Running…" : submitLabel}
       </button>

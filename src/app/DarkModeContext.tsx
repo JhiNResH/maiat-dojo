@@ -17,6 +17,7 @@ const STORAGE_KEY = 'dojo-dark-mode';
 export function DarkModeProvider({ children }: { children: React.ReactNode }) {
   // Default to light; hydrate from storage on mount
   const [isDark, setIsDark] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     try {
@@ -27,16 +28,18 @@ export function DarkModeProvider({ children }: { children: React.ReactNode }) {
         setIsDark(true);
       }
     } catch {}
+    setHydrated(true);
   }, []);
 
   useEffect(() => {
+    if (!hydrated) return;
     if (typeof document === 'undefined') return;
     if (isDark) document.documentElement.classList.add('dark');
     else document.documentElement.classList.remove('dark');
     try {
       window.localStorage.setItem(STORAGE_KEY, isDark ? '1' : '0');
     } catch {}
-  }, [isDark]);
+  }, [hydrated, isDark]);
 
   return (
     <DarkModeContext.Provider value={{ isDark, toggleDark: () => setIsDark((d) => !d) }}>

@@ -118,7 +118,7 @@ export default function DownloadSkillButton({
   // Checking access status
   if (status === 'checking') {
     return (
-      <div className="flex items-center gap-2 text-[#1a1a1a]/50 font-mono text-sm">
+      <div className="flex items-center gap-2 text-[var(--paper-ink-50)] font-mono text-sm">
         <Loader2 size={14} className="animate-spin" />
         Checking access...
       </div>
@@ -128,7 +128,7 @@ export default function DownloadSkillButton({
   // Not purchased
   if (status === 'not_purchased' && !isCreator) {
     return (
-      <div className="flex items-center gap-2 text-[#1a1a1a]/40 font-mono text-xs">
+      <div className="flex items-center gap-2 text-[var(--paper-ink-40)] font-mono text-xs">
         <Lock size={12} />
         Purchase to download skill instructions
       </div>
@@ -140,13 +140,13 @@ export default function DownloadSkillButton({
     return (
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-green-800 font-mono text-sm">
+          <div className="flex items-center gap-2 font-mono text-sm text-[var(--paper-success)]">
             <Check size={14} />
             Downloaded
           </div>
           <button
             onClick={handleCopy}
-            className="flex items-center gap-1 font-mono text-xs text-[#b08d57] hover:underline"
+            className="flex items-center gap-1 font-mono text-xs text-[var(--paper-accent)] hover:underline"
           >
             {copied ? <Check size={12} /> : <Copy size={12} />}
             {copied ? 'Copied!' : 'Copy'}
@@ -154,11 +154,11 @@ export default function DownloadSkillButton({
         </div>
 
         {/* Installation instructions */}
-        <div className="p-3 bg-[#1a1a1a]/5 border border-[#1a1a1a]/10 font-mono text-xs">
-          <p className="text-[#1a1a1a]/70 mb-2">
+        <div className="p-3 bg-[var(--paper-ink-5)] border border-[var(--paper-ink-10)] font-mono text-xs">
+          <p className="text-[var(--paper-ink-70)] mb-2">
             <strong>To install:</strong>
           </p>
-          <ol className="list-decimal list-inside space-y-1 text-[#1a1a1a]/60">
+          <ol className="list-decimal list-inside space-y-1 text-[var(--paper-ink-60)]">
             <li>Open your agent&apos;s skill directory</li>
             <li>Paste the downloaded file</li>
             <li>Reload your agent to activate</li>
@@ -168,7 +168,7 @@ export default function DownloadSkillButton({
         {/* Download again button */}
         <button
           onClick={handleDownload}
-          className="flex items-center gap-2 font-mono text-xs text-[#1a1a1a]/50 hover:text-[#1a1a1a] transition-colors"
+          className="flex items-center gap-2 font-mono text-xs text-[var(--paper-ink-50)] hover:text-[var(--paper-ink)] transition-colors"
         >
           <Download size={12} />
           Download again
@@ -181,10 +181,10 @@ export default function DownloadSkillButton({
   if (status === 'error') {
     return (
       <div className="space-y-2">
-        <p className="font-mono text-xs text-red-600">{errorMsg}</p>
+        <p className="font-mono text-xs text-[var(--paper-danger)]">{errorMsg}</p>
         <button
           onClick={handleDownload}
-          className="flex items-center gap-2 font-mono text-xs text-[#b08d57] hover:underline"
+          className="flex items-center gap-2 font-mono text-xs text-[var(--paper-accent)] hover:underline"
         >
           Try again
         </button>
@@ -197,7 +197,7 @@ export default function DownloadSkillButton({
     <button
       onClick={handleDownload}
       disabled={status === 'loading'}
-      className="w-full flex items-center justify-center gap-2 bg-green-800 text-[#f0ece2] font-mono text-sm uppercase tracking-widest py-3 hover:bg-green-900 transition-colors disabled:opacity-50"
+      className="flex w-full items-center justify-center gap-2 bg-[var(--paper-success)] py-3 font-mono text-sm uppercase tracking-widest text-[var(--paper-bg)] transition-colors hover:opacity-90 disabled:opacity-50"
     >
       {status === 'loading' ? (
         <>

@@ -351,7 +351,7 @@ export default function NewAgentPage() {
               </h2>
 
               {error && (
-                <div className="mb-6 p-4 rounded-[8px] border text-xs font-mono border-[var(--error)]/20 bg-[var(--error)]/5 text-[var(--error)]">
+                <div className="mb-6 p-4 rounded-[8px] border text-xs font-mono border-[var(--error)] bg-[var(--paper-danger-bg)] text-[var(--error)]">
                   {error}
                 </div>
               )}

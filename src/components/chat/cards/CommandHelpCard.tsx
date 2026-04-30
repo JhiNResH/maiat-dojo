@@ -29,11 +29,11 @@ const COMMANDS: CommandRow[] = [
 export function CommandHelpCard() {
   return (
     <figure className="my-1">
-      <figcaption className="mb-2 flex items-baseline justify-between border-b-[3px] border-double border-[#1a1a1a]/60 pb-1">
-        <span className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-[#1a1a1a]/70">
+      <figcaption className="mb-2 flex items-baseline justify-between border-b-[3px] border-double border-[var(--paper-ink-60)] pb-1">
+        <span className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-[var(--paper-ink-70)]">
           Command Desk
         </span>
-        <span className="font-mono text-[9px] text-[#1a1a1a]/30">
+        <span className="font-mono text-[9px] text-[var(--paper-ink-30)]">
           {COMMANDS.filter((c) => !c.phase2).length} live
         </span>
       </figcaption>
@@ -43,14 +43,14 @@ export function CommandHelpCard() {
           {COMMANDS.map((row) => (
             <tr
               key={row.cmd}
-              className="border-b border-dotted border-[#1a1a1a]/15 last:border-b-0"
+              className="border-b border-dotted border-[var(--paper-ink-15)] last:border-b-0"
             >
               <td className="py-1.5 pr-4 align-top">
                 <code
                   className={`font-mono text-[11px] ${
                     row.phase2
-                      ? "text-[#1a1a1a]/25"
-                      : "font-bold text-[#b08d57]"
+                      ? "text-[var(--paper-ink-25)]"
+                      : "font-bold text-[var(--paper-accent)]"
                   }`}
                 >
                   {row.cmd}
@@ -58,7 +58,7 @@ export function CommandHelpCard() {
               </td>
               <td
                 className={`py-1.5 align-top font-serif text-[13px] leading-snug ${
-                  row.phase2 ? "italic text-[#1a1a1a]/30" : "text-[#1a1a1a]/70"
+                  row.phase2 ? "italic text-[var(--paper-ink-30)]" : "text-[var(--paper-ink-70)]"
                 }`}
               >
                 {row.desc}

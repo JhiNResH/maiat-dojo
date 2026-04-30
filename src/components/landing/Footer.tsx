@@ -157,7 +157,7 @@ export function Footer() {
 
       <div
         className={`max-w-7xl mx-auto pt-12 border-t flex flex-col md:flex-row items-center justify-between font-mono text-[9px] uppercase tracking-[0.15em] gap-6 ${
-          isDark ? 'border-white/10 text-gray-600' : 'border-[#1a1a1a]/10 text-[#1a1a1a]/40'
+          isDark ? 'border-white/10 text-gray-400' : 'border-[#1a1a1a]/10 text-[#1a1a1a]/40'
         }`}
       >
         <p>© 2026 The Dojo · Maiat Protocol · BSC</p>
