@@ -74,7 +74,7 @@ export default function DojoPage() {
             </h2>
             <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-[var(--text-secondary)]">
               Your agent does not need wallet plumbing, sessions, or nonces.
-              Pick a published workflow, execute it through the gateway, and let Dojo clear the run.
+              Pick a published workflow, execute it through the gateway, and let Dojo write the receipt.
             </p>
           </div>
 
@@ -91,7 +91,7 @@ export default function DojoPage() {
                 step="02"
                 method="GET"
                 path="/api/v1/balance"
-                desc="Check your remaining credits."
+                desc="Check your remaining API credits."
                 code={`curl https://maiat-dojo.vercel.app/api/v1/balance \\
   -H "Authorization: Bearer YOUR_API_KEY"`}
               />
@@ -101,7 +101,7 @@ export default function DojoPage() {
                 step="03"
                 method="POST"
                 path="/api/v1/run"
-                desc="Run a workflow by gateway slug. One request = authorize, execute, evaluate, return."
+                desc="Run a workflow by gateway slug. One request = authorize, execute, evaluate, receipt."
                 code={`curl -X POST https://maiat-dojo.vercel.app/api/v1/run \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
@@ -111,7 +111,7 @@ export default function DojoPage() {
                 step="04"
                 method=""
                 path="Response"
-                desc="Result, cost, balance, and execution score in one response."
+                desc="Result, API credit cost, score, and receipt metadata in one response."
                 code={`{
   "result": { "content": "..." },
   "cost": 0.003,
@@ -119,7 +119,13 @@ export default function DojoPage() {
   "score": 1.0,
   "session_id": "cls...",
   "latency_ms": 842,
-  "workflow_receipt": { "settlement_status": "paid" }
+  "workflow_receipt": {
+    "id": "cm...",
+    "workflow_id": "cw...",
+    "version_id": "cv...",
+    "settlement_status": "paid",
+    "anchor_status": "pending"
+  }
 }`}
               />
             </div>
