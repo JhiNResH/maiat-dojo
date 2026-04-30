@@ -3,12 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "packageManager": "npm@10.9.2",
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "dev": "bash scripts/check-env.sh && next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "dojo": "tsx scripts/dojo.ts",
+    "dojo": "tsx packages/dojo-cli/src/dojo.ts",
     "seed": "tsx prisma/seed.ts",
     "test": "vitest",
     "test:coverage": "vitest --coverage",
