@@ -4,20 +4,30 @@
   "description": "Creator CLI for publishing, forking, and deploying Dojo agent workflows.",
   "license": "MIT",
   "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
   "bin": {
     "dojo": "bin/dojo"
   },
   "files": [
     "bin",
-    "src",
+    "dist",
     "README.md"
   ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepack": "npm run build"
+  },
   "engines": {
     "node": ">=18"
   },
   "dependencies": {
     "gray-matter": "^4.0.3",
-    "js-yaml": "^4.1.1",
-    "tsx": "^4.21.0"
+    "js-yaml": "^4.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
   }
 }
