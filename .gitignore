@@ -9,6 +9,7 @@ node_modules
 specs/
 
 /src/generated/prisma
+packages/dojo-cli/dist/
 dev.db
 prisma/dev.db
 prisma/prisma/
