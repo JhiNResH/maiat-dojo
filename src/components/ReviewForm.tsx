@@ -106,7 +106,7 @@ export default function ReviewForm({
         <select
           value={sessionId}
           onChange={(e) => setSessionId(e.target.value)}
-          className="w-full bg-transparent border border-[var(--card-border)] p-2 font-mono text-xs text-[var(--text)] focus:outline-none focus:border-[#b08d57]/50"
+          className="w-full bg-transparent border border-[var(--card-border)] p-2 font-mono text-xs text-[var(--text)] focus:outline-none focus:border-[var(--paper-accent)]"
         >
           {sessions.map((s) => (
             <option key={s.id} value={s.id}>
@@ -126,7 +126,7 @@ export default function ReviewForm({
               key={n}
               onClick={() => setRating(n)}
               className={`text-xl transition-colors ${
-                n <= rating ? "text-[#b08d57]" : "text-[var(--text-muted)]/30"
+                n <= rating ? "text-[var(--paper-accent)]" : "text-[var(--text-muted)]"
               }`}
             >
               ★
@@ -140,7 +140,7 @@ export default function ReviewForm({
         onChange={(e) => setComment(e.target.value)}
         placeholder="Share your experience..."
         rows={3}
-        className="w-full bg-transparent border border-[var(--card-border)] p-3 font-mono text-sm text-[var(--text)] placeholder:text-[var(--text-muted)]/40 focus:outline-none focus:border-[#b08d57]/50 resize-none"
+        className="w-full bg-transparent border border-[var(--card-border)] p-3 font-mono text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--paper-accent)] resize-none"
       />
 
       {error && (
@@ -150,7 +150,7 @@ export default function ReviewForm({
       <button
         onClick={submit}
         disabled={submitting || !comment.trim() || !sessionId}
-        className="mt-3 bg-[var(--text)] text-[var(--bg)] font-mono text-xs uppercase tracking-widest px-6 py-2.5 hover:bg-[#b08d57] transition-colors disabled:opacity-40"
+        className="mt-3 bg-[var(--text)] text-[var(--bg)] font-mono text-xs uppercase tracking-widest px-6 py-2.5 hover:bg-[var(--paper-accent)] transition-colors disabled:opacity-40"
       >
         {submitting ? "Submitting..." : "Submit Review"}
       </button>

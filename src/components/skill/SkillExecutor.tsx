@@ -62,7 +62,7 @@ function FormInputAdapter({ bundle, pending, onSubmit }: InputRendererProps) {
 
 function UnsupportedInput({ shape }: { shape: string }) {
   return (
-    <div className="border border-dashed border-[#b8a990] bg-[#f8f5ef] p-3 font-mono text-[10px] text-[#1a1a1a]/50">
+    <div className="border border-dashed border-[var(--paper-border-strong)] bg-[var(--paper-bg)] p-3 font-mono text-[10px] text-[var(--paper-ink-50)]">
       Input shape <span className="font-bold">{shape}</span> ships in a later
       phase. See specs/2026-04-09-chat-first-ui.md.
     </div>
@@ -71,7 +71,7 @@ function UnsupportedInput({ shape }: { shape: string }) {
 
 function UnsupportedOutput({ shape }: { shape: string }) {
   return (
-    <div className="border border-dashed border-[#b8a990] bg-[#f8f5ef] p-3 font-mono text-[10px] text-[#1a1a1a]/50">
+    <div className="border border-dashed border-[var(--paper-border-strong)] bg-[var(--paper-bg)] p-3 font-mono text-[10px] text-[var(--paper-ink-50)]">
       Output shape <span className="font-bold">{shape}</span> ships in a later
       phase.
     </div>
@@ -170,25 +170,25 @@ export function SkillExecutor({
 
   return (
     <div
-      className="space-y-4 border bg-[#f8f5ef] p-4"
+      className="space-y-4 border bg-[var(--paper-bg)] p-4"
       style={{
-        borderColor: "#b8a990",
+        borderColor: "var(--paper-border-strong)",
         borderLeftWidth: "3px",
-        borderLeftColor: "#1a1a1a",
+        borderLeftColor: "var(--paper-ink)",
       }}
     >
       <header className="flex items-baseline justify-between">
-        <h3 className="font-serif text-base font-bold text-[#1a1a1a]">
+        <h3 className="font-serif text-base font-bold text-[var(--paper-ink)]">
           {skill.name}
         </h3>
-        <span className="font-mono text-[9px] uppercase tracking-wider text-[#1a1a1a]/50">
+        <span className="font-mono text-[9px] uppercase tracking-wider text-[var(--paper-ink-50)]">
           {bundle.profile.kind} · {bundle.profile.inputShape} →{" "}
           {bundle.profile.outputShape}
         </span>
       </header>
 
       <section className="space-y-2">
-        <div className="font-mono text-[9px] uppercase tracking-wider text-[#1a1a1a]/50">
+        <div className="font-mono text-[9px] uppercase tracking-wider text-[var(--paper-ink-50)]">
           Input
         </div>
         {InputRenderer ? (
@@ -203,12 +203,12 @@ export function SkillExecutor({
       </section>
 
       <section className="space-y-2">
-        <div className="font-mono text-[9px] uppercase tracking-wider text-[#1a1a1a]/50">
+        <div className="font-mono text-[9px] uppercase tracking-wider text-[var(--paper-ink-50)]">
           Output {pending && "· running…"}
           {result && !pending && (
             <span className="ml-2">
               · {result.latencyMs}ms ·{" "}
-              <span className={result.ok ? "text-[#1a1a1a]" : "text-[#dc2626]"}>
+              <span className={result.ok ? "text-[var(--paper-ink)]" : "text-[var(--paper-danger)]"}>
                 {result.ok ? "ok" : `err ${result.status}`}
               </span>
             </span>
@@ -226,14 +226,14 @@ export function SkillExecutor({
         )}
 
         {result && !result.ok && (
-          <div className="border border-[#dc2626] bg-[#fff5f5] p-2 font-mono text-[10px] text-[#dc2626]">
+          <div className="border border-[var(--paper-danger)] bg-[var(--paper-danger-bg)] p-2 font-mono text-[10px] text-[var(--paper-danger)]">
             {result.error ?? `Sandbox returned status ${result.status}`}
           </div>
         )}
       </section>
 
       {bundle.profile.estLatencyMs && (
-        <footer className="font-mono text-[9px] text-[#1a1a1a]/40">
+        <footer className="font-mono text-[9px] text-[var(--paper-ink-40)]">
           est. latency ~{bundle.profile.estLatencyMs}ms
         </footer>
       )}

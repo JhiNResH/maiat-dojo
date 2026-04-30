@@ -236,12 +236,12 @@ export function PublishWizardCard() {
   if (!authenticated) {
     return (
       <div className="classified" data-label="Publish Skill">
-        <p className="mb-3 font-serif text-sm text-[#1a1a1a]/60">
+        <p className="mb-3 font-serif text-sm text-[var(--paper-ink-60)]">
           Log in to publish a skill on the Dojo marketplace.
         </p>
         <button
           onClick={login}
-          className="flex items-center gap-2 bg-[#1a1a1a] px-4 py-2 font-mono text-[11px] uppercase tracking-wider text-[#f0ece2] transition hover:bg-[#1a1a1a]/80"
+          className="flex items-center gap-2 bg-[var(--paper-ink)] px-4 py-2 font-mono text-[11px] uppercase tracking-wider text-[var(--paper-bg)] transition hover:bg-[var(--paper-ink-70)]"
         >
           <LogIn size={12} />
           Log In to Publish
@@ -254,16 +254,16 @@ export function PublishWizardCard() {
   if (published) {
     return (
       <div className="classified" data-label="Published">
-        <div className="mb-2 border-l-2 border-green-800 bg-green-800/10 px-2 py-1 font-mono text-xs text-green-800">
+        <div className="mb-2 border-l-2 border-[var(--paper-success)] bg-[var(--paper-success-bg)] px-2 py-1 font-mono text-xs text-[var(--paper-success)]">
           ✓ Skill published
         </div>
-        <p className="font-serif text-[15px] leading-[1.65] text-[#1a1a1a]">
+        <p className="font-serif text-[15px] leading-[1.65] text-[var(--paper-ink)]">
           <strong>{publishedSkillName}</strong> is now live. Try{" "}
-          <code className="font-mono text-[11px] font-bold text-[#b08d57]">
+          <code className="font-mono text-[11px] font-bold text-[var(--paper-accent)]">
             list skills
           </code>{" "}
           to see it, or{" "}
-          <code className="font-mono text-[11px] font-bold text-[#b08d57]">
+          <code className="font-mono text-[11px] font-bold text-[var(--paper-accent)]">
             call {publishedSkillName.toLowerCase().replace(/\s+/g, "-")}
           </code>{" "}
           to test.
@@ -281,10 +281,10 @@ export function PublishWizardCard() {
             key={s}
             className={`h-1 flex-1 ${
               s < step
-                ? "bg-[#1a1a1a]"
+                ? "bg-[var(--paper-ink)]"
                 : s === step
-                  ? "bg-[#b08d57]"
-                  : "bg-[#1a1a1a]/15"
+                  ? "bg-[var(--paper-accent)]"
+                  : "bg-[var(--paper-ink-15)]"
             }`}
           />
         ))}
@@ -292,7 +292,7 @@ export function PublishWizardCard() {
 
       {/* Error display */}
       {error && (
-        <div className="mb-3 border-l-2 border-[#dc2626] bg-[#dc2626]/5 px-2 py-1 font-mono text-[11px] text-[#dc2626]">
+        <div className="mb-3 border-l-2 border-[var(--paper-danger)] bg-[var(--paper-danger-bg)] px-2 py-1 font-mono text-[11px] text-[var(--paper-danger)]">
           {error}
         </div>
       )}
@@ -365,7 +365,7 @@ export function PublishWizardCard() {
             <button
               onClick={handleInferSchema}
               disabled={loading || !inputDescription.trim()}
-              className="flex items-center gap-2 bg-[#1a1a1a] px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-[#f0ece2] transition hover:bg-[#1a1a1a]/80 disabled:opacity-40"
+              className="flex items-center gap-2 bg-[var(--paper-ink)] px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-[var(--paper-bg)] transition hover:bg-[var(--paper-ink-70)] disabled:opacity-40"
             >
               {loading ? "Inferring…" : "Infer Schema"}
             </button>
@@ -403,7 +403,7 @@ export function PublishWizardCard() {
           <StepHeader title="Execution Profile" hint="How does your skill respond?" />
           <div className="space-y-3">
             <div>
-              <span className="mb-1 block font-mono text-[9px] uppercase tracking-wider text-[#1a1a1a]/50">
+              <span className="mb-1 block font-mono text-[9px] uppercase tracking-wider text-[var(--paper-ink-50)]">
                 Output Format
               </span>
               <div className="flex gap-2">
@@ -413,14 +413,14 @@ export function PublishWizardCard() {
                     onClick={() => setOutputShape(shape.value)}
                     className={`flex-1 border-2 px-3 py-2 text-left transition ${
                       outputShape === shape.value
-                        ? "border-[#1a1a1a] bg-[#1a1a1a]/5"
-                        : "border-[#1a1a1a]/15 hover:border-[#1a1a1a]/40"
+                        ? "border-[var(--paper-ink)] bg-[var(--paper-ink-5)]"
+                        : "border-[var(--paper-ink-15)] hover:border-[var(--paper-ink-40)]"
                     }`}
                   >
                     <span className="block font-mono text-[11px] font-bold">
                       {shape.label}
                     </span>
-                    <span className="block font-serif text-[11px] text-[#1a1a1a]/50">
+                    <span className="block font-serif text-[11px] text-[var(--paper-ink-50)]">
                       {shape.desc}
                     </span>
                   </button>
@@ -428,7 +428,7 @@ export function PublishWizardCard() {
               </div>
             </div>
             <div>
-              <span className="mb-1 block font-mono text-[9px] uppercase tracking-wider text-[#1a1a1a]/50">
+              <span className="mb-1 block font-mono text-[9px] uppercase tracking-wider text-[var(--paper-ink-50)]">
                 Expected Latency: {estLatencyMs}ms
               </span>
               <input
@@ -438,9 +438,9 @@ export function PublishWizardCard() {
                 step={100}
                 value={estLatencyMs}
                 onChange={(e) => setEstLatencyMs(Number(e.target.value))}
-                className="w-full accent-[#1a1a1a]"
+                className="w-full accent-[var(--paper-ink)]"
               />
-              <div className="flex justify-between font-mono text-[9px] text-[#1a1a1a]/30">
+              <div className="flex justify-between font-mono text-[9px] text-[var(--paper-ink-30)]">
                 <span>200ms</span>
                 <span>5000ms</span>
               </div>
@@ -462,7 +462,7 @@ export function PublishWizardCard() {
           <button
             onClick={handleDryRun}
             disabled={loading}
-            className="mb-3 flex items-center gap-2 bg-[#1a1a1a] px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-[#f0ece2] transition hover:bg-[#1a1a1a]/80 disabled:opacity-40"
+            className="mb-3 flex items-center gap-2 bg-[var(--paper-ink)] px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-[var(--paper-bg)] transition hover:bg-[var(--paper-ink-70)] disabled:opacity-40"
           >
             {loading ? "Testing…" : "Run Test"}
           </button>
@@ -470,14 +470,14 @@ export function PublishWizardCard() {
             <div
               className={`border-l-2 px-3 py-2 ${
                 dryRunResult.ok
-                  ? "border-green-800 bg-green-800/5"
-                  : "border-[#dc2626] bg-[#dc2626]/5"
+                  ? "border-[var(--paper-success)] bg-[var(--paper-success-bg)]"
+                  : "border-[var(--paper-danger)] bg-[var(--paper-danger-bg)]"
               }`}
             >
               <div className="mb-1 font-mono text-[11px] font-bold">
                 {dryRunResult.ok ? "✓ PASS" : "✗ FAIL"}
               </div>
-              <div className="space-y-0.5 font-mono text-[10px] text-[#1a1a1a]/70">
+              <div className="space-y-0.5 font-mono text-[10px] text-[var(--paper-ink-70)]">
                 <div>Status: {dryRunResult.status}</div>
                 <div>Latency: {dryRunResult.latencyMs}ms</div>
                 <div>
@@ -510,13 +510,13 @@ export function PublishWizardCard() {
               placeholder="0.01"
             />
             <div>
-              <span className="mb-1 block font-mono text-[9px] uppercase tracking-wider text-[#1a1a1a]/50">
+              <span className="mb-1 block font-mono text-[9px] uppercase tracking-wider text-[var(--paper-ink-50)]">
                 Category
               </span>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full border-2 border-[#1a1a1a]/15 bg-transparent px-3 py-2 font-mono text-[11px] text-[#1a1a1a] outline-none focus:border-[#1a1a1a]"
+                className="w-full border-2 border-[var(--paper-ink-15)] bg-transparent px-3 py-2 font-mono text-[11px] text-[var(--paper-ink)] outline-none focus:border-[var(--paper-ink)]"
               >
                 {CATEGORIES.map((c) => (
                   <option key={c} value={c}>
@@ -527,11 +527,11 @@ export function PublishWizardCard() {
             </div>
 
             {/* Summary */}
-            <div className="border-t-2 border-dotted border-[#1a1a1a]/15 pt-3">
-              <span className="mb-2 block font-mono text-[9px] font-bold uppercase tracking-wider text-[#1a1a1a]/50">
+            <div className="border-t-2 border-dotted border-[var(--paper-ink-15)] pt-3">
+              <span className="mb-2 block font-mono text-[9px] font-bold uppercase tracking-wider text-[var(--paper-ink-50)]">
                 Summary
               </span>
-              <div className="space-y-1 font-mono text-[10px] text-[#1a1a1a]/70">
+              <div className="space-y-1 font-mono text-[10px] text-[var(--paper-ink-70)]">
                 <div>
                   <strong>{name}</strong> — {description}
                 </div>
@@ -550,7 +550,7 @@ export function PublishWizardCard() {
               disabled={
                 loading || !pricePerCall || Number(pricePerCall) <= 0
               }
-              className="w-full bg-[#1a1a1a] py-2.5 font-mono text-[11px] uppercase tracking-wider text-[#f0ece2] transition hover:bg-[#1a1a1a]/80 disabled:opacity-40"
+              className="w-full bg-[var(--paper-ink)] py-2.5 font-mono text-[11px] uppercase tracking-wider text-[var(--paper-bg)] transition hover:bg-[var(--paper-ink-70)] disabled:opacity-40"
             >
               {loading ? "Publishing…" : "Publish Skill"}
             </button>
@@ -566,11 +566,11 @@ export function PublishWizardCard() {
 
 function StepHeader({ title, hint }: { title: string; hint: string }) {
   return (
-    <div className="mb-3 border-b-[3px] border-double border-[#1a1a1a]/60 pb-1">
-      <span className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-[#1a1a1a]/70">
+    <div className="mb-3 border-b-[3px] border-double border-[var(--paper-ink-60)] pb-1">
+      <span className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-[var(--paper-ink-70)]">
         {title}
       </span>
-      <span className="ml-2 font-serif text-[11px] italic text-[#1a1a1a]/40">
+      <span className="ml-2 font-serif text-[11px] italic text-[var(--paper-ink-40)]">
         {hint}
       </span>
     </div>
@@ -590,7 +590,7 @@ function Input({
 }) {
   return (
     <div>
-      <span className="mb-1 block font-mono text-[9px] uppercase tracking-wider text-[#1a1a1a]/50">
+      <span className="mb-1 block font-mono text-[9px] uppercase tracking-wider text-[var(--paper-ink-50)]">
         {label}
       </span>
       <input
@@ -598,7 +598,7 @@ function Input({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full border-2 border-[#1a1a1a]/15 bg-transparent px-3 py-2 font-mono text-[11px] text-[#1a1a1a] outline-none placeholder:text-[#1a1a1a]/25 focus:border-[#1a1a1a]"
+        className="w-full border-2 border-[var(--paper-ink-15)] bg-transparent px-3 py-2 font-mono text-[11px] text-[var(--paper-ink)] outline-none placeholder:text-[var(--paper-ink-25)] focus:border-[var(--paper-ink)]"
       />
     </div>
   );
@@ -621,7 +621,7 @@ function Textarea({
 }) {
   return (
     <div>
-      <span className="mb-1 block font-mono text-[9px] uppercase tracking-wider text-[#1a1a1a]/50">
+      <span className="mb-1 block font-mono text-[9px] uppercase tracking-wider text-[var(--paper-ink-50)]">
         {label}
       </span>
       <textarea
@@ -629,7 +629,7 @@ function Textarea({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         rows={rows}
-        className={`w-full resize-y border-2 border-[#1a1a1a]/15 bg-transparent px-3 py-2 text-[11px] text-[#1a1a1a] outline-none placeholder:text-[#1a1a1a]/25 focus:border-[#1a1a1a] ${
+        className={`w-full resize-y border-2 border-[var(--paper-ink-15)] bg-transparent px-3 py-2 text-[11px] text-[var(--paper-ink)] outline-none placeholder:text-[var(--paper-ink-25)] focus:border-[var(--paper-ink)] ${
           mono ? "font-mono" : "font-serif"
         }`}
       />
@@ -655,7 +655,7 @@ function StepNav({
       {canPrev && onPrev ? (
         <button
           onClick={onPrev}
-          className="font-mono text-[10px] uppercase tracking-wider text-[#1a1a1a]/50 transition hover:text-[#1a1a1a]"
+          className="font-mono text-[10px] uppercase tracking-wider text-[var(--paper-ink-50)] transition hover:text-[var(--paper-ink)]"
         >
           ← Back
         </button>
@@ -666,7 +666,7 @@ function StepNav({
         <button
           onClick={onNext}
           disabled={!canNext}
-          className="bg-[#1a1a1a] px-4 py-1.5 font-mono text-[10px] uppercase tracking-wider text-[#f0ece2] transition hover:bg-[#1a1a1a]/80 disabled:opacity-40"
+          className="bg-[var(--paper-ink)] px-4 py-1.5 font-mono text-[10px] uppercase tracking-wider text-[var(--paper-bg)] transition hover:bg-[var(--paper-ink-70)] disabled:opacity-40"
         >
           {nextLabel ?? "Next →"}
         </button>

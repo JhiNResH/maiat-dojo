@@ -229,15 +229,15 @@ export function ChatRoom() {
           {pending && (
             <div className="mb-8">
               <div className="mb-1.5 flex items-center gap-2">
-                <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-[#b08d57]/70">
+                <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-[var(--paper-accent)]">
                   Dojo
                 </span>
-                <span className="h-px flex-1 bg-[#1a1a1a]/10" />
+                <span className="h-px flex-1 bg-[var(--paper-ink-10)]" />
               </div>
-              <div className="flex items-center gap-1.5 font-serif text-[15px] italic text-[#1a1a1a]/40">
-                <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[#1a1a1a]/50 [animation-delay:0ms]" />
-                <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[#1a1a1a]/50 [animation-delay:150ms]" />
-                <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[#1a1a1a]/50 [animation-delay:300ms]" />
+              <div className="flex items-center gap-1.5 font-serif text-[15px] italic text-[var(--paper-ink-40)]">
+                <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--paper-ink-50)] [animation-delay:0ms]" />
+                <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--paper-ink-50)] [animation-delay:150ms]" />
+                <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--paper-ink-50)] [animation-delay:300ms]" />
                 <span className="ml-1">thinking</span>
               </div>
             </div>

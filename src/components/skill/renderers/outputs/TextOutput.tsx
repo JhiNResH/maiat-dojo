@@ -44,7 +44,7 @@ export function TextOutput({ data, example, mode = "sandbox" }: TextOutputProps)
 
   if (value === null) {
     return (
-      <div className="border border-dashed border-[#b8a990] bg-[#f8f5ef] p-3 font-mono text-[10px] text-[#1a1a1a]/40">
+      <div className="border border-dashed border-[var(--paper-border-strong)] bg-[var(--paper-bg)] p-3 font-mono text-[10px] text-[var(--paper-ink-40)]">
         No text output yet.
       </div>
     );
@@ -52,14 +52,14 @@ export function TextOutput({ data, example, mode = "sandbox" }: TextOutputProps)
 
   return (
     <div className="space-y-1">
-      <span className="font-mono text-[9px] uppercase tracking-wider text-[#1a1a1a]/50">
+      <span className="font-mono text-[9px] uppercase tracking-wider text-[var(--paper-ink-50)]">
         {isPlaceholder ? "Example output" : `Response (${mode})`}
       </span>
       <div
-        className={`whitespace-pre-wrap break-words border bg-[#f8f5ef] p-3 font-serif text-sm leading-relaxed text-[#1a1a1a] ${
+        className={`whitespace-pre-wrap break-words border bg-[var(--paper-bg)] p-3 font-serif text-sm leading-relaxed text-[var(--paper-ink)] ${
           isPlaceholder
-            ? "border-dashed border-[#b8a990] text-[#1a1a1a]/50"
-            : "border-[#1a1a1a]"
+            ? "border-dashed border-[var(--paper-border-strong)] text-[var(--paper-ink-50)]"
+            : "border-[var(--paper-ink)]"
         }`}
       >
         {value}
