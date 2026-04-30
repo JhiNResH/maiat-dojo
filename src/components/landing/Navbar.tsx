@@ -65,7 +65,7 @@ export function Navbar() {
         <Link href="/" className="flex items-center gap-2.5">
           <span className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border border-[var(--border)] bg-white">
             <Image
-              src="/brand/dojo-mantis-logo.jpg"
+              src="/brand/dojo-mantis-logo.png"
               alt="The Dojo"
               width={32}
               height={32}
