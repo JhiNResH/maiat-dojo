@@ -1,0 +1,23 @@
+#!/usr/bin/env sh
+set -e
+
+SOURCE="$0"
+while [ -h "$SOURCE" ]; do
+  DIR=$(CDPATH= cd -- "$(dirname -- "$SOURCE")" && pwd)
+  TARGET=$(readlink "$SOURCE")
+  case "$TARGET" in
+    /*) SOURCE="$TARGET" ;;
+    *) SOURCE="$DIR/$TARGET" ;;
+  esac
+done
+
+DIR=$(CDPATH= cd -- "$(dirname -- "$SOURCE")" && pwd)
+if [ -x "$DIR/../node_modules/.bin/tsx" ]; then
+  TSX="$DIR/../node_modules/.bin/tsx"
+elif [ -x "$DIR/../../../node_modules/.bin/tsx" ]; then
+  TSX="$DIR/../../../node_modules/.bin/tsx"
+else
+  TSX="tsx"
+fi
+
+exec "$TSX" "$DIR/../src/dojo.ts" "$@"

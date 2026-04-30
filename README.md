@@ -73,14 +73,14 @@ Two workflow modes: **Active** (pay-per-run via gateway sessions) and **Passive*
 
 ### Creator CLI
 
-Creators can publish an executable workflow endpoint from a manifest:
+The standalone CLI package lives in `packages/dojo-cli` and is intended to be published as `@maiat/dojo`. Once published, creators can publish an executable workflow endpoint from their own agent repo without cloning Dojo:
 
 ```bash
-npm run dojo -- init
-DOJO_API_KEY=dojo_sk_... npm run dojo -- test --file dojo.workflow.yaml
-DOJO_API_KEY=dojo_sk_... npm run dojo -- publish --file dojo.workflow.yaml
-DOJO_API_KEY=dojo_sk_... npm run dojo -- fork --workflow quick-audit-workflow --name "My Audit Fork"
-DOJO_API_KEY=dojo_sk_... npm run dojo -- deploy --workflow my-audit-fork --file dojo.workflow.yaml
+npx @maiat/dojo init
+DOJO_API_KEY=dojo_sk_... npx @maiat/dojo test --file dojo.workflow.yaml
+DOJO_API_KEY=dojo_sk_... npx @maiat/dojo publish --file dojo.workflow.yaml
+DOJO_API_KEY=dojo_sk_... npx @maiat/dojo fork --workflow quick-audit-workflow --name "My Audit Fork"
+DOJO_API_KEY=dojo_sk_... npx @maiat/dojo deploy --workflow my-audit-fork --file dojo.workflow.yaml
 ```
 
 `publish` runs `/api/skills/dry-run` first, then creates the active `Skill`, `Workflow`, and first `WorkflowVersion` through `/api/skills/create`. Use `examples/dojo.workflow.yaml` as the starter manifest. Production creator endpoints must be public HTTPS URLs.
@@ -90,7 +90,13 @@ DOJO_API_KEY=dojo_sk_... npm run dojo -- deploy --workflow my-audit-fork --file 
 `dojo.workflow.yaml` is the canonical format. `SKILL.md` files with YAML frontmatter are also supported for compatibility:
 
 ```bash
-DOJO_API_KEY=dojo_sk_... npm run dojo -- publish --file SKILL.md
+DOJO_API_KEY=dojo_sk_... npx @maiat/dojo publish --file SKILL.md
+```
+
+Inside this repo, developers can run the same CLI without publishing the npm package:
+
+```bash
+npm run dojo -- help
 ```
 
 ## Stack

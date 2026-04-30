@@ -3,9 +3,9 @@
  * Dojo creator CLI
  *
  * Publish one executable workflow endpoint into Dojo:
- *   npm run dojo -- init
- *   DOJO_API_KEY=dojo_sk_... npm run dojo -- test --file dojo.workflow.yaml
- *   DOJO_API_KEY=dojo_sk_... npm run dojo -- publish --file dojo.workflow.yaml
+ *   dojo init
+ *   DOJO_API_KEY=dojo_sk_... dojo test --file dojo.workflow.yaml
+ *   DOJO_API_KEY=dojo_sk_... dojo publish --file dojo.workflow.yaml
  */
 
 import { existsSync, readFileSync, writeFileSync } from 'fs';
@@ -199,7 +199,7 @@ function resolveConfig(flags: Flags) {
 
 function readManifest(file: string): LoadedManifest {
   if (!existsSync(file)) {
-    fail(`Manifest not found: ${file}\nRun: npm run dojo -- init --file ${basename(file)}`);
+    fail(`Manifest not found: ${file}\nRun: dojo init --file ${basename(file)}`);
   }
 
   const raw = readFileSync(file, 'utf8');
@@ -501,13 +501,13 @@ function printHelp() {
   console.log(`Dojo creator CLI
 
 Usage:
-  npm run dojo -- init [--file dojo.workflow.yaml]
-  DOJO_API_KEY=dojo_sk_... npm run dojo -- test [--file dojo.workflow.yaml] [--url http://localhost:3000]
-  DOJO_API_KEY=dojo_sk_... npm run dojo -- publish [--file dojo.workflow.yaml] [--url http://localhost:3000]
-  DOJO_API_KEY=dojo_sk_... npm run dojo -- publish --file SKILL.md
-  DOJO_API_KEY=dojo_sk_... npm run dojo -- fork --workflow <id-or-slug> [--name "My Fork"]
-  DOJO_API_KEY=dojo_sk_... npm run dojo -- deploy --workflow <id-or-slug> --endpoint https://... --price 0.25
-  DOJO_API_KEY=dojo_sk_... npm run dojo -- deploy --workflow <id-or-slug> --file dojo.workflow.yaml
+  dojo init [--file dojo.workflow.yaml]
+  DOJO_API_KEY=dojo_sk_... dojo test [--file dojo.workflow.yaml] [--url http://localhost:3000]
+  DOJO_API_KEY=dojo_sk_... dojo publish [--file dojo.workflow.yaml] [--url http://localhost:3000]
+  DOJO_API_KEY=dojo_sk_... dojo publish --file SKILL.md
+  DOJO_API_KEY=dojo_sk_... dojo fork --workflow <id-or-slug> [--name "My Fork"]
+  DOJO_API_KEY=dojo_sk_... dojo deploy --workflow <id-or-slug> --endpoint https://... --price 0.25
+  DOJO_API_KEY=dojo_sk_... dojo deploy --workflow <id-or-slug> --file dojo.workflow.yaml
 
 Environment:
   DOJO_API_KEY                 Creator API key for production publish
