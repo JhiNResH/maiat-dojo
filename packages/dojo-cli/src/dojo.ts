@@ -104,6 +104,27 @@ type DeployResponse = {
   error?: string;
 };
 
+type RunResponse = {
+  result?: unknown;
+  cost?: number;
+  balance?: number;
+  score?: number;
+  session_id?: string;
+  latency_ms?: number;
+  workflow_receipt?: {
+    id?: string;
+    workflow_id?: string;
+    version_id?: string | null;
+    settlement_status?: string;
+    anchor_status?: string;
+    onchain_request_id?: string | null;
+    swap_tx_hash?: string | null;
+    settle_tx_hash?: string | null;
+  };
+  error?: string;
+  reason?: string;
+};
+
 type LoadedManifest = {
   manifest: WorkflowManifest;
   raw: string;
@@ -184,6 +205,31 @@ function flagString(flags: Flags, name: string, fallback?: string): string | und
 
 function flagBool(flags: Flags, name: string): boolean {
   return flags[name] === true;
+}
+
+function readJsonInput(flags: Flags): Record<string, unknown> {
+  const inputFile = flagString(flags, 'input-file');
+  const inline = flagString(flags, 'input');
+
+  if (inputFile && inline) {
+    fail('Use either --input or --input-file, not both.');
+  }
+
+  const raw = inputFile ? readFileSync(resolve(inputFile), 'utf8') : inline ?? '{}';
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (err) {
+    const source = inputFile ? inputFile : '--input';
+    const message = err instanceof Error ? err.message : 'Invalid JSON';
+    fail(`Invalid JSON in ${source}: ${message}`);
+  }
+
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    fail('Run input must be a JSON object.');
+  }
+
+  return parsed as Record<string, unknown>;
 }
 
 function resolveConfig(flags: Flags) {
@@ -497,6 +543,60 @@ async function deployWorkflow(
   return data;
 }
 
+async function runWorkflow(
+  baseUrl: string,
+  apiKey: string | undefined,
+  flags: Flags,
+) {
+  if (!apiKey) fail('DOJO_API_KEY or --api-key is required for run.');
+
+  const skill = flagString(flags, 'skill') ?? flagString(flags, 'workflow');
+  if (!skill) fail('Missing --skill <gateway-slug>.');
+
+  const input = readJsonInput(flags);
+  const { ok, status, data } = await requestJson<RunResponse>(
+    `${baseUrl}/api/v1/run`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders(apiKey),
+      },
+      body: JSON.stringify({ skill, input }),
+    },
+  );
+
+  if (!ok) {
+    const reason = data.reason ? ` — ${data.reason}` : '';
+    fail(`Run failed (HTTP ${status}): ${data.error ?? JSON.stringify(data)}${reason}`);
+  }
+
+  console.log('Workflow run cleared.');
+  console.log(`  skill: ${skill}`);
+  if (typeof data.cost === 'number') console.log(`  cost: ${data.cost}`);
+  if (typeof data.balance === 'number') console.log(`  balance: ${data.balance}`);
+  if (typeof data.score === 'number') console.log(`  score: ${data.score}`);
+  if (data.session_id) console.log(`  sessionId: ${data.session_id}`);
+  if (typeof data.latency_ms === 'number') console.log(`  latency: ${data.latency_ms}ms`);
+  if (data.workflow_receipt?.id) {
+    console.log(`  receiptId: ${data.workflow_receipt.id}`);
+    console.log(`  receiptUrl: ${baseUrl}/r/${data.workflow_receipt.id}`);
+  }
+  if (data.workflow_receipt?.settlement_status) {
+    console.log(`  settlement: ${data.workflow_receipt.settlement_status}`);
+  }
+  if (data.workflow_receipt?.anchor_status) {
+    console.log(`  anchor: ${data.workflow_receipt.anchor_status}`);
+  }
+
+  if (!flagBool(flags, 'no-result')) {
+    console.log('\nResult:');
+    console.log(JSON.stringify(data.result ?? data, null, 2));
+  }
+
+  return data;
+}
+
 function printHelp() {
   console.log(`Dojo creator CLI
 
@@ -508,6 +608,8 @@ Usage:
   DOJO_API_KEY=dojo_sk_... dojo fork --workflow <id-or-slug> [--name "My Fork"]
   DOJO_API_KEY=dojo_sk_... dojo deploy --workflow <id-or-slug> --endpoint https://... --price 0.25
   DOJO_API_KEY=dojo_sk_... dojo deploy --workflow <id-or-slug> --file dojo.workflow.yaml
+  DOJO_API_KEY=dojo_sk_... dojo run --skill <gateway-slug> --input '{"target":"..."}'
+  DOJO_API_KEY=dojo_sk_... dojo run --skill <gateway-slug> --input-file input.json
 
 Environment:
   DOJO_API_KEY                 Creator API key for production publish
@@ -519,6 +621,7 @@ Notes:
   - publish runs dry-run first unless --skip-test is passed.
   - dojo.workflow.yaml is canonical; SKILL.md frontmatter is supported for compatibility.
   - fork creates a draft workflow; deploy attaches your executable endpoint.
+  - run calls /api/v1/run and prints the shareable /r/<receiptId> proof URL.
 `);
 }
 
@@ -569,6 +672,11 @@ async function main() {
 
   if (command === 'deploy') {
     await deployWorkflow(baseUrl, apiKey, flags);
+    return;
+  }
+
+  if (command === 'run') {
+    await runWorkflow(baseUrl, apiKey, flags);
     return;
   }
 
