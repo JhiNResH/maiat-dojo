@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, GitFork, Play, Rocket, ShieldCheck } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ExternalLink, GitFork, Play, Rocket, ShieldCheck } from "lucide-react";
 import { usePrivy } from "@privy-io/react-auth";
 import { Navbar } from "@/components/landing/Navbar";
 
@@ -158,10 +158,10 @@ function actionCopy(action: WorkflowAction) {
     case "run":
       return {
         icon: Play,
-        label: "Run workflow",
-        eyebrow: "Execution",
-        title: "Run a proven workflow.",
-        body: "Send one input and receive a structured sandbox result. Production API runs write paid execution receipts through the Dojo gateway.",
+        label: "Run with escrow",
+        eyebrow: "Clearing",
+        title: "Hire this workflow with escrow.",
+        body: "Dojo executes the workflow, evaluates delivery, settles PASS/FAIL, and writes an execution receipt for reputation.",
       };
     case "fork":
       return {
@@ -329,8 +329,41 @@ function RunPanel({ workflow }: { workflow: WorkflowActionData }) {
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
-      <section className="dojo-card p-5">
+    <div className="grid gap-4 lg:grid-cols-[360px_1fr]">
+      <div className="space-y-4">
+        <section className="dojo-card p-5">
+          <div className="mb-4 flex items-center justify-between">
+            <span className="label-sm">Settlement policy</span>
+            <span className="rounded-[6px] bg-[var(--bg-secondary)] px-2 py-1 font-mono text-[10px] text-[var(--text-secondary)]">
+              escrow
+            </span>
+          </div>
+          <div className="space-y-3 text-[13px] leading-relaxed text-[var(--text-secondary)]">
+            <PolicyRow label="Price" value={`$${workflow.pricePerRun.toFixed(3)} per run`} />
+            <PolicyRow label="Evaluator" value="dojo-sanity-v1" />
+            <PolicyRow label="PASS" value="creator paid, receipt improves reputation" />
+            <PolicyRow label="FAIL" value="buyer refunded, failure is recorded" />
+          </div>
+          <div className="mt-4 rounded-[8px] border border-[var(--border-light)] bg-[var(--bg-secondary)] p-3">
+            <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--text-muted)]">
+              Pass criteria
+            </div>
+            <div className="grid gap-2 text-[12px] text-[var(--text-secondary)]">
+              {[
+                "2xx response delivered",
+                "valid JSON output",
+                `SLA under ${workflow.version?.slaMs ?? 5000}ms`,
+              ].map((item) => (
+                <div key={item} className="flex items-center gap-2">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-[var(--signal)]" />
+                  <span>{item}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="dojo-card p-5">
         <div className="mb-5 flex items-center justify-between">
           <span className="label-sm">Input</span>
           <span className="font-mono text-[11px] text-[var(--text-muted)]">
@@ -376,21 +409,31 @@ function RunPanel({ workflow }: { workflow: WorkflowActionData }) {
               disabled={paidPending || missingRequired || !apiKey.trim()}
               className="dojo-action dojo-action-primary w-full disabled:opacity-40"
             >
-              {paidPending ? "Running..." : `Paid run · $${workflow.pricePerRun.toFixed(3)}`}
+              {paidPending ? "Clearing..." : `Run with escrow · $${workflow.pricePerRun.toFixed(3)}`}
             </button>
           </div>
         </div>
       </section>
+      </div>
 
       <section id="receipt" className="dojo-card p-5">
         <div className="mb-5 flex items-center justify-between">
-          <span className="label-sm">Execution result</span>
+          <span className="label-sm">Receipt preview</span>
           {(paidResult || result) && (
             <span className="font-mono text-[11px] text-[var(--text-muted)]">
               {(paidResult?.latency_ms ?? result?.latencyMs ?? 0)}ms
             </span>
           )}
         </div>
+        {paidResult?.workflow_receipt?.id && (
+          <Link
+            href={`/r/${paidResult.workflow_receipt.id}`}
+            className="mb-4 inline-flex items-center gap-2 rounded-[8px] border border-[var(--border)] bg-[var(--bg-secondary)] px-3 py-2 text-[12px] font-semibold text-[var(--text-secondary)] transition-colors hover:text-[var(--text)]"
+          >
+            Open execution receipt
+            <ExternalLink className="h-3.5 w-3.5" />
+          </Link>
+        )}
         <pre className="min-h-[360px] overflow-auto rounded-[8px] border border-[var(--border)] bg-[var(--bg-secondary)] p-4 font-mono text-[12px] leading-relaxed text-[var(--text-secondary)]">
           {formatJson(
             paidResult
@@ -400,12 +443,24 @@ function RunPanel({ workflow }: { workflow: WorkflowActionData }) {
               : result ?? {
                   status: "ready",
                   workflow: workflow.slug,
-                  sandbox: "Use Sandbox preview for a free endpoint check.",
-                  paid_run: "Use Paid run to write WorkflowRunReceipt and reputation.",
+                  escrow: "Paid runs settle PASS/FAIL and write WorkflowRunReceipt.",
+                  sandbox: "Sandbox preview only checks endpoint shape; it does not affect reputation.",
+                  receipt: "After a cleared run, open /r/<receiptId> for the proof artifact.",
                 },
           )}
         </pre>
       </section>
+    </div>
+  );
+}
+
+function PolicyRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-start justify-between gap-4 border-b border-[var(--border-light)] pb-2 last:border-b-0">
+      <span className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
+        {label}
+      </span>
+      <span className="max-w-[210px] text-right text-[12.5px] text-[var(--text)]">{value}</span>
     </div>
   );
 }
@@ -720,7 +775,7 @@ export function WorkflowActionClient({
           className="dojo-back-link"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
-          Marketplace
+          Clearing network
         </Link>
 
         <section className="mb-5 flex flex-col gap-5 border-b border-[var(--border-light)] pb-5 lg:flex-row lg:items-start lg:justify-between">
@@ -732,7 +787,7 @@ export function WorkflowActionClient({
               </span>
             </div>
             <div className="mb-2 flex flex-wrap items-center gap-3 font-mono text-[10.5px] uppercase tracking-[0.12em] text-[var(--text-muted)]">
-              <Link href="/" className="hover:text-[var(--text)]">Workflows</Link>
+              <Link href="/" className="hover:text-[var(--text)]">Clearing venue</Link>
               <span>/</span>
               <span>{workflow.category}</span>
               <span>/</span>
@@ -749,10 +804,10 @@ export function WorkflowActionClient({
             </p>
             <div className="mt-4 flex flex-wrap items-center gap-4 text-[12px]">
               {[
-                ["Runs", workflow.runs],
-                ["Trust", workflow.trustScore],
-                ["p95", workflow.version?.slaMs ? `${workflow.version.slaMs}ms` : "1.2s"],
-                ["Forks", workflow.forks],
+                ["Verified runs", workflow.runs],
+                ["Trust score", workflow.trustScore],
+                ["Evaluator SLA", workflow.version?.slaMs ? `${workflow.version.slaMs}ms` : "1.2s"],
+                ["Fork lineage", workflow.forks],
                 ["Creator", workflow.creatorName],
               ].map(([label, value]) => (
                 <div key={label} className="flex flex-col gap-1">
@@ -782,14 +837,14 @@ export function WorkflowActionClient({
                   {item === "run" && <Play className="h-3.5 w-3.5 fill-current" />}
                   {item === "fork" && <GitFork className="h-3.5 w-3.5" />}
                   {item === "deploy" && <Rocket className="h-3.5 w-3.5" />}
-                  {item === "run" ? `Run · $${workflow.pricePerRun.toFixed(3)}` : item}
+                  {item === "run" ? `Run with escrow · $${workflow.pricePerRun.toFixed(3)}` : item}
                 </Link>
               ))}
             </div>
             <div className="mt-3 flex items-center justify-between font-mono text-[10.5px] text-[var(--text-muted)]">
-              <span>paid run</span>
+              <span>PASS pays</span>
               <span className="font-semibold text-[var(--text)]">API key</span>
-              <span>receipt-backed</span>
+              <span>FAIL refunds</span>
             </div>
           </aside>
         </section>
