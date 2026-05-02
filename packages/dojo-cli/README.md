@@ -6,6 +6,7 @@ Creator CLI for publishing, forking, and deploying Dojo agent workflows.
 
 ```bash
 npx @maiat/dojo init
+npm run dojo -- dev-key
 DOJO_API_KEY=dojo_sk_... npx @maiat/dojo test --file dojo.workflow.yaml
 DOJO_API_KEY=dojo_sk_... npx @maiat/dojo publish --file dojo.workflow.yaml
 DOJO_API_KEY=dojo_sk_... npx @maiat/dojo fork --workflow web-scraper --name "My Scraper Fork"
@@ -18,6 +19,21 @@ Use `DOJO_BASE_URL` or `--url` to point at a non-production Dojo instance:
 ```bash
 DOJO_BASE_URL=http://localhost:3000 npx @maiat/dojo publish --file dojo.workflow.yaml
 ```
+
+For local demos from the repo, generate or reuse a DB-backed key:
+
+```bash
+npm run dojo -- dev-key
+export DOJO_API_KEY=dojo_sk_...
+DOJO_API_KEY=dojo_sk_... npm run dojo -- run \
+  --skill web-scraper \
+  --input '{"url":"https://example.com"}'
+```
+
+`dev-key` is intentionally local-only. It requires the app database config,
+selects a user with an agent, creates an API key if needed, and tops up demo
+credits to `10` by default. Use `--fund 25` to choose another local demo
+balance.
 
 `run` is the Codex/terminal-friendly clearing demo command. It calls
 `/api/v1/run`, prints the execution result, and returns the shareable

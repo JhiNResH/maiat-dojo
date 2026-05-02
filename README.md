@@ -97,7 +97,13 @@ Inside this repo, developers can run the same CLI without publishing the npm pac
 
 ```bash
 npm run dojo -- help
+npm run dojo -- dev-key
+DOJO_API_KEY=dojo_sk_... npm run dojo -- run --skill web-scraper --input '{"url":"https://example.com"}'
 ```
+
+`dev-key` is a local demo helper for the BNB/Codex/MCP flow. It reuses or creates
+one DB-backed `dojo_sk_...` key for a user with an agent and tops up demo credits
+so `/api/v1/run` can write the clearing receipt.
 
 ## Stack
 

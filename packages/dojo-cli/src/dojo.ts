@@ -125,6 +125,19 @@ type RunResponse = {
   reason?: string;
 };
 
+type DevKeyUser = {
+  id: string;
+  displayName: string | null;
+  email: string | null;
+  walletAddress: string | null;
+  apiKey: string | null;
+  creditBalance: number;
+  ownedAgents: Array<{
+    name: string;
+    walletAddress: string | null;
+  }>;
+};
+
 type LoadedManifest = {
   manifest: WorkflowManifest;
   raw: string;
@@ -335,6 +348,108 @@ async function requestJson<T>(
 
 function authHeaders(apiKey?: string): Record<string, string> {
   return apiKey ? { Authorization: `Bearer ${apiKey}` } : {};
+}
+
+function isLocalBaseUrl(baseUrl: string): boolean {
+  try {
+    const url = new URL(baseUrl);
+    return ['localhost', '127.0.0.1', '::1'].includes(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
+async function devKey(baseUrl: string, flags: Flags) {
+  if (process.env.NODE_ENV === 'production') {
+    fail('dev-key is disabled when NODE_ENV=production.');
+  }
+
+  if (!isLocalBaseUrl(baseUrl)) {
+    fail('dev-key only works against a local Dojo URL. Use DOJO_BASE_URL=http://localhost:3000.');
+  }
+
+  let PrismaClient: typeof import('@prisma/client').PrismaClient;
+  try {
+    ({ PrismaClient } = await import('@prisma/client'));
+  } catch {
+    fail('dev-key requires running inside the maiat-dojo repo with dependencies installed.');
+  }
+
+  const { randomBytes } = await import('crypto');
+  const prisma = new PrismaClient();
+  const minCredits = Number(flagString(flags, 'fund', '10'));
+
+  if (!Number.isFinite(minCredits) || minCredits < 0) {
+    await prisma.$disconnect();
+    fail('Invalid --fund value. Use a positive number, for example --fund 10.');
+  }
+
+  try {
+    const user = await prisma.user.findFirst({
+      where: {
+        ownedAgents: {
+          some: {},
+        },
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+      select: {
+        id: true,
+        displayName: true,
+        email: true,
+        walletAddress: true,
+        apiKey: true,
+        creditBalance: true,
+        ownedAgents: {
+          take: 1,
+          select: {
+            name: true,
+            walletAddress: true,
+          },
+        },
+      },
+    }) as DevKeyUser | null;
+
+    if (!user) {
+      fail('No local user with an agent found. Sign in once or run the seed script before dev-key.');
+    }
+
+    const apiKey = user.apiKey ?? `dojo_sk_${randomBytes(32).toString('hex')}`;
+    const nextCredits = user.creditBalance < minCredits ? minCredits : user.creditBalance;
+    const updated = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        apiKey,
+        creditBalance: nextCredits,
+      },
+      select: {
+        displayName: true,
+        email: true,
+        walletAddress: true,
+        creditBalance: true,
+      },
+    });
+
+    const label =
+      updated.displayName ??
+      updated.email ??
+      updated.walletAddress ??
+      user.id;
+    const agent = user.ownedAgents[0];
+
+    console.log('Dojo dev API key ready.');
+    console.log(`  user: ${label}`);
+    if (agent?.name) console.log(`  agent: ${agent.name}`);
+    console.log(`  balance: ${updated.creditBalance}`);
+    console.log(`  key: ${apiKey}`);
+    console.log('\nExport:');
+    console.log(`  export DOJO_API_KEY=${apiKey}`);
+    console.log('\nDemo run:');
+    console.log(`  DOJO_API_KEY=${apiKey} npm run dojo -- run --skill web-scraper --input '{"url":"https://example.com"}'`);
+  } finally {
+    await prisma.$disconnect();
+  }
 }
 
 async function dryRun(
@@ -602,6 +717,7 @@ function printHelp() {
 
 Usage:
   dojo init [--file dojo.workflow.yaml]
+  dojo dev-key [--fund 10]
   DOJO_API_KEY=dojo_sk_... dojo test [--file dojo.workflow.yaml] [--url http://localhost:3000]
   DOJO_API_KEY=dojo_sk_... dojo publish [--file dojo.workflow.yaml] [--url http://localhost:3000]
   DOJO_API_KEY=dojo_sk_... dojo publish --file SKILL.md
@@ -617,6 +733,7 @@ Environment:
   DOJO_ENDPOINT_AUTH_HEADER    Optional Authorization header sent to your endpoint during dry-run
 
 Notes:
+  - dev-key is a local demo helper. It creates/reuses one DB-backed API key and tops up demo credits.
   - Production endpoints must be public HTTPS.
   - publish runs dry-run first unless --skip-test is passed.
   - dojo.workflow.yaml is canonical; SKILL.md frontmatter is supported for compatibility.
@@ -645,6 +762,11 @@ async function main() {
     }
     writeFileSync(file, TEMPLATE, 'utf8');
     console.log(`Created ${file}`);
+    return;
+  }
+
+  if (command === 'dev-key') {
+    await devKey(baseUrl, flags);
     return;
   }
 
