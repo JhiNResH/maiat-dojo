@@ -147,14 +147,14 @@ function WorkflowCard({ skill }: { skill: SkillRankItem }) {
 
       <div className="mt-3 grid grid-cols-3 gap-2">
         <Metric label="Runs" value={compactNumber(runs)} />
-        <Metric label="p95" value={skill.workflowVersion?.slaMs ? `${skill.workflowVersion.slaMs}ms` : "1.2s"} />
-        <Metric label="Forks" value={forks} />
+        <Metric label="Pass rate" value={`${Math.round(trust * 100)}%`} />
+        <Metric label="Refunds" value={trust >= 0.9 ? "<10%" : "review"} />
       </div>
 
       <div className="mt-auto grid grid-cols-[1fr_auto_auto] gap-2 pt-4">
         <Link href={`/workflow/${key}/run`} className="dojo-action dojo-action-primary">
           <Play className="h-3.5 w-3.5 fill-current" />
-          Run · {priceLabel(skill.pricePerCall)}
+          Run with escrow · {priceLabel(skill.pricePerCall)}
         </Link>
         <Link href={`/workflow/${key}/fork`} className="dojo-action">
           <GitFork className="h-3.5 w-3.5" />
@@ -258,15 +258,19 @@ export function LandingHero(_props: LandingHeroProps) {
             Live · clearing on BSC
           </div>
           <h2 className="text-[32px] font-bold leading-[1.05] tracking-[-0.025em] text-[var(--text)] md:text-[38px]">
-            Run, fork, and monetize
+            Dojo clears paid
             <br />
-            <span className="font-medium text-[var(--text-secondary)]">agent workflows.</span>
+            <span className="font-medium text-[var(--text-secondary)]">agent work.</span>
           </h2>
+          <p className="mt-4 max-w-xl text-[14px] leading-relaxed text-[var(--text-secondary)]">
+            Agents hire workflows with escrow. Creators get paid when delivery passes evaluation.
+            Every run creates a receipt and updates reputation.
+          </p>
         </div>
         <div className="dojo-stat-grid">
           <Metric label="Workflows" value={skillCount || "—"} />
           <Metric label="Receipts" value={compactNumber(totalRuns)} />
-          <Metric label="Forks" value={compactNumber(totalForks)} />
+          <Metric label="Fork lineage" value={compactNumber(totalForks)} />
           <Metric label="Median p95" value="0.84s" />
         </div>
       </div>
@@ -278,7 +282,7 @@ export function LandingHero(_props: LandingHeroProps) {
             type="text"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search workflows..."
+            placeholder="Search cleared workflows..."
             className="dojo-input pl-9"
           />
         </div>
@@ -300,7 +304,7 @@ export function LandingHero(_props: LandingHeroProps) {
           </button>
           <button className="dojo-action">
             <ArrowUpDown className="h-3.5 w-3.5" />
-            Trust score
+            Cleared quality
           </button>
         </div>
       </div>
@@ -319,9 +323,9 @@ export function LandingHero(_props: LandingHeroProps) {
 
       <div className="mt-4 grid gap-3 md:grid-cols-3">
         {[
-          ["Run", "Execute a workflow through sandbox and receive a structured result."],
-          ["Fork", "Copy the workflow into a draft with provenance attached."],
-          ["Deploy", "Attach your endpoint and publish the variant as your own service."],
+          ["Hire", "Agents run workflows through escrow instead of trusting claims."],
+          ["Evaluate", "Delivery is scored against evaluator policy, format, and SLA."],
+          ["Clear", "PASS pays the creator. FAIL refunds the buyer and records why."],
         ].map(([title, body]) => (
           <div key={title} className="dojo-mini-panel">
             <ShieldCheck className="h-4 w-4 text-[var(--text-secondary)]" />

@@ -1,12 +1,12 @@
 "use client";
 
 /**
- * Dojo home — workflow marketplace landing (matching app.maiat.io layout).
+ * Dojo home — clearing-network landing (matching app.maiat.io layout).
  *
  * Vertical stack, no sidebars:
  *   - Floating glass navbar
  *   - Centered hero + CTAs
- *   - LandingHero (stats -> ticker -> filters -> grid)
+ *   - LandingHero (clearing loop -> receipts -> workflow discovery)
  *   - For Developers (API quick-start)
  *   - Multi-column footer
  */
@@ -70,11 +70,12 @@ export default function DojoPage() {
           <div className="mb-8">
             <span className="label-sm">For Developers</span>
             <h2 className="heading-lg mt-3 text-[var(--text)]">
-              One HTTP call per workflow.
+              Clear agent work from any surface.
             </h2>
             <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-[var(--text-secondary)]">
               Your agent does not need wallet plumbing, sessions, or nonces.
-              Pick a published workflow, execute it through the gateway, and let Dojo write the receipt.
+              Pick a workflow, run it through the gateway, and let Dojo evaluate,
+              settle, and write the receipt.
             </p>
           </div>
 
@@ -84,7 +85,7 @@ export default function DojoPage() {
                 step="01"
                 method="GET"
                 path="/api/v1/skills"
-                desc="Browse executable workflows and their gateway slugs."
+                desc="Browse workflows ranked by cleared execution history."
                 code={`curl https://maiat-dojo.vercel.app/api/v1/skills`}
               />
               <ApiStep
@@ -101,7 +102,7 @@ export default function DojoPage() {
                 step="03"
                 method="POST"
                 path="/api/v1/run"
-                desc="Run a workflow by gateway slug. One request = authorize, execute, evaluate, receipt."
+                desc="Run a workflow by gateway slug. One request = authorize, execute, evaluate, settle, receipt."
                 code={`curl -X POST https://maiat-dojo.vercel.app/api/v1/run \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
@@ -111,7 +112,7 @@ export default function DojoPage() {
                 step="04"
                 method=""
                 path="Response"
-                desc="Result, API credit cost, score, and receipt metadata in one response."
+                desc="Result, API credit cost, evaluator score, settlement, and receipt metadata."
                 code={`{
   "result": { "content": "..." },
   "cost": 0.003,
@@ -140,9 +141,9 @@ export default function DojoPage() {
                 The Dojo
               </span>
               <p className="mt-2 text-[13px] leading-relaxed text-[var(--text-muted)]">
-                Workflow marketplace for the
+                Clearing venue for paid
                 <br />
-                agent economy.
+                agent work.
               </p>
             </div>
             <div>
