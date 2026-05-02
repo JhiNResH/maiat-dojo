@@ -10,6 +10,7 @@ DOJO_API_KEY=dojo_sk_... npx @maiat/dojo test --file dojo.workflow.yaml
 DOJO_API_KEY=dojo_sk_... npx @maiat/dojo publish --file dojo.workflow.yaml
 DOJO_API_KEY=dojo_sk_... npx @maiat/dojo fork --workflow web-scraper --name "My Scraper Fork"
 DOJO_API_KEY=dojo_sk_... npx @maiat/dojo deploy --workflow my-scraper-fork --file dojo.workflow.yaml
+DOJO_API_KEY=dojo_sk_... npx @maiat/dojo run --skill web-scraper --input '{"url":"https://example.com"}'
 ```
 
 Use `DOJO_BASE_URL` or `--url` to point at a non-production Dojo instance:
@@ -17,6 +18,10 @@ Use `DOJO_BASE_URL` or `--url` to point at a non-production Dojo instance:
 ```bash
 DOJO_BASE_URL=http://localhost:3000 npx @maiat/dojo publish --file dojo.workflow.yaml
 ```
+
+`run` is the Codex/terminal-friendly clearing demo command. It calls
+`/api/v1/run`, prints the execution result, and returns the shareable
+`/r/<receiptId>` proof URL when the workflow writes a receipt.
 
 ## Manifest
 
