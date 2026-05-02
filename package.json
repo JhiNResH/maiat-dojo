@@ -12,6 +12,7 @@
     "start": "next start",
     "lint": "next lint",
     "dojo": "tsx packages/dojo-cli/src/dojo.ts",
+    "dojo:mcp": "tsx packages/dojo-mcp/src/server.ts",
     "seed": "tsx prisma/seed.ts",
     "test": "vitest",
     "test:coverage": "vitest --coverage",

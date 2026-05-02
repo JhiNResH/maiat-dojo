@@ -10,6 +10,7 @@ specs/
 
 /src/generated/prisma
 packages/dojo-cli/dist/
+packages/dojo-mcp/dist/
 dev.db
 prisma/dev.db
 prisma/prisma/

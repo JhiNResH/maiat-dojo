@@ -1,0 +1,26 @@
+{
+  "name": "@maiat/dojo-mcp",
+  "version": "0.1.0",
+  "description": "Minimal MCP server for the Dojo clearing network.",
+  "license": "MIT",
+  "private": true,
+  "bin": {
+    "dojo-mcp": "bin/dojo-mcp"
+  },
+  "files": [
+    "bin",
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepack": "npm run build"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}
