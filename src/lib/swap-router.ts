@@ -135,11 +135,29 @@ export interface AnchorResult {
 export interface RegistryStatus {
   registered: boolean;
   active: boolean;
+  transient?: boolean;
   provider?: `0x${string}`;
   creator?: `0x${string}`;
   runToken?: `0x${string}`;
   priceUSDC?: bigint;
   error?: string;
+}
+
+function isTransientRegistryError(message: string) {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes('timeout') ||
+    lower.includes('failed to fetch') ||
+    lower.includes('fetch failed') ||
+    lower.includes('network') ||
+    lower.includes('econnreset') ||
+    lower.includes('etimedout') ||
+    lower.includes('econnrefused') ||
+    lower.includes('enetunreach') ||
+    lower.includes('502') ||
+    lower.includes('503') ||
+    lower.includes('504')
+  );
 }
 
 export async function getSkillRegistryStatus(skillId: `0x${string}`): Promise<RegistryStatus> {
@@ -169,6 +187,7 @@ export async function getSkillRegistryStatus(skillId: `0x${string}`): Promise<Re
     return {
       registered: false,
       active: false,
+      transient: !notFound || isTransientRegistryError(message),
       error: notFound ? 'Skill not registered in SkillRegistry' : message,
     };
   }

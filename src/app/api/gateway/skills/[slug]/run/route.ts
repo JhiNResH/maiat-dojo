@@ -66,6 +66,19 @@ async function requireRegisteredWorkflow(gatewaySlug: string): Promise<NextRespo
   const onchainSkillId = keccak256(toBytes(gatewaySlug));
   const registry = await getSkillRegistryStatus(onchainSkillId);
   if (registry.registered && registry.active) return null;
+  if (registry.transient) {
+    return NextResponse.json(
+      {
+        error: 'BSC SkillRegistry is temporarily unavailable',
+        code: 'ONCHAIN_REGISTRY_UNAVAILABLE',
+        skill: gatewaySlug,
+        skill_id: onchainSkillId,
+        registry: PHASE2_ADDRESSES.skillRegistry,
+        reason: registry.error,
+      },
+      { status: 503 },
+    );
+  }
 
   return NextResponse.json(
     {
