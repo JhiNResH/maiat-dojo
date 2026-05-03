@@ -23,7 +23,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { keccak256, toBytes, toHex } from 'viem';
+import { keccak256, toHex } from 'viem';
 import { createHmac } from 'node:crypto';
 import { prisma } from '@/lib/prisma';
 import { evaluateCall } from '@/lib/session-evaluator';
@@ -32,9 +32,7 @@ import { verifyGatewayAuth } from '@/lib/gateway-auth';
 import { recordWorkflowRun } from '@/lib/workflow-ledger';
 import { readCreatorResponseText } from '@/lib/creator-response';
 import {
-  getSkillRegistryStatus,
-  PHASE2_ADDRESSES,
-  shouldRequireOnchainRegistration,
+  validateRegisteredWorkflowSlug,
 } from '@/lib/swap-router';
 
 export const dynamic = 'force-dynamic';
@@ -61,36 +59,33 @@ function isPrismaP2002(err: unknown): boolean {
 }
 
 async function requireRegisteredWorkflow(gatewaySlug: string): Promise<NextResponse | null> {
-  if (!shouldRequireOnchainRegistration()) return null;
-
-  const onchainSkillId = keccak256(toBytes(gatewaySlug));
-  const registry = await getSkillRegistryStatus(onchainSkillId);
-  if (registry.registered && registry.active) return null;
-  if (registry.transient) {
+  const registry = await validateRegisteredWorkflowSlug(gatewaySlug);
+  if (registry.ok) return null;
+  if (registry.status === 503) {
     return NextResponse.json(
       {
-        error: 'BSC SkillRegistry is temporarily unavailable',
-        code: 'ONCHAIN_REGISTRY_UNAVAILABLE',
+        error: registry.error,
+        code: registry.code,
         skill: gatewaySlug,
-        skill_id: onchainSkillId,
-        registry: PHASE2_ADDRESSES.skillRegistry,
-        reason: registry.error,
+        skill_id: registry.skillId,
+        registry: registry.registry,
+        reason: registry.reason,
       },
-      { status: 503 },
+      { status: registry.status },
     );
   }
 
   return NextResponse.json(
     {
-      error: 'Workflow is not registered in the BSC SkillRegistry',
-      code: 'ONCHAIN_SKILL_NOT_REGISTERED',
+      error: registry.error,
+      code: registry.code,
       skill: gatewaySlug,
-      skill_id: onchainSkillId,
-      registry: PHASE2_ADDRESSES.skillRegistry,
+      skill_id: registry.skillId,
+      registry: registry.registry,
       active: registry.active,
-      reason: registry.error,
+      reason: registry.reason,
     },
-    { status: 409 },
+    { status: registry.status },
   );
 }
 

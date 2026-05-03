@@ -4,6 +4,7 @@ import { verifyPrivyAuth } from '@/lib/privy-server';
 import { getAcpConfig } from '@/lib/bsc-acp';
 import { createBscPublicClient, getBscConfig } from '@/lib/erc8004';
 import { ACP_ABI } from '@/lib/contracts';
+import { validateRegisteredWorkflowSlug } from '@/lib/swap-router';
 
 export const dynamic = 'force-dynamic';
 
@@ -84,6 +85,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: 'Invalid active skill configuration' },
         { status: 400 }
+      );
+    }
+
+    const registry = await validateRegisteredWorkflowSlug(skill.gatewaySlug);
+    if (!registry.ok) {
+      return NextResponse.json(
+        {
+          error: registry.error,
+          code: registry.code,
+          skill: skill.gatewaySlug,
+          skill_id: registry.skillId,
+          registry: registry.registry,
+          active: registry.active,
+          reason: registry.reason,
+        },
+        { status: registry.status },
       );
     }
 

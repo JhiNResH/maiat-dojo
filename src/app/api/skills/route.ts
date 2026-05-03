@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { filterDemoSkills, toPublicSkill } from "@/lib/demo-catalog";
+import { validateRegisteredWorkflowSlug } from "@/lib/swap-router";
 
 export const dynamic = "force-dynamic";
 
@@ -60,62 +60,66 @@ export async function GET(req: NextRequest) {
     }),
   };
 
-  const fallback = () => {
-    const demo = filterDemoSkills({ q, category, freeOnly, limit, offset });
-    return NextResponse.json({
-      total: demo.total,
-      skills: demo.skills.map(toPublicSkill),
-      demo: true,
-    });
-  };
-
   let skills;
-  let total;
   try {
-    [skills, total] = await Promise.all([
-      prisma.skill.findMany({
-        where,
-        orderBy,
-        skip: offset,
-        take: limit,
-        include: {
-          creator: { select: { id: true, displayName: true, avatarUrl: true } },
-          _count: { select: { reviews: true, purchases: true, sessions: true } },
-          workflow: {
-            select: {
-              id: true,
-              slug: true,
-              pricePerRun: true,
-              runCount: true,
-              forkCount: true,
-              trustScore: true,
-              royaltyBps: true,
-              versions: {
-                orderBy: { version: "desc" },
-                take: 1,
-                select: {
-                  id: true,
-                  version: true,
-                  summary: true,
-                  slaMs: true,
-                },
+    skills = await prisma.skill.findMany({
+      where,
+      orderBy,
+      skip: offset,
+      take: limit,
+      include: {
+        creator: { select: { id: true, displayName: true, avatarUrl: true } },
+        _count: { select: { reviews: true, purchases: true, sessions: true } },
+        workflow: {
+          select: {
+            id: true,
+            slug: true,
+            pricePerRun: true,
+            runCount: true,
+            forkCount: true,
+            trustScore: true,
+            royaltyBps: true,
+            versions: {
+              orderBy: { version: "desc" },
+              take: 1,
+              select: {
+                id: true,
+                version: true,
+                summary: true,
+                slaMs: true,
               },
             },
           },
         },
-      }),
-      prisma.skill.count({ where }),
-    ]);
+      },
+    });
   } catch (error) {
-    console.warn("[GET /api/skills] falling back to demo catalog:", error);
-    return fallback();
+    console.error("[GET /api/skills] failed:", error);
+    return NextResponse.json({ error: "Failed to load skills" }, { status: 500 });
   }
 
-  if (skills.length === 0 && offset === 0) {
-    return fallback();
+  const onchainReady: typeof skills = [];
+  for (const skill of skills) {
+    if (!skill.gatewaySlug) continue;
+    const registry = await validateRegisteredWorkflowSlug(skill.gatewaySlug);
+    if (registry.ok) {
+      onchainReady.push(skill);
+      continue;
+    }
+    if (registry.status === 503) {
+      return NextResponse.json(
+        {
+          error: registry.error,
+          code: registry.code,
+          registry: registry.registry,
+          reason: registry.reason,
+        },
+        { status: 503 },
+      );
+    }
   }
 
-  const mapped = skills.map((s) => ({
+  const mapped = onchainReady.map((s) => ({
     ...s,
     callCount: s._count.sessions,
     trustScore: s.workflow?.trustScore ?? s.evaluationScore ?? 0,
@@ -127,5 +131,5 @@ export async function GET(req: NextRequest) {
     workflowVersion: s.workflow?.versions[0] ?? null,
   }));
 
-  return NextResponse.json({ total, skills: mapped });
+  return NextResponse.json({ total: onchainReady.length, skills: mapped });
 }

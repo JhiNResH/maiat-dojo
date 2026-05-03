@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { filterDemoWorkflows } from '@/lib/demo-catalog';
+import { validateRegisteredWorkflowSlug } from '@/lib/swap-router';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,12 +15,6 @@ export async function GET(req: NextRequest) {
   const q = searchParams.get('q')?.trim();
   const category = searchParams.get('category')?.trim();
   const limit = Math.min(parseInt(searchParams.get('limit') ?? '24', 10), 100);
-
-  const fallback = () =>
-    NextResponse.json({
-      workflows: filterDemoWorkflows({ q, category, limit }),
-      demo: true,
-    });
 
   let workflows;
   try {
@@ -49,16 +43,33 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.warn('[GET /api/workflows] falling back to demo catalog:', error);
-    return fallback();
+    console.error('[GET /api/workflows] failed:', error);
+    return NextResponse.json({ error: 'Failed to load workflows' }, { status: 500 });
   }
 
-  if (workflows.length === 0) {
-    return fallback();
+  const onchainReady: typeof workflows = [];
+  for (const workflow of workflows) {
+    const slug = workflow.skill?.gatewaySlug ?? workflow.slug;
+    const registry = await validateRegisteredWorkflowSlug(slug);
+    if (registry.ok) {
+      onchainReady.push(workflow);
+      continue;
+    }
+    if (registry.status === 503) {
+      return NextResponse.json(
+        {
+          error: registry.error,
+          code: registry.code,
+          registry: registry.registry,
+          reason: registry.reason,
+        },
+        { status: 503 },
+      );
+    }
   }
 
   return NextResponse.json({
-    workflows: workflows.map((workflow) => ({
+    workflows: onchainReady.map((workflow) => ({
       id: workflow.id,
       slug: workflow.slug,
       name: workflow.name,

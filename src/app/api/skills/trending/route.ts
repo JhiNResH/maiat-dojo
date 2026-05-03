@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { DEMO_SKILLS, toPublicSkill } from "@/lib/demo-catalog";
+import { validateRegisteredWorkflowSlug } from "@/lib/swap-router";
 
 export const dynamic = "force-dynamic";
 
@@ -30,18 +30,6 @@ export async function GET(req: NextRequest) {
 
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
-  const fallback = () =>
-    NextResponse.json({
-      window: { days, since: since.toISOString() },
-      zeroState: true,
-      demo: true,
-      skills: DEMO_SKILLS.slice(0, limit).map((skill) => ({
-        ...toPublicSkill(skill),
-        recentSessions: 0,
-        recentCalls: 0,
-      })),
-    });
-
   let grouped;
   try {
     grouped = await prisma.session.groupBy({
@@ -53,14 +41,19 @@ export async function GET(req: NextRequest) {
       take: limit,
     });
   } catch (error) {
-    console.warn("[GET /api/skills/trending] falling back to demo catalog:", error);
-    return fallback();
+    console.error("[GET /api/skills/trending] failed:", error);
+    return NextResponse.json({ error: "Failed to load trending skills" }, { status: 500 });
   }
 
   // Zero-state: no sessions in window → fall back to newest listings so the
   // landing surface is never empty on a fresh seed.
   if (grouped.length === 0) {
     const rows = await prisma.skill.findMany({
+      where: {
+        skillType: "active",
+        endpointUrl: { not: null },
+        gatewaySlug: { not: null },
+      },
       orderBy: { createdAt: "desc" },
       take: limit,
       include: {
@@ -77,13 +70,32 @@ export async function GET(req: NextRequest) {
         },
       },
     });
-    if (rows.length === 0) {
-      return fallback();
+
+    const onchainReady: typeof rows = [];
+    for (const skill of rows) {
+      if (!skill.gatewaySlug) continue;
+      const registry = await validateRegisteredWorkflowSlug(skill.gatewaySlug);
+      if (registry.ok) {
+        onchainReady.push(skill);
+        continue;
+      }
+      if (registry.status === 503) {
+        return NextResponse.json(
+          {
+            error: registry.error,
+            code: registry.code,
+            registry: registry.registry,
+            reason: registry.reason,
+          },
+          { status: 503 },
+        );
+      }
     }
+
     return NextResponse.json({
       window: { days, since: since.toISOString() },
       zeroState: true,
-      skills: rows.map((s) => ({
+      skills: onchainReady.map((s) => ({
         id: s.id,
         name: s.name,
         description: s.description,
@@ -123,11 +135,26 @@ export async function GET(req: NextRequest) {
   });
   const byId = new Map(rows.map((r) => [r.id, r]));
 
-  const skills = grouped
-    .map((g) => {
+  const skills = [];
+  for (const g of grouped) {
       const s = byId.get(g.skillId);
-      if (!s) return null;
-      return {
+      if (!s?.gatewaySlug) continue;
+      const registry = await validateRegisteredWorkflowSlug(s.gatewaySlug);
+      if (!registry.ok) {
+        if (registry.status === 503) {
+          return NextResponse.json(
+            {
+              error: registry.error,
+              code: registry.code,
+              registry: registry.registry,
+              reason: registry.reason,
+            },
+            { status: 503 },
+          );
+        }
+        continue;
+      }
+      skills.push({
         id: s.id,
         name: s.name,
         description: s.description,
@@ -143,9 +170,8 @@ export async function GET(req: NextRequest) {
         royaltyBps: s.workflow?.royaltyBps ?? null,
         recentSessions: g._count._all,
         recentCalls: g._sum.callCount ?? 0,
-      };
-    })
-    .filter((x): x is NonNullable<typeof x> => x !== null);
+      });
+    }
 
   return NextResponse.json({
     window: { days, since: since.toISOString() },
