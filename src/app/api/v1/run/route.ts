@@ -21,7 +21,7 @@ export const dynamic = 'force-dynamic';
  * Agent developers never see sessions, nonces, or escrow.
  *
  * Request:
- *   { "skill": "web-scraper", "input": { "url": "https://example.com" } }
+ *   { "skill": "agent-repo-analyst", "input": { "repo_url": "https://github.com/garrytan/gbrain" } }
  *
  * Response:
  *   { "result": { ... }, "cost": 0.003, "balance": 9.997, "score": 1.0, "session_id": "..." }

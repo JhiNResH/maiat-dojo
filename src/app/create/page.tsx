@@ -20,44 +20,50 @@ import { Footer } from '@/components/landing/Footer';
 import { Navbar } from '@/components/landing/Navbar';
 import { useAutoCreateUser } from '@/hooks/useAutoCreateUser';
 
-const CATEGORIES = ['Security', 'Trading', 'Content', 'DeFi', 'Analytics', 'Infra', 'Social'];
+const CATEGORIES = ['Agent Research', 'Security', 'Trading', 'Content', 'DeFi', 'Analytics', 'Infra', 'Social'];
 
 const DEFAULT_INPUT_SCHEMA = `{
   "type": "object",
-  "required": ["target"],
+  "required": ["repo_url"],
   "properties": {
-    "target": {
+    "repo_url": {
       "type": "string",
-      "title": "Target",
-      "description": "URL, contract address, repository, or text to process"
+      "title": "Public GitHub Repository",
+      "description": "github.com owner/repo URL to analyze"
+    },
+    "question": {
+      "type": "string",
+      "title": "Question",
+      "description": "What should the workflow focus on?"
     }
   }
 }`;
 
 const DEFAULT_EXAMPLE_INPUT = `{
-  "target": "https://example.com"
+  "repo_url": "https://github.com/garrytan/gbrain",
+  "question": "Is this useful for building persistent-memory agents?"
 }`;
 
-const QUICK_AUDIT_SCHEMA = `{
+const REPO_ANALYST_SCHEMA = `{
   "type": "object",
-  "required": ["target"],
+  "required": ["repo_url"],
   "properties": {
-    "target": {
+    "repo_url": {
       "type": "string",
-      "title": "Target",
-      "description": "Contract address, source URL, or repository to triage"
+      "title": "Public GitHub Repository",
+      "description": "github.com owner/repo URL to analyze"
     },
-    "chain": {
+    "question": {
       "type": "string",
-      "title": "Chain",
-      "default": "bsc"
+      "title": "Question",
+      "default": "Is this useful for building persistent-memory agents?"
     }
   }
 }`;
 
-const QUICK_AUDIT_EXAMPLE = `{
-  "target": "upgradeable ERC20 token",
-  "chain": "bsc"
+const REPO_ANALYST_EXAMPLE = `{
+  "repo_url": "https://github.com/garrytan/gbrain",
+  "question": "Is this useful for building persistent-memory agents?"
 }`;
 
 type DryRunResult = {
@@ -150,12 +156,12 @@ export default function CreateWorkflowPage() {
   const { ready, authenticated, login, user, getAccessToken } = usePrivy();
   useAutoCreateUser();
 
-  const [name, setName] = useState('Quick Audit Workflow');
+  const [name, setName] = useState('Agent Repo Analyst');
   const [description, setDescription] = useState(
-    'Run a focused security pass and return structured findings.',
+    'Analyze a public agent repository and return architecture summary, fit score, risks, and source-backed evidence.',
   );
-  const [category, setCategory] = useState('Security');
-  const [pricePerRun, setPricePerRun] = useState('0.01');
+  const [category, setCategory] = useState('Agent Research');
+  const [pricePerRun, setPricePerRun] = useState('0.003');
   const [endpointUrl, setEndpointUrl] = useState('');
   const [inputSchema, setInputSchema] = useState(DEFAULT_INPUT_SCHEMA);
   const [exampleInput, setExampleInput] = useState(DEFAULT_EXAMPLE_INPUT);
@@ -220,13 +226,13 @@ export default function CreateWorkflowPage() {
   function useSampleWorkflow() {
     const origin =
       typeof window === 'undefined' ? 'https://maiat-dojo.vercel.app' : window.location.origin;
-    setName('Quick Audit Workflow');
-    setDescription('Run a focused smart-contract triage and return structured findings.');
-    setCategory('Security');
-    setPricePerRun('0.015');
-    setEndpointUrl(`${origin}/api/skills-internal/quick-audit`);
-    setInputSchema(QUICK_AUDIT_SCHEMA);
-    setExampleInput(QUICK_AUDIT_EXAMPLE);
+    setName('Agent Repo Analyst');
+    setDescription('Analyze a public agent repository and return architecture summary, fit score, risks, and source-backed evidence.');
+    setCategory('Agent Research');
+    setPricePerRun('0.003');
+    setEndpointUrl(`${origin}/api/skills-internal/repo-analyst`);
+    setInputSchema(REPO_ANALYST_SCHEMA);
+    setExampleInput(REPO_ANALYST_EXAMPLE);
     setOutputShape('json');
     setSlaMs(5000);
     setDryRun(null);
@@ -336,7 +342,7 @@ export default function CreateWorkflowPage() {
               </span>
             </div>
             <h1 className="text-[28px] font-bold leading-tight tracking-[-0.025em] text-[var(--text)] md:text-[34px]">
-              quick-audit-workflow
+              agent-repo-analyst
               <span className="ml-3 align-middle font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
                 draft
               </span>
@@ -450,7 +456,7 @@ export default function CreateWorkflowPage() {
                     setEndpointUrl(event.target.value);
                     setDryRun(null);
                   }}
-                  placeholder="https://api.example.com/workflows/quick-audit/run"
+                  placeholder="https://api.example.com/workflows/repo-analyst/run"
                   className={`${inputClass} font-mono text-[13px]`}
                 />
               </Field>

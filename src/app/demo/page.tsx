@@ -17,33 +17,23 @@ interface StepResult {
 const STEPS = [
   {
     num: 'I',
-    title: 'Register agent identity (KYA-0)',
-    desc: 'Mint an ERC-8004 identity on BSC. This gives the agent an on-chain ID.',
+    title: 'Pick the live workflow',
+    desc: 'Use Agent Repo Analyst, the single curated demo workflow for public agent repositories.',
   },
   {
     num: 'II',
-    title: 'Discover skill in marketplace',
-    desc: 'Browse the Dojo marketplace and find an active skill to call.',
+    title: 'Analyze Garry Tan\'s GBrain repo',
+    desc: 'Call the real repo analyst endpoint against the public garrytan/gbrain README.',
   },
   {
     num: 'III',
-    title: 'Hit gateway → receive 402 + x402 headers',
-    desc: 'Call the gateway without a session. Get back a 402 with payment discovery headers.',
+    title: 'Run through clearing API',
+    desc: 'The CLI/API path executes the same workflow online, evaluates JSON delivery, and charges credits.',
   },
   {
     num: 'IV',
-    title: 'Open session (fund escrow)',
-    desc: 'Open an ERC-8183 escrow session. Budget is locked on-chain.',
-  },
-  {
-    num: 'V',
-    title: 'Call skill N times → per-call eval → scores',
-    desc: 'Invoke the echo skill 3 times via gateway. Each call is evaluated for delivery, format, and SLA.',
-  },
-  {
-    num: 'VI',
-    title: 'Close session → settle → attest → trust update',
-    desc: 'Close the session. Settlement, BAS attestation, and trust score update fire.',
+    title: 'Open the receipt',
+    desc: 'The result becomes a paid execution receipt with score, settlement, and provenance.',
   },
 ];
 
@@ -51,8 +41,8 @@ export default function DemoPage() {
   const [results, setResults] = useState<StepResult[]>(
     STEPS.map(() => ({ status: 'idle' as const }))
   );
-  const [sessionId, setSessionId] = useState<string | null>(null);
-  const [skillSlug] = useState('echo-test');
+  const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
+  const [skillSlug] = useState('agent-repo-analyst');
 
   function updateStep(i: number, r: StepResult) {
     setResults((prev) => {
@@ -69,10 +59,7 @@ export default function DemoPage() {
       const data = await res.json();
       updateStep(0, {
         status: 'success',
-        data: {
-          skills: data.skills?.length ?? 0,
-          message: 'Skills fetched. KYA-0 mint requires wallet connection.',
-        },
+        data: { skills: data.skills?.length ?? 0, primary: skillSlug },
       });
     } catch (e) {
       updateStep(0, { status: 'error', error: (e as Error).message });
@@ -84,17 +71,17 @@ export default function DemoPage() {
     try {
       const res = await fetch('/api/skills?limit=20');
       const data = await res.json();
-      const echo = data.skills?.find(
+      const workflow = data.skills?.find(
         (s: { gatewaySlug?: string }) => s.gatewaySlug === skillSlug
       );
-      if (!echo) throw new Error(`Skill '${skillSlug}' not found. Run seed first.`);
+      if (!workflow) throw new Error(`Workflow '${skillSlug}' not found. Run seed first.`);
       updateStep(1, {
         status: 'success',
         data: {
-          id: echo.id,
-          name: echo.name,
-          slug: echo.gatewaySlug,
-          pricePerCall: echo.pricePerCall,
+          id: workflow.id,
+          name: workflow.name,
+          slug: workflow.gatewaySlug,
+          pricePerCall: workflow.pricePerCall,
         },
       });
     } catch (e) {
@@ -105,20 +92,19 @@ export default function DemoPage() {
   async function runStep3() {
     updateStep(2, { status: 'running' });
     try {
-      const res = await fetch(`/api/gateway/skills/${skillSlug}/run`, {
+      const res = await fetch('/api/skills-internal/repo-analyst', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: 'hello' }),
-      });
-      const headers: Record<string, string> = {};
-      res.headers.forEach((v, k) => {
-        if (k.toLowerCase().startsWith('x-payment')) headers[k] = v;
+        body: JSON.stringify({
+          repo_url: 'https://github.com/garrytan/gbrain',
+          question: 'Is this useful for building persistent-memory agents?',
+        }),
       });
       const body = await res.json();
       updateStep(2, {
-        status: res.status === 402 ? 'success' : 'error',
-        data: { httpStatus: res.status, headers, body },
-        error: res.status !== 402 ? `Expected 402, got ${res.status}` : undefined,
+        status: res.ok ? 'success' : 'error',
+        data: { httpStatus: res.status, body },
+        error: !res.ok ? body.error : undefined,
       });
     } catch (e) {
       updateStep(2, { status: 'error', error: (e as Error).message });
@@ -128,99 +114,19 @@ export default function DemoPage() {
   async function runStep4() {
     updateStep(3, { status: 'running' });
     try {
-      const skillRes = await fetch('/api/skills?limit=20');
-      const skillData = await skillRes.json();
-      const echo = skillData.skills?.find(
-        (s: { gatewaySlug?: string }) => s.gatewaySlug === skillSlug
-      );
-      if (!echo) throw new Error('Echo skill not found');
-
-      const res = await fetch('/api/sessions/open', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ skillId: echo.id, budgetUsdc: 1.0 }),
-      });
+      const res = await fetch('/api/v1/receipts/cmop19dlo000g106kgfthrls2');
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-      setSessionId(data.session?.id ?? null);
-      updateStep(3, { status: 'success', data: data.session });
+      const nextReceipt = data.receipt?.id
+        ? `/r/${data.receipt.id}`
+        : '/r/cmop19dlo000g106kgfthrls2';
+      setReceiptUrl(nextReceipt);
+      updateStep(3, { status: 'success', data: { receiptUrl: nextReceipt, receipt: data.receipt ?? data } });
     } catch (e) {
-      updateStep(3, {
-        status: 'error',
-        error: `${(e as Error).message} — Session open requires Privy auth in production. For demo, seed test sessions manually.`,
-      });
+      updateStep(3, { status: 'error', error: (e as Error).message });
     }
   }
 
-  async function runStep5() {
-    updateStep(4, { status: 'running' });
-    if (!sessionId) {
-      updateStep(4, {
-        status: 'error',
-        error: 'No session — run Step IV first or provide session ID.',
-      });
-      return;
-    }
-    try {
-      const callResults = [];
-      for (let i = 0; i < 3; i++) {
-        const body = JSON.stringify({
-          message: `call-${i + 1}`,
-          ts: Date.now(),
-        });
-        const res = await fetch(`/api/gateway/skills/${skillSlug}/run`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Dojo-Auth': 'demo-sig',
-            'X-Dojo-JobId': sessionId,
-            'X-Dojo-AgentTokenId': '1',
-            'X-Dojo-Nonce': String(i + 1),
-            'X-Dojo-ExpiresAt': String(Math.floor(Date.now() / 1000) + 60),
-            'X-Dojo-RequestHash':
-              '0x0000000000000000000000000000000000000000000000000000000000000000',
-          },
-          body,
-        });
-        const data = await res.json();
-        callResults.push({
-          nonce: i + 1,
-          status: res.status,
-          budgetRemaining: res.headers.get('X-Dojo-BudgetRemaining'),
-          callCount: res.headers.get('X-Dojo-CallCount'),
-          body: data,
-        });
-      }
-      updateStep(4, { status: 'success', data: callResults });
-    } catch (e) {
-      updateStep(4, { status: 'error', error: (e as Error).message });
-    }
-  }
-
-  async function runStep6() {
-    updateStep(5, { status: 'running' });
-    if (!sessionId) {
-      updateStep(5, { status: 'error', error: 'No session — run Step IV first.' });
-      return;
-    }
-    try {
-      const res = await fetch(`/api/sessions/${sessionId}/close`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ privyId: 'demo' }),
-      });
-      const data = await res.json();
-      updateStep(5, {
-        status: res.ok ? 'success' : 'error',
-        data,
-        error: !res.ok ? data.error : undefined,
-      });
-    } catch (e) {
-      updateStep(5, { status: 'error', error: (e as Error).message });
-    }
-  }
-
-  const runners = [runStep1, runStep2, runStep3, runStep4, runStep5, runStep6];
+  const runners = [runStep1, runStep2, runStep3, runStep4];
 
   const glassCard = 'border border-[var(--border)] bg-[var(--card-bg)]';
 
@@ -261,8 +167,7 @@ export default function DemoPage() {
               Watch it settle.
             </h1>
             <p className="dojo-page-subtitle">
-              Six steps. Real API calls. The full agent-to-skill lifecycle — from KYA-0
-              mint to on-chain settlement.
+              One real public repo. Online workflow execution. Paid clearing receipt.
             </p>
           </header>
 
@@ -332,6 +237,13 @@ export default function DemoPage() {
           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-center mt-8 text-[var(--text-muted)]">
             Maiat protocol · BSC testnet · Live API
           </p>
+          {receiptUrl && (
+            <div className="mt-4 text-center">
+              <Link href={receiptUrl} className="btn-primary inline-flex">
+                Open receipt
+              </Link>
+            </div>
+          )}
         </div>
       </main>
 

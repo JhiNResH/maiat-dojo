@@ -221,7 +221,7 @@ const tools = [
       type: 'object',
       required: ['skill'],
       properties: {
-        skill: { type: 'string', description: 'Dojo gateway slug, e.g. web-scraper.' },
+        skill: { type: 'string', description: 'Dojo gateway slug, e.g. agent-repo-analyst.' },
         input: { type: 'object', description: 'Workflow input JSON object.' },
         api_key: { type: 'string', description: 'Optional Dojo API key override. Defaults to DOJO_API_KEY.' },
       },

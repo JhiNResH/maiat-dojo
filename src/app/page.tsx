@@ -106,7 +106,7 @@ export default function DojoPage() {
                 code={`curl -X POST https://maiat-dojo.vercel.app/api/v1/run \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
-  -d '{"skill":"web-scraper","input":{"url":"…"}}'`}
+  -d '{"skill":"agent-repo-analyst","input":{"repo_url":"https://github.com/garrytan/gbrain"}}'`}
               />
               <ApiStep
                 step="04"
@@ -114,7 +114,7 @@ export default function DojoPage() {
                 path="Response"
                 desc="Result, API credit cost, evaluator score, settlement, and receipt metadata."
                 code={`{
-  "result": { "content": "..." },
+  "result": { "verdict": "strong_fit_for_agent_memory", "fit_score": 0.91 },
   "cost": 0.003,
   "balance": 9.997,
   "score": 1.0,

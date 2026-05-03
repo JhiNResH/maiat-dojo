@@ -9,9 +9,9 @@ npx @maiat/dojo init
 npm run dojo -- dev-key
 DOJO_API_KEY=dojo_sk_... npx @maiat/dojo test --file dojo.workflow.yaml
 DOJO_API_KEY=dojo_sk_... npx @maiat/dojo publish --file dojo.workflow.yaml
-DOJO_API_KEY=dojo_sk_... npx @maiat/dojo fork --workflow web-scraper --name "My Scraper Fork"
-DOJO_API_KEY=dojo_sk_... npx @maiat/dojo deploy --workflow my-scraper-fork --file dojo.workflow.yaml
-DOJO_API_KEY=dojo_sk_... npx @maiat/dojo run --skill web-scraper --input '{"url":"https://example.com"}'
+DOJO_API_KEY=dojo_sk_... npx @maiat/dojo fork --workflow agent-repo-analyst --name "My Repo Analyst"
+DOJO_API_KEY=dojo_sk_... npx @maiat/dojo deploy --workflow my-repo-analyst --file dojo.workflow.yaml
+DOJO_API_KEY=dojo_sk_... npx @maiat/dojo run --skill agent-repo-analyst --input '{"repo_url":"https://github.com/garrytan/gbrain"}'
 ```
 
 Use `DOJO_BASE_URL` or `--url` to point at a non-production Dojo instance:
@@ -26,8 +26,8 @@ For local demos from the repo, generate or reuse a DB-backed key:
 npm run dojo -- dev-key
 export DOJO_API_KEY=dojo_sk_...
 DOJO_API_KEY=dojo_sk_... npm run dojo -- run \
-  --skill web-scraper \
-  --input '{"url":"https://example.com"}'
+  --skill agent-repo-analyst \
+  --input '{"repo_url":"https://github.com/garrytan/gbrain"}'
 ```
 
 `dev-key` is intentionally local-only. It requires the app database config,
@@ -44,23 +44,23 @@ balance.
 `dojo.workflow.yaml` is the canonical workflow manifest:
 
 ```yaml
-name: Web Scraper
-description: Converts any public URL into clean structured markdown.
-category: Infra
+name: Agent Repo Analyst
+description: Analyze a public agent repository and return source-backed evidence.
+category: Agent Research
 price_per_run: 0.003
-endpoint: https://your-agent.example.com/api/scrape
-sla_ms: 2000
+endpoint: https://your-agent.example.com/api/repo-analyst
+sla_ms: 3000
 
 input_schema:
   type: object
   required:
-    - url
+    - repo_url
   properties:
-    url:
+    repo_url:
       type: string
 
 example_input:
-  url: https://example.com
+  repo_url: https://github.com/garrytan/gbrain
 ```
 
 `SKILL.md` files with YAML frontmatter are also supported:

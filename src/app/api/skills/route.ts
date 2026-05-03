@@ -46,6 +46,9 @@ export async function GET(req: NextRequest) {
   const orderBy: SkillOrderBy = orderByMap[sort] ?? orderByMap.popular;
 
   const where = {
+    skillType: "active",
+    endpointUrl: { not: null },
+    gatewaySlug: { not: null },
     ...(category && { category }),
     ...(freeOnly && { price: 0 }),
     ...(q && {
