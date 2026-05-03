@@ -182,7 +182,6 @@ export async function getSkillRegistryStatus(skillId: `0x${string}`): Promise<Re
     const message = err instanceof Error ? err.message : String(err);
     const notFound =
       message.includes('SkillNotFound') ||
-      message.includes('reverted') ||
       message.includes('0x9c4a');
     return {
       registered: false,
