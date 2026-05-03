@@ -23,7 +23,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { keccak256, toHex } from 'viem';
+import { keccak256, toBytes, toHex } from 'viem';
 import { createHmac } from 'node:crypto';
 import { prisma } from '@/lib/prisma';
 import { evaluateCall } from '@/lib/session-evaluator';
@@ -31,6 +31,11 @@ import { generateX402Headers } from '@/lib/x402';
 import { verifyGatewayAuth } from '@/lib/gateway-auth';
 import { recordWorkflowRun } from '@/lib/workflow-ledger';
 import { readCreatorResponseText } from '@/lib/creator-response';
+import {
+  getSkillRegistryStatus,
+  PHASE2_ADDRESSES,
+  shouldRequireOnchainRegistration,
+} from '@/lib/swap-router';
 
 export const dynamic = 'force-dynamic';
 
@@ -52,6 +57,40 @@ function isPrismaP2002(err: unknown): boolean {
     err !== null &&
     'code' in err &&
     (err as { code: string }).code === 'P2002'
+  );
+}
+
+async function requireRegisteredWorkflow(gatewaySlug: string): Promise<NextResponse | null> {
+  if (!shouldRequireOnchainRegistration()) return null;
+
+  const onchainSkillId = keccak256(toBytes(gatewaySlug));
+  const registry = await getSkillRegistryStatus(onchainSkillId);
+  if (registry.registered && registry.active) return null;
+  if (registry.transient) {
+    return NextResponse.json(
+      {
+        error: 'BSC SkillRegistry is temporarily unavailable',
+        code: 'ONCHAIN_REGISTRY_UNAVAILABLE',
+        skill: gatewaySlug,
+        skill_id: onchainSkillId,
+        registry: PHASE2_ADDRESSES.skillRegistry,
+        reason: registry.error,
+      },
+      { status: 503 },
+    );
+  }
+
+  return NextResponse.json(
+    {
+      error: 'Workflow is not registered in the BSC SkillRegistry',
+      code: 'ONCHAIN_SKILL_NOT_REGISTERED',
+      skill: gatewaySlug,
+      skill_id: onchainSkillId,
+      registry: PHASE2_ADDRESSES.skillRegistry,
+      active: registry.active,
+      reason: registry.error,
+    },
+    { status: 409 },
   );
 }
 
@@ -87,6 +126,8 @@ export async function POST(
       if (!skill) {
         return errorJson('skill-not-found', `No skill found for gateway slug: ${gatewaySlug}`, 404);
       }
+      const registryError = await requireRegisteredWorkflow(gatewaySlug);
+      if (registryError) return registryError;
       const creatorAddress = (skill.creator.walletAddress ?? '0x0000000000000000000000000000000000000000') as `0x${string}`;
       const x402Headers = generateX402Headers(skill, creatorAddress);
       return NextResponse.json(
@@ -200,6 +241,9 @@ export async function POST(
         404
       );
     }
+
+    const registryError = await requireRegisteredWorkflow(gatewaySlug);
+    if (registryError) return registryError;
 
     // -------------------------------------------------------------------------
     // 4. requestHash check — keccak256(rawBody) must match header
