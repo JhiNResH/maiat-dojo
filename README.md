@@ -13,7 +13,7 @@ Current API skills are treated as one-step workflows. The product direction is w
 ```
 Agent calls workflow via REST API
         ↓
-POST /api/v1/run { skill: "web-scraper", input: { url: "..." } }
+POST /api/v1/run { skill: "agent-repo-analyst", input: { repo_url: "https://github.com/garrytan/gbrain" } }
         ↓
 Dojo routes to workflow/provider endpoint → evaluates (delivered? format? latency?)
         ↓
@@ -32,7 +32,7 @@ All endpoints at `/api/v1/`. Agent developers need one API key.
 # One-call lifecycle: find workflow → create session → execute → evaluate → return
 POST /api/v1/run
   -H "Authorization: Bearer <api_key>"
-  -d '{"skill": "web-scraper", "input": {"url": "https://example.com"}}'
+  -d '{"skill": "agent-repo-analyst", "input": {"repo_url": "https://github.com/garrytan/gbrain"}}'
 # → { "result": {...}, "cost": 0.003, "balance": 9.997, "score": 1.0 }
 
 # Check credits
@@ -63,11 +63,7 @@ Current listed skills are one-step workflows. Workflow metadata, versions, fork 
 
 | Workflow | Type | Price/run | Endpoint |
 |-------|------|-----------|----------|
-| Quick Audit Workflow | active | $0.015 | `/api/skills-internal/quick-audit` |
-| Token Price Oracle | active | $0.005 | `/api/skills-internal/price` |
-| Echo Test | active | $0.001 | `/api/skills-internal/echo` |
-| Web Scraper (Jina Reader) | active | $0.003 | `/api/skills-internal/scrape` |
-| Web Search (Jina Search) | active | $0.005 | `/api/skills-internal/search` |
+| Agent Repo Analyst | active | $0.003 | `/api/skills-internal/repo-analyst` |
 
 Two workflow modes: **Active** (pay-per-run via gateway sessions) and **Passive** (buy-to-download / forkable package).
 
@@ -79,8 +75,8 @@ The standalone CLI package lives in `packages/dojo-cli` and is intended to be pu
 npx @maiat/dojo init
 DOJO_API_KEY=dojo_sk_... npx @maiat/dojo test --file dojo.workflow.yaml
 DOJO_API_KEY=dojo_sk_... npx @maiat/dojo publish --file dojo.workflow.yaml
-DOJO_API_KEY=dojo_sk_... npx @maiat/dojo fork --workflow quick-audit-workflow --name "My Audit Fork"
-DOJO_API_KEY=dojo_sk_... npx @maiat/dojo deploy --workflow my-audit-fork --file dojo.workflow.yaml
+DOJO_API_KEY=dojo_sk_... npx @maiat/dojo fork --workflow agent-repo-analyst --name "My Repo Analyst"
+DOJO_API_KEY=dojo_sk_... npx @maiat/dojo deploy --workflow my-repo-analyst --file dojo.workflow.yaml
 ```
 
 `publish` runs `/api/skills/dry-run` first, then creates the active `Skill`, `Workflow`, and first `WorkflowVersion` through `/api/skills/create`. Use `examples/dojo.workflow.yaml` as the starter manifest. Production creator endpoints must be public HTTPS URLs.
@@ -98,7 +94,7 @@ Inside this repo, developers can run the same CLI without publishing the npm pac
 ```bash
 npm run dojo -- help
 npm run dojo -- dev-key
-DOJO_API_KEY=dojo_sk_... npm run dojo -- run --skill web-scraper --input '{"url":"https://example.com"}'
+DOJO_API_KEY=dojo_sk_... npm run dojo -- run --skill agent-repo-analyst --input '{"repo_url":"https://github.com/garrytan/gbrain"}'
 ```
 
 `dev-key` is a local demo helper for the BNB/Codex/MCP flow. It reuses or creates
@@ -194,13 +190,12 @@ curl http://localhost:3000/api/v1/skills
 
 ## Product Direction
 
-Dojo should not compete as a generic agent launchpad. The focused wedge is security agent workflows on BNB:
+Dojo should not compete as a generic agent launchpad. The focused wedge is cleared agent work:
 
-- Quick audit workflow
-- PR diff security review workflow
-- Token launch risk workflow
-- Approval risk check workflow
-- Bug bounty triage workflow
+- start with one real public-repo analysis workflow
+- show a concrete successful execution before asking users to pay
+- charge per successful online run, not for a downloadable workflow file
+- expand only after the receipt/reputation loop is obvious
 
 Creators publish workflows. Other agents run, fork, and deploy them. Dojo clears each run and builds reputation from real outcomes.
 
@@ -209,7 +204,7 @@ Implemented workflow primitives:
 - `Workflow`, `WorkflowVersion`, `WorkflowFork`, and `WorkflowRunReceipt` models
 - `GET /api/workflows`
 - `POST /api/workflows/:id/fork`
-- Quick Audit Workflow internal endpoint
+- Agent Repo Analyst internal endpoint
 - `/api/v1/run` writes a `WorkflowRunReceipt` when the execution target has a workflow wrapper
 
 ## Links

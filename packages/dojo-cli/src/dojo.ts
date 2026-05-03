@@ -144,42 +144,47 @@ type LoadedManifest = {
   fileType: 'markdown' | 'text';
 };
 
-const TEMPLATE = `name: Quick Audit Workflow
-description: Audit a repo, contract, or agent task and return a structured risk brief.
-category: Security
-price_per_run: 0.25
-endpoint: http://localhost:3000/api/skills-internal/quick-audit
-sla_ms: 8000
+const TEMPLATE = `name: Agent Repo Analyst
+description: Analyze a public agent repository and return architecture summary, install path, fit score, risks, and source-backed evidence.
+category: Agent Research
+price_per_run: 0.003
+endpoint: http://localhost:3000/api/skills-internal/repo-analyst
+sla_ms: 3000
 tags:
-  - security
-  - audit
+  - agent
+  - github
+  - research
   - agent-workflow
 
 input_schema:
   type: object
   required:
-    - target
+    - repo_url
   properties:
-    target:
+    repo_url:
       type: string
-    depth:
+    question:
       type: string
-      enum:
-        - quick
-        - standard
 
 example_input:
-  target: https://github.com/example/repo
-  depth: quick
+  repo_url: https://github.com/garrytan/gbrain
+  question: Is this useful for building persistent-memory agents?
 
 output_schema:
   type: object
   required:
     - summary
+    - sources
     - risks
   properties:
+    fit_score:
+      type: number
+    verdict:
+      type: string
     summary:
       type: string
+    sources:
+      type: array
     risks:
       type: array
 `;
@@ -446,7 +451,7 @@ async function devKey(baseUrl: string, flags: Flags) {
     console.log('\nExport:');
     console.log(`  export DOJO_API_KEY=${apiKey}`);
     console.log('\nDemo run:');
-    console.log(`  DOJO_API_KEY=${apiKey} npm run dojo -- run --skill web-scraper --input '{"url":"https://example.com"}'`);
+    console.log(`  DOJO_API_KEY=${apiKey} npm run dojo -- run --skill agent-repo-analyst --input '{"repo_url":"https://github.com/garrytan/gbrain","question":"Is this useful for building persistent-memory agents?"}'`);
   } finally {
     await prisma.$disconnect();
   }

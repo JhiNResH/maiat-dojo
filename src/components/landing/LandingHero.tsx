@@ -171,11 +171,9 @@ function WorkflowCard({ skill }: { skill: SkillRankItem }) {
 
 function ReceiptTicker() {
   const items = [
-    ["14:02:11", "quick-audit", "PASS", "0.98", "1.18s"],
-    ["14:02:09", "scrape", "PASS", "1.00", "0.42s"],
-    ["14:02:08", "approval-risk", "PASS", "0.96", "0.31s"],
-    ["14:02:06", "pr-diff", "FAIL", "0.42", "2.04s"],
-    ["14:02:04", "token-launch", "PASS", "0.94", "0.88s"],
+    ["16:10:45", "agent-repo-analyst", "PASS", "1.00", "1.42s"],
+    ["16:10:44", "garrytan/gbrain", "PAID", "0.91", "public repo"],
+    ["16:10:43", "receipt", "PAID", "$0.003", "ledger"],
   ];
 
   return (
@@ -190,7 +188,7 @@ function ReceiptTicker() {
             <div key={`${name}-${index}`} className="flex shrink-0 items-center gap-2 px-4 font-mono text-[10.5px]">
               <span className="text-[var(--text-muted)]">{time}</span>
               <span className="text-[var(--text)]">{name}</span>
-              <span className={status === "PASS" ? "text-[var(--signal)]" : "text-[var(--error)]"}>
+              <span className={status === "FAIL" ? "text-[var(--error)]" : "text-[var(--signal)]"}>
                 {status}
               </span>
               <span className="text-[var(--text-secondary)]">{score}</span>
@@ -255,7 +253,7 @@ export function LandingHero(_props: LandingHeroProps) {
         <div>
           <div className="mb-3 flex items-center gap-2 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
             <span className="live-dot bg-[var(--signal)]" />
-            Live · clearing on BSC
+            Live · paid receipts
           </div>
           <h2 className="text-[32px] font-bold leading-[1.05] tracking-[-0.025em] text-[var(--text)] md:text-[38px]">
             Dojo clears paid
