@@ -66,6 +66,33 @@ const SWAP_ROUTER_ABI = [
   },
 ] as const;
 
+const SKILL_REGISTRY_ABI = [
+  {
+    type: 'function',
+    name: 'getSkill',
+    stateMutability: 'view',
+    inputs: [{ name: 'skillId', type: 'bytes32' }],
+    outputs: [
+      {
+        name: '',
+        type: 'tuple',
+        components: [
+          { name: 'provider', type: 'address' },
+          { name: 'creator', type: 'address' },
+          { name: 'runToken', type: 'address' },
+          { name: 'priceUSDC', type: 'uint256' },
+          { name: 'minReputation', type: 'uint256' },
+          { name: 'metadataURI', type: 'string' },
+          { name: 'gatewaySlug', type: 'bytes32' },
+          { name: 'category', type: 'uint8' },
+          { name: 'active', type: 'bool' },
+          { name: 'registeredAt', type: 'uint64' },
+        ],
+      },
+    ],
+  },
+] as const;
+
 // ─── Clients ────────────────────────────────────────────────────────────────
 
 function getRelayerKey(): `0x${string}` | null {
@@ -90,6 +117,11 @@ function getClients() {
   return { pub, wallet, account };
 }
 
+function getPublicClient() {
+  const rpcUrl = process.env.BSC_RPC_URL ?? 'https://data-seed-prebsc-1-s1.binance.org:8545';
+  return createPublicClient({ chain: bscTestnet, transport: http(rpcUrl) });
+}
+
 // ─── Public API ─────────────────────────────────────────────────────────────
 
 export interface AnchorResult {
@@ -98,6 +130,52 @@ export interface AnchorResult {
   settleTxHash?: Hash;
   requestId?: `0x${string}`;
   error?: string;
+}
+
+export interface RegistryStatus {
+  registered: boolean;
+  active: boolean;
+  provider?: `0x${string}`;
+  creator?: `0x${string}`;
+  runToken?: `0x${string}`;
+  priceUSDC?: bigint;
+  error?: string;
+}
+
+export async function getSkillRegistryStatus(skillId: `0x${string}`): Promise<RegistryStatus> {
+  try {
+    const pub = getPublicClient();
+    const skill = await pub.readContract({
+      address: PHASE2_ADDRESSES.skillRegistry,
+      abi: SKILL_REGISTRY_ABI,
+      functionName: 'getSkill',
+      args: [skillId],
+    });
+
+    return {
+      registered: true,
+      active: skill.active,
+      provider: skill.provider,
+      creator: skill.creator,
+      runToken: skill.runToken,
+      priceUSDC: skill.priceUSDC,
+    };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    const notFound =
+      message.includes('SkillNotFound') ||
+      message.includes('reverted') ||
+      message.includes('0x9c4a');
+    return {
+      registered: false,
+      active: false,
+      error: notFound ? 'Skill not registered in SkillRegistry' : message,
+    };
+  }
+}
+
+export function shouldRequireOnchainRegistration() {
+  return process.env.DOJO_REQUIRE_ONCHAIN_REGISTRATION !== 'false';
 }
 
 /**

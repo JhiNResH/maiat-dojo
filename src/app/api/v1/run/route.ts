@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { keccak256, toBytes } from 'viem';
 import { evaluateCall } from '@/lib/session-evaluator';
 import { settleSession } from '@/lib/settle-session';
-import { anchorExecutionAsync, PHASE2_ADDRESSES } from '@/lib/swap-router';
+import {
+  anchorExecutionAsync,
+  getSkillRegistryStatus,
+  PHASE2_ADDRESSES,
+  shouldRequireOnchainRegistration,
+} from '@/lib/swap-router';
 import { prisma } from '@/lib/prisma';
 import { parseBody, v1RunInput } from '@/lib/validators';
 import { logError } from '@/lib/logger';
@@ -67,6 +72,37 @@ export async function POST(req: NextRequest) {
   }
 
   const pricePerCall = skill.pricePerCall ?? 0;
+  const onchainSkillId = skill.gatewaySlug ? keccak256(toBytes(skill.gatewaySlug)) : null;
+
+  if (shouldRequireOnchainRegistration() && !onchainSkillId) {
+    return NextResponse.json(
+      {
+        error: 'Workflow is missing a gateway slug and cannot be matched to the BSC SkillRegistry',
+        code: 'ONCHAIN_SKILL_NOT_REGISTERED',
+        skill: skillSlug,
+        registry: PHASE2_ADDRESSES.skillRegistry,
+      },
+      { status: 409 },
+    );
+  }
+
+  if (shouldRequireOnchainRegistration() && onchainSkillId) {
+    const registry = await getSkillRegistryStatus(onchainSkillId);
+    if (!registry.registered || !registry.active) {
+      return NextResponse.json(
+        {
+          error: 'Workflow is not registered in the BSC SkillRegistry',
+          code: 'ONCHAIN_SKILL_NOT_REGISTERED',
+          skill: skillSlug,
+          skill_id: onchainSkillId,
+          registry: PHASE2_ADDRESSES.skillRegistry,
+          active: registry.active,
+          reason: registry.error,
+        },
+        { status: 409 },
+      );
+    }
+  }
 
   // --- Balance check ---
   if (user.creditBalance < pricePerCall) {
@@ -322,8 +358,7 @@ export async function POST(req: NextRequest) {
   // Resolves the on-chain skillId by hashing the gatewaySlug (must match the
   // slug used at `SkillRegistry.register` time).
   let onchainPromise: Promise<void> | null = null;
-  if (shouldCharge && skill.gatewaySlug) {
-    const onchainSkillId = keccak256(toBytes(skill.gatewaySlug));
+  if (shouldCharge && onchainSkillId) {
     if (receiptForResponse) {
       receiptForResponse.anchorStatus = 'pending';
       void prisma.workflowRunReceipt.update({
