@@ -24,8 +24,19 @@ vi.mock('@/lib/privy-server', () => ({
   verifyPrivyAuth: vi.fn(),
 }));
 
+vi.mock('@/lib/swap-router', () => ({
+  ensureSkillRegisteredOnchain: vi.fn().mockResolvedValue({
+    ok: true,
+    skillId: '0xskill',
+    registry: '0xregistry',
+    active: true,
+  }),
+  normalizeHexAddress: vi.fn(() => null),
+}));
+
 import { prisma } from '@/lib/prisma';
 import { authenticateWorkflowUser } from '@/lib/workflow-api-auth';
+import { ensureSkillRegisteredOnchain } from '@/lib/swap-router';
 import { POST as createSkill } from '@/app/api/skills/create/route';
 import { POST as publishSkill } from '@/app/api/skills/publish/route';
 
@@ -113,6 +124,12 @@ describe('workflow publish routes', () => {
 
     expect(res.status).toBe(201);
     expect(data.workflow.id).toBe('workflow1');
+    expect(ensureSkillRegisteredOnchain).toHaveBeenCalledWith(
+      expect.objectContaining({
+        slug: expect.stringMatching(/^quick-audit-workflow-[0-9a-f]{6}$/),
+        pricePerCall: 0.25,
+      }),
+    );
     expect(tx.skill.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
@@ -159,6 +176,12 @@ Run an audit.`;
     expect(res.status).toBe(201);
     expect(data.workflowId).toBe('workflow1');
     expect(data.url).toBe('/workflow/quick-audit-workflow-abc123/run');
+    expect(ensureSkillRegisteredOnchain).toHaveBeenCalledWith(
+      expect.objectContaining({
+        slug: 'quick-audit-workflow',
+        pricePerCall: 0.25,
+      }),
+    );
     expect(tx.workflow.create).toHaveBeenCalled();
     expect(tx.workflowVersion.create).toHaveBeenCalled();
   });
