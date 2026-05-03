@@ -152,6 +152,8 @@ export async function settleSession(sessionId: string): Promise<SettleResult> {
   // 4. closeAndSettle — gateway-signed atomic settlement
   // Handles PASS (pay provider 95%, treasury 5%) and FAIL (refund client 100%).
   // AfterAction hooks fire attestation + trust update in the same tx.
+  let closeAndSettleTxHash: string | null = null;
+  let closeAndSettleError: string | null = null;
   if (onchainJobId && process.env.DOJO_RELAYER_PRIVATE_KEY) {
     try {
       const config = getAcpConfig();
@@ -182,7 +184,13 @@ export async function settleSession(sessionId: string): Promise<SettleResult> {
         txHash: settleResult.txHash,
         error: settleResult.error,
       });
+      if (settleResult.success && settleResult.txHash) {
+        closeAndSettleTxHash = settleResult.txHash;
+      } else if (settleResult.error) {
+        closeAndSettleError = settleResult.error;
+      }
     } catch (err) {
+      closeAndSettleError = err instanceof Error ? err.message : String(err);
       logError('settle:closeAndSettle', err, { sessionId: session.id, onchainJobId });
     }
   }
@@ -204,7 +212,16 @@ export async function settleSession(sessionId: string): Promise<SettleResult> {
     });
 
     if (result.count > 0) {
-      await reconcileSessionReceipts(tx, session.id, isPASS ? 'paid' : 'refunded');
+      await reconcileSessionReceipts(
+        tx,
+        session.id,
+        isPASS ? 'paid' : 'refunded',
+        closeAndSettleTxHash
+          ? { status: 'settled', settleTxHash: closeAndSettleTxHash, error: null }
+          : closeAndSettleError
+            ? { status: 'failed', error: closeAndSettleError }
+            : undefined,
+      );
     }
 
     return result;

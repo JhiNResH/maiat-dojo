@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import matter from 'gray-matter';
 import { randomBytes } from 'crypto';
+import { ensureSkillRegisteredOnchain, normalizeHexAddress } from '@/lib/swap-router';
 
 export const dynamic = 'force-dynamic';
 
@@ -166,6 +167,28 @@ export async function POST(req: NextRequest) {
   const exampleOutput = frontmatter.example_output
     ? JSON.stringify(frontmatter.example_output)
     : null;
+
+  const registration = await ensureSkillRegisteredOnchain({
+    slug: gatewaySlug,
+    pricePerCall: price as number,
+    creatorAddress: normalizeHexAddress(user.walletAddress),
+    metadataURI: `dojo://workflow/${gatewaySlug}`,
+  });
+  if (!registration.ok) {
+    return NextResponse.json(
+      {
+        error: registration.transient
+          ? 'BSC SkillRegistry is temporarily unavailable'
+          : registration.error ?? 'Failed to register workflow on-chain',
+        code: registration.transient
+          ? 'ONCHAIN_REGISTRY_UNAVAILABLE'
+          : 'ONCHAIN_SKILL_REGISTER_FAILED',
+        skill_id: registration.skillId,
+        registry: registration.registry,
+      },
+      { status: registration.transient ? 503 : 409 },
+    );
+  }
 
   // --- Create workflow-backed skill ---
   let created;

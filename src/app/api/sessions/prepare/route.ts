@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { verifyPrivyAuth } from '@/lib/privy-server';
 import { getAcpConfig } from '@/lib/bsc-acp';
 import { getBscConfig } from '@/lib/erc8004';
+import { validateRegisteredWorkflowSlug } from '@/lib/swap-router';
 
 export const dynamic = 'force-dynamic';
 
@@ -94,6 +95,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: 'Active skill is missing gatewaySlug' },
         { status: 400 }
+      );
+    }
+
+    const registry = await validateRegisteredWorkflowSlug(skill.gatewaySlug);
+    if (!registry.ok) {
+      return NextResponse.json(
+        {
+          error: registry.error,
+          code: registry.code,
+          skill: skill.gatewaySlug,
+          skill_id: registry.skillId,
+          registry: registry.registry,
+          active: registry.active,
+          reason: registry.reason,
+        },
+        { status: registry.status },
       );
     }
 

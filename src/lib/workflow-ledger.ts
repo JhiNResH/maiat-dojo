@@ -90,9 +90,19 @@ export async function reconcileSessionReceipts(
   tx: Prisma.TransactionClient,
   sessionId: string,
   settlementStatus: 'paid' | 'refunded',
+  anchor?: {
+    status?: 'settled' | 'failed';
+    settleTxHash?: string | null;
+    error?: string | null;
+  },
 ) {
   await tx.workflowRunReceipt.updateMany({
     where: { sessionId },
-    data: { settlementStatus },
+    data: {
+      settlementStatus,
+      ...(anchor?.status && { anchorStatus: anchor.status }),
+      ...(anchor?.settleTxHash !== undefined && { settleTxHash: anchor.settleTxHash }),
+      ...(anchor?.error !== undefined && { anchorError: anchor.error }),
+    },
   });
 }

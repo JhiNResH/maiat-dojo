@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { authenticateWorkflowUser } from '@/lib/workflow-api-auth';
+import { ensureSkillRegisteredOnchain, normalizeHexAddress } from '@/lib/swap-router';
 
 export const dynamic = 'force-dynamic';
 
@@ -135,6 +136,28 @@ export async function POST(
   const exampleOutput = stringify(parsed.data.exampleOutput);
   const latest = workflow.versions[0] ?? null;
   const nextVersion = (latest?.version ?? 0) + 1;
+
+  const registration = await ensureSkillRegisteredOnchain({
+    slug: workflow.slug,
+    pricePerCall: parsed.data.pricePerRun,
+    creatorAddress: normalizeHexAddress(user.walletAddress),
+    metadataURI: `dojo://workflow/${workflow.slug}`,
+  });
+  if (!registration.ok) {
+    return NextResponse.json(
+      {
+        error: registration.transient
+          ? 'BSC SkillRegistry is temporarily unavailable'
+          : registration.error ?? 'Failed to register workflow on-chain',
+        code: registration.transient
+          ? 'ONCHAIN_REGISTRY_UNAVAILABLE'
+          : 'ONCHAIN_SKILL_REGISTER_FAILED',
+        skill_id: registration.skillId,
+        registry: registration.registry,
+      },
+      { status: registration.transient ? 503 : 409 },
+    );
+  }
 
   try {
     const deployed = await prisma.$transaction(async (tx) => {

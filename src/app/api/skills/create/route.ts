@@ -4,6 +4,7 @@ import type { User } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { verifyPrivyAuth } from "@/lib/privy-server";
 import { authenticateWorkflowUser } from "@/lib/workflow-api-auth";
+import { ensureSkillRegisteredOnchain, normalizeHexAddress } from "@/lib/swap-router";
 
 export const dynamic = "force-dynamic";
 
@@ -267,6 +268,47 @@ export async function POST(req: NextRequest) {
     const effectiveOutputShape = outputShape ?? 'json';
     const effectiveSandboxable = sandboxable ?? true;
     const effectiveAuthRequired = authRequired ?? false;
+
+    if (effectiveSkillType === 'active') {
+      const [existingSkill, existingWorkflow] = await Promise.all([
+        prisma.skill.findUnique({
+          where: { gatewaySlug: finalSlug! },
+          select: { id: true },
+        }),
+        prisma.workflow.findUnique({
+          where: { slug: finalSlug! },
+          select: { id: true },
+        }),
+      ]);
+      if (existingSkill || existingWorkflow) {
+        return NextResponse.json(
+          { error: 'gatewaySlug is already used by another workflow or skill' },
+          { status: 409 },
+        );
+      }
+
+      const registration = await ensureSkillRegisteredOnchain({
+        slug: finalSlug!,
+        pricePerCall: effectivePricePerCall!,
+        creatorAddress: normalizeHexAddress(user.walletAddress),
+        metadataURI: `dojo://workflow/${finalSlug}`,
+      });
+      if (!registration.ok) {
+        return NextResponse.json(
+          {
+            error: registration.transient
+              ? 'BSC SkillRegistry is temporarily unavailable'
+              : registration.error ?? 'Failed to register workflow on-chain',
+            code: registration.transient
+              ? 'ONCHAIN_REGISTRY_UNAVAILABLE'
+              : 'ONCHAIN_SKILL_REGISTER_FAILED',
+            skill_id: registration.skillId,
+            registry: registration.registry,
+          },
+          { status: registration.transient ? 503 : 409 },
+        );
+      }
+    }
 
     const created = await prisma.$transaction(async (tx) => {
       const skill = await tx.skill.create({

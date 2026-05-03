@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { DEMO_SKILLS, toV1Skill } from '@/lib/demo-catalog';
+import { validateRegisteredWorkflowSlug } from '@/lib/swap-router';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,11 +20,6 @@ function safeJsonParse(value: string | null): unknown {
  * No auth required — this is a public catalog.
  */
 export async function GET() {
-  const fallback = () => {
-    const skills = DEMO_SKILLS.map(toV1Skill);
-    return NextResponse.json({ skills, count: skills.length, demo: true });
-  };
-
   let skills;
   try {
     skills = await prisma.skill.findMany({
@@ -64,15 +59,36 @@ export async function GET() {
       orderBy: { name: 'asc' },
     });
   } catch (error) {
-    console.warn('[GET /api/v1/skills] falling back to demo catalog:', error);
-    return fallback();
+    console.error('[GET /api/v1/skills] failed:', error);
+    return NextResponse.json({ error: 'Failed to load skills' }, { status: 500 });
   }
 
-  if (skills.length === 0) {
-    return fallback();
+  const onchainReady: typeof skills = [];
+  for (const skill of skills) {
+    if (!skill.gatewaySlug) continue;
+    const registry = await validateRegisteredWorkflowSlug(skill.gatewaySlug);
+    if (registry.ok) {
+      onchainReady.push(skill);
+      continue;
+    }
+    if (registry.status === 503) {
+      return NextResponse.json(
+        {
+          error: registry.error,
+          code: registry.code,
+          registry: registry.registry,
+          reason: registry.reason,
+        },
+        { status: 503 },
+      );
+    }
   }
 
-  const result = skills.map((s) => ({
+  if (onchainReady.length === 0) {
+    return NextResponse.json({ skills: [], count: 0 });
+  }
+
+  const result = onchainReady.map((s) => ({
     skill: s.gatewaySlug,
     name: s.name,
     description: s.description,
