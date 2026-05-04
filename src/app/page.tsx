@@ -11,9 +11,9 @@
  *   - Multi-column footer
  */
 
-import Link from "next/link";
 import { LandingHero } from "@/components/landing/LandingHero";
 import { Navbar } from "@/components/landing/Navbar";
+import { Footer } from "@/components/landing/Footer";
 
 /* ── API step for developer section ── */
 function ApiStep({
@@ -133,94 +133,8 @@ export default function DojoPage() {
             </div>
           </div>
         </section>
-
-        {/* ═══ FOOTER ═══ */}
-        <footer className="mt-auto border-t border-[var(--border)] pt-10">
-          <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
-            <div>
-              <span className="text-[15px] font-bold text-[var(--text)]">
-                The Dojo
-              </span>
-              <p className="mt-2 text-[13px] leading-relaxed text-[var(--text-muted)]">
-                Workflow asset market
-                <br />
-                with receipt-backed reputation.
-              </p>
-            </div>
-            <div>
-              <span className="label-sm">Product</span>
-              <ul className="mt-3 space-y-2">
-                <li>
-                  <Link
-                    href="/leaderboard"
-                    className="text-[13px] text-[var(--text-secondary)] transition-colors hover:text-[var(--text)]"
-                  >
-                    Leaderboard
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/dashboard"
-                    className="text-[13px] text-[var(--text-secondary)] transition-colors hover:text-[var(--text)]"
-                  >
-                    Dashboard
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/demo"
-                    className="text-[13px] text-[var(--text-secondary)] transition-colors hover:text-[var(--text)]"
-                  >
-                    Demo
-                  </Link>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <span className="label-sm">Developers</span>
-              <ul className="mt-3 space-y-2">
-                <li>
-                  <Link
-                    href="/#developers"
-                    className="text-[13px] text-[var(--text-secondary)] transition-colors hover:text-[var(--text)]"
-                  >
-                    REST API
-                  </Link>
-                </li>
-                <li>
-                  <a
-                    href="https://github.com/JhiNResH/maiat-dojo"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[13px] text-[var(--text-secondary)] transition-colors hover:text-[var(--text)]"
-                  >
-                    GitHub
-                  </a>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <span className="label-sm">Create</span>
-              <div className="mt-3 flex flex-col gap-2">
-                <Link href="/create" className="btn-primary w-full justify-center text-[12px]">
-                  Publish Asset
-                </Link>
-                <Link href="/#developers" className="btn-outline w-full justify-center text-[12px]">
-                  View Docs
-                </Link>
-              </div>
-            </div>
-          </div>
-          <div className="mt-10 flex items-center justify-between border-t border-[var(--border)] py-4">
-            <span className="text-[12px] text-[var(--text-muted)]">
-              &copy; 2026 Maiat Protocol. All rights reserved.
-            </span>
-            <span className="text-[12px] text-[var(--text-muted)]">
-              Testnet clearing rail
-            </span>
-          </div>
-        </footer>
       </div>
+      <Footer />
     </div>
   );
 }
