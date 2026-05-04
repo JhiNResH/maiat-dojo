@@ -779,9 +779,9 @@ export function WorkflowActionClient({
           Workflow market
         </Link>
 
-        <section className="mb-5 flex flex-col gap-5 border-b border-[var(--border-light)] pb-5 lg:flex-row lg:items-start lg:justify-between">
+        <section className="dojo-workflow-hero mb-5 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <div className="mb-3 inline-flex items-center gap-2 rounded-[6px] bg-[var(--text)] px-3 py-1.5 text-[var(--bg)]">
+            <div className="dojo-rank-badge mb-3 inline-flex items-center gap-2 rounded-[6px] px-3 py-1.5">
               <Icon className="h-3.5 w-3.5" />
               <span className="font-mono text-[11px] font-semibold uppercase tracking-wider">
                 {copy.eyebrow}
@@ -794,7 +794,7 @@ export function WorkflowActionClient({
               <span>/</span>
               <span className="text-[var(--text)]">{workflow.slug}</span>
             </div>
-            <h1 className="text-[28px] font-bold leading-tight tracking-[-0.025em] text-[var(--text)] md:text-[34px]">
+            <h1 className="font-serif text-[31px] font-black leading-tight tracking-[0] text-[var(--text)] md:text-[42px]">
               {workflow.name}
               <span className="ml-3 align-middle font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--signal-deep)]">
                 living
@@ -832,7 +832,7 @@ export function WorkflowActionClient({
               forks={workflow.forks}
               status={`${(workflow.royaltyBps / 100).toFixed(1)}% creator royalty`}
             />
-            <div className="mt-3 grid grid-cols-3 overflow-hidden rounded-[8px] border border-[var(--border)]">
+            <div className="dojo-mat-tabs mt-3 grid grid-cols-3 overflow-hidden rounded-[8px] border border-[var(--border)]">
               {(["run", "fork", "deploy"] as const).map((item) => (
                 <Link
                   key={item}

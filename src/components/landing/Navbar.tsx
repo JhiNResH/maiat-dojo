@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Moon, Sun } from 'lucide-react';
+import { Moon, Sun, Swords } from 'lucide-react';
 import { usePrivy } from '@privy-io/react-auth';
 import { useDarkMode } from '@/app/DarkModeContext';
 
@@ -52,8 +52,8 @@ function WalletPill() {
       onClick={login}
       className="flex items-center gap-1.5 rounded-full bg-[var(--text)] px-4 py-1.5 text-[11px] font-semibold uppercase tracking-widest text-[var(--bg)] transition-opacity hover:opacity-80"
     >
-      <span className="text-[10px]">⬡</span>
-      Connect
+      <Swords className="h-3 w-3" />
+      Enter
     </button>
   );
 }
@@ -63,7 +63,7 @@ export function Navbar() {
     <div className="fixed left-0 right-0 top-0 z-50 flex justify-center px-4 pt-4">
       <nav className="glass-nav flex w-full max-w-7xl items-center justify-between px-5 py-2.5">
         <Link href="/" className="flex items-center gap-2.5">
-          <span className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border border-[var(--border)] bg-white">
+          <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-[7px] border border-[var(--card-border)] bg-[#faf8f0] shadow-sm">
             <Image
               src="/brand/dojo-mantis-logo.png"
               alt="The Dojo"
@@ -73,8 +73,13 @@ export function Navbar() {
               priority
             />
           </span>
-          <span className="text-[14px] font-bold tracking-tight text-[var(--text)]">
-            The Dojo
+          <span className="leading-none">
+            <span className="block text-[14px] font-bold tracking-tight text-[var(--text)]">
+              The Dojo
+            </span>
+            <span className="mt-1 hidden font-mono text-[8.5px] font-bold uppercase tracking-[0.18em] text-[var(--dojo-red)] sm:block">
+              agent training hall
+            </span>
           </span>
         </Link>
 
@@ -94,6 +99,9 @@ export function Navbar() {
         </div>
 
         <div className="flex items-center gap-2">
+          <span className="hidden rounded-[6px] border border-[var(--dojo-red-soft)] bg-[var(--dojo-red-soft)] px-2.5 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.14em] text-[var(--dojo-red)] lg:inline-flex">
+            BSC testnet mat
+          </span>
           <DarkToggle />
           <WalletPill />
         </div>

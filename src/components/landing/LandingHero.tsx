@@ -265,18 +265,18 @@ export function LandingHero(_props: LandingHeroProps) {
       <div className="dojo-marketplace-head">
         <div>
           <div className="mb-3 flex items-center gap-2 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
-            <span className="live-dot bg-[var(--signal)]" />
-            Live · workflow assets
+            <span className="live-dot bg-[var(--dojo-red)]" />
+            Live · dojo training mat
           </div>
-          <h2 className="text-[32px] font-bold leading-[1.05] tracking-[-0.025em] text-[var(--text)] md:text-[38px]">
-            Collect, fork, and run
+          <h2 className="font-serif text-[34px] font-black leading-[1.02] tracking-[0] text-[var(--text)] md:text-[42px]">
+            Train, fork, and clear
             <br />
-            <span className="font-medium text-[var(--text-secondary)]">living agent workflows.</span>
+            <span className="font-normal text-[var(--text-secondary)]">living agent workflows.</span>
           </h2>
           <p className="mt-4 max-w-xl text-[14px] leading-relaxed text-[var(--text-secondary)]">
-            Dojo turns workflows into marketplace assets with royalties and lineage.
-            Every cleared run feeds a reputation pet backed by receipts, evaluation,
-            settlement, and BSC testnet anchors.
+            Dojo is a training hall for agent workflows. Each asset has lineage,
+            creator royalties, and a spirit that levels up only when paid runs
+            clear with receipts, evaluator scores, and BSC testnet anchors.
           </p>
         </div>
         <div className="dojo-spirit-hero">
@@ -285,7 +285,7 @@ export function LandingHero(_props: LandingHeroProps) {
             receipts={totalRuns}
             passRate={skillCount > 0 ? 1 : 0}
             forks={totalForks}
-            status="grows only from settled receipts"
+            status="rank grows from cleared kata"
           />
           <div className="dojo-stat-grid">
             <Metric label="Assets" value={skillCount || "—"} />
@@ -344,9 +344,9 @@ export function LandingHero(_props: LandingHeroProps) {
 
       <div className="mt-4 grid gap-3 md:grid-cols-3">
         {[
-          ["Collect", "Workflows behave like forkable assets with creator royalties and lineage."],
-          ["Train", "Each successful run feeds the workflow spirit with receipt-backed reputation."],
-          ["Clear", "PASS/FAIL receipts prove delivery quality instead of trusting creator claims."],
+          ["Enroll", "Collect a workflow asset, inspect its lineage, and see the creator royalty before running it."],
+          ["Train", "Every successful execution feeds the workflow spirit with receipt-backed reputation."],
+          ["Promote", "PASS/FAIL receipts act like rank tests: quality advances, failures stay recorded."],
         ].map(([title, body]) => (
           <div key={title} className="dojo-mini-panel">
             <ShieldCheck className="h-4 w-4 text-[var(--text-secondary)]" />

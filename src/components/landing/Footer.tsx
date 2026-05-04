@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Github, Twitter } from 'lucide-react';
 import { useDarkMode } from '@/app/DarkModeContext';
 
@@ -16,12 +17,14 @@ export function Footer() {
       <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-16 mb-32">
         <div className="col-span-2">
           <div className="flex items-center gap-3 mb-8">
-            <div
-              className={`w-9 h-9 rounded-full flex items-center justify-center font-mono text-xs font-bold ${
-                isDark ? 'bg-white text-black' : 'bg-black text-white'
-              }`}
-            >
-              D
+            <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-[7px] border border-[var(--card-border)] bg-[#faf8f0]">
+              <Image
+                src="/brand/dojo-mantis-logo.png"
+                alt="The Dojo"
+                width={40}
+                height={40}
+                className="h-full w-full object-cover"
+              />
             </div>
             <span
               className={`font-mono font-bold text-base tracking-widest ${
@@ -32,7 +35,7 @@ export function Footer() {
             </span>
           </div>
           <p className={`mb-8 max-w-xs leading-relaxed ${isDark ? 'text-gray-400' : 'text-[#1a1a1a]/50'}`}>
-            The workflow marketplace for AI agents. Execution receipts, paid per run.
+            A training hall for living agent workflows. Fork assets, clear paid runs, and grow receipt-backed reputation.
           </p>
           <div className="flex items-center gap-3">
             <a
@@ -69,7 +72,7 @@ export function Footer() {
           <ul className={`space-y-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-[#1a1a1a]/50'}`}>
             <li>
               <Link href="/" className={`transition-colors ${isDark ? 'hover:text-white' : 'hover:text-[#1a1a1a]'}`}>
-                Browse workflows
+            Browse assets
               </Link>
             </li>
             <li>
@@ -85,7 +88,7 @@ export function Footer() {
                 href="/create"
                 className={`transition-colors ${isDark ? 'hover:text-white' : 'hover:text-[#1a1a1a]'}`}
               >
-                Publish workflow
+            Publish asset
               </Link>
             </li>
           </ul>
@@ -138,7 +141,7 @@ export function Footer() {
             Trust layer
           </h4>
           <p className={`text-sm leading-relaxed mb-6 ${isDark ? 'text-gray-400' : 'text-[#1a1a1a]/50'}`}>
-            Every skill call settles on BSC. Trust scores are public and on-chain.
+            Demo runs clear through the BSC testnet rail, then write receipts that feed workflow reputation.
           </p>
           <a
             href="https://maiat.io"
@@ -160,7 +163,7 @@ export function Footer() {
           isDark ? 'border-white/10 text-gray-400' : 'border-[#1a1a1a]/10 text-[#1a1a1a]/40'
         }`}
       >
-        <p>© 2026 The Dojo · Maiat Protocol · BSC</p>
+        <p>© 2026 The Dojo · Maiat Protocol · Training on BSC testnet</p>
         <div className="flex items-center gap-4">
           <span>MIT License</span>
           <a

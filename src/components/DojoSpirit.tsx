@@ -48,7 +48,7 @@ export function DojoSpirit({
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <div className="truncate font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--text-muted)]">
-              reputation pet
+              workflow spirit
             </div>
             <div className="mt-1 truncate text-[14px] font-semibold text-[var(--text)]">
               {name}
@@ -67,7 +67,7 @@ export function DojoSpirit({
             <strong>{sync}%</strong>
           </div>
           <div className="dojo-spirit-stat">
-            <span>Forks</span>
+            <span>Lineage</span>
             <strong>{forks}</strong>
           </div>
         </div>
