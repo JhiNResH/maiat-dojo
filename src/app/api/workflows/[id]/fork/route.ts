@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { getDemoSkillByWorkflowId, toPublicSkill } from '@/lib/demo-catalog';
 import { authenticateWorkflowUser } from '@/lib/workflow-api-auth';
+import { buildWorkflowSpiritProfile } from '@/lib/workflow-spirit';
 
 export const dynamic = 'force-dynamic';
 
@@ -145,11 +146,35 @@ export async function POST(
       return { child, version, fork };
     });
 
+    const childSpirit = buildWorkflowSpiritProfile({
+      workflowId: result.child.id,
+      slug: result.child.slug,
+      name: result.child.name,
+      category: result.child.category,
+      creatorId: result.child.creatorId,
+      creatorName: user.displayName,
+      runCount: result.child.runCount,
+      forkCount: result.child.forkCount,
+      trustScore: result.child.trustScore,
+      royaltyBps: result.child.royaltyBps,
+    });
+
     return NextResponse.json(
       {
-        workflow: result.child,
+        workflow: {
+          ...result.child,
+          spirit: childSpirit,
+        },
         version: result.version,
         fork: result.fork,
+        offspring: {
+          kind: 'offspring',
+          parent_workflow_id: dbParent?.id ?? demoParent?.workflowId ?? params.id,
+          child_workflow_id: result.child.id,
+          style_branch: childSpirit.pattern,
+          inherited_royalty_bps: result.child.royaltyBps,
+          spirit: childSpirit,
+        },
       },
       { status: 201 },
     );

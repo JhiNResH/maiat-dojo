@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { verifyPrivyAuth } from "@/lib/privy-server";
 import { authenticateWorkflowUser } from "@/lib/workflow-api-auth";
 import { ensureSkillRegisteredOnchain, normalizeHexAddress } from "@/lib/swap-router";
+import { buildWorkflowSpiritProfile } from "@/lib/workflow-spirit";
 
 export const dynamic = "force-dynamic";
 
@@ -392,7 +393,25 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      return { skill, workflow: { ...workflow, latestVersion: version } };
+      return {
+        skill,
+        workflow: {
+          ...workflow,
+          latestVersion: version,
+          spirit: buildWorkflowSpiritProfile({
+            workflowId: workflow.id,
+            slug: workflow.slug,
+            name: workflow.name,
+            category: workflow.category,
+            creatorId: workflow.creatorId,
+            creatorName: user.displayName,
+            runCount: workflow.runCount,
+            forkCount: workflow.forkCount,
+            trustScore: workflow.trustScore,
+            royaltyBps: workflow.royaltyBps,
+          }),
+        },
+      };
     });
 
     return NextResponse.json(

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { buildWorkflowSpiritProfile } from "@/lib/workflow-spirit";
 
 export const dynamic = "force-dynamic";
 
@@ -8,15 +9,73 @@ export const dynamic = "force-dynamic";
  * Returns top agents or creators by various criteria
  *
  * Query params:
- *   type?: "agents" | "creators"  (default: "agents")
+ *   type?: "spirits" | "agents" | "creators"  (default: "spirits")
  *   sort?: "earnings" | "jobs" | "xp" | "rating"  (default: "earnings") - for agents
  *   limit?: number (default 20, max 100)
  */
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const type = searchParams.get("type") ?? "agents";
+  const type = searchParams.get("type") ?? "spirits";
   const sort = searchParams.get("sort") ?? "earnings";
   const limit = Math.min(parseInt(searchParams.get("limit") ?? "20"), 100);
+
+  if (type === "spirits") {
+    const workflows = await prisma.workflow.findMany({
+      where: { status: "published" },
+      orderBy: [{ trustScore: "desc" }, { runCount: "desc" }, { forkCount: "desc" }],
+      take: limit,
+      select: {
+        id: true,
+        slug: true,
+        name: true,
+        category: true,
+        runCount: true,
+        forkCount: true,
+        trustScore: true,
+        royaltyBps: true,
+        pricePerRun: true,
+        creator: {
+          select: {
+            id: true,
+            displayName: true,
+            avatarUrl: true,
+          },
+        },
+      },
+    });
+
+    return NextResponse.json({
+      type: "spirits",
+      count: workflows.length,
+      spirits: workflows.map((workflow) => {
+        const spirit = buildWorkflowSpiritProfile({
+          workflowId: workflow.id,
+          slug: workflow.slug,
+          name: workflow.name,
+          category: workflow.category,
+          creatorId: workflow.creator.id,
+          creatorName: workflow.creator.displayName,
+          runCount: workflow.runCount,
+          forkCount: workflow.forkCount,
+          trustScore: workflow.trustScore,
+          royaltyBps: workflow.royaltyBps,
+        });
+        return {
+          id: workflow.id,
+          slug: workflow.slug,
+          name: workflow.name,
+          category: workflow.category,
+          creator: workflow.creator,
+          runs: workflow.runCount,
+          forks: workflow.forkCount,
+          trust_score: workflow.trustScore,
+          price_per_run: workflow.pricePerRun,
+          royalty_bps: workflow.royaltyBps,
+          spirit,
+        };
+      }),
+    });
+  }
 
   // Handle creators leaderboard
   if (type === "creators") {

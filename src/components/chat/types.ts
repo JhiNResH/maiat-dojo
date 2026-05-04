@@ -9,6 +9,7 @@
  */
 
 import type { SkillExecutorSkill } from "../skill/SkillExecutor";
+import type { WorkflowSpiritProfile } from "@/lib/workflow-spirit";
 
 export interface ChatSkillSummary {
   id: string;
@@ -24,6 +25,7 @@ export interface ChatSkillSummary {
   workflowRunCount?: number;
   workflowForkCount?: number;
   royaltyBps?: number | null;
+  spirit?: WorkflowSpiritProfile | null;
 }
 
 export type ChatMessage =
