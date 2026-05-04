@@ -6,6 +6,7 @@ import { ArrowLeft, CheckCircle2, ExternalLink, GitFork, Play, Rocket, ShieldChe
 import { usePrivy } from "@privy-io/react-auth";
 import { Navbar } from "@/components/landing/Navbar";
 import { DojoSpirit } from "@/components/DojoSpirit";
+import type { WorkflowSpiritProfile } from "@/lib/workflow-spirit";
 
 type WorkflowAction = "run" | "fork" | "deploy";
 
@@ -33,6 +34,7 @@ export type WorkflowActionData = {
   runs: number;
   forks: number;
   trustScore: number;
+  spirit?: WorkflowSpiritProfile;
   creatorName: string;
   skill: {
     id: string;
@@ -826,11 +828,16 @@ export function WorkflowActionClient({
           <aside className="dojo-card min-w-[330px] p-3">
             <DojoSpirit
               compact
+              profile={workflow.spirit}
               name={workflow.name}
+              workflowId={workflow.id}
+              slug={workflow.slug}
+              category={workflow.category}
               receipts={workflow.runs}
               passRate={workflow.trustScore > 1 ? workflow.trustScore / 100 : workflow.trustScore}
               forks={workflow.forks}
-              status={`${(workflow.royaltyBps / 100).toFixed(1)}% creator royalty`}
+              royaltyBps={workflow.royaltyBps}
+              status={workflow.spirit?.lineageRevenue.label ?? `${(workflow.royaltyBps / 100).toFixed(1)}% lineage revenue`}
             />
             <div className="dojo-mat-tabs mt-3 grid grid-cols-3 overflow-hidden rounded-[8px] border border-[var(--border)]">
               {(["run", "fork", "deploy"] as const).map((item) => (
@@ -853,7 +860,7 @@ export function WorkflowActionClient({
             <div className="mt-3 flex items-center justify-between font-mono text-[10.5px] text-[var(--text-muted)]">
               <span>receipts feed</span>
               <span className="font-semibold text-[var(--text)]">reputation</span>
-              <span>forks inherit</span>
+              <span>offspring branch</span>
             </div>
           </aside>
         </section>

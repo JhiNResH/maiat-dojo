@@ -125,11 +125,17 @@ function WorkflowCard({ skill }: { skill: SkillRankItem }) {
       <div className="mt-4">
         <DojoSpirit
           compact
+          profile={skill.spirit ?? undefined}
           name={skill.name}
+          workflowId={skill.workflowId ?? skill.id}
+          slug={skill.workflowSlug ?? skill.gatewaySlug ?? skill.id}
+          category={skill.category}
+          creatorId={skill.creator?.id}
           receipts={runs}
           passRate={trust}
           forks={forks}
-          status={`${skill.royaltyBps ?? 0} bps creator royalty`}
+          royaltyBps={skill.royaltyBps}
+          status={skill.spirit?.lineageRevenue.label ?? `${skill.royaltyBps ?? 0} bps lineage revenue`}
         />
       </div>
 
@@ -161,7 +167,7 @@ function WorkflowCard({ skill }: { skill: SkillRankItem }) {
       <div className="mt-3 grid grid-cols-3 gap-2">
         <Metric label="Runs" value={compactNumber(runs)} />
         <Metric label="Pass rate" value={`${Math.round(trust * 100)}%`} />
-        <Metric label="Royalty" value={`${((skill.royaltyBps ?? 0) / 100).toFixed(1)}%`} />
+        <Metric label="Lineage rev" value={`${((skill.royaltyBps ?? 0) / 100).toFixed(1)}%`} />
       </div>
 
       <div className="mt-auto grid grid-cols-[1fr_auto_auto] gap-2 pt-4">
@@ -282,9 +288,13 @@ export function LandingHero(_props: LandingHeroProps) {
         <div className="dojo-spirit-hero">
           <DojoSpirit
             name="Registry Spirit"
+            workflowId="dojo-registry"
+            slug="dojo-registry"
+            category="Dojo"
             receipts={totalRuns}
             passRate={skillCount > 0 ? 1 : 0}
             forks={totalForks}
+            royaltyBps={500}
             status="rank grows from cleared kata"
           />
           <div className="dojo-stat-grid">

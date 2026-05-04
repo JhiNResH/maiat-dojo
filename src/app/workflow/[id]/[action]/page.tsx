@@ -8,6 +8,7 @@ import {
   WorkflowActionClient,
   type WorkflowActionData,
 } from "./WorkflowActionClient";
+import { buildWorkflowSpiritProfile } from "@/lib/workflow-spirit";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +23,19 @@ function demoWorkflowData(id: string): WorkflowActionData | null {
   if (!demoSkill) return null;
   const publicSkill = toPublicSkill(demoSkill);
 
+  const spirit = buildWorkflowSpiritProfile({
+    workflowId: demoSkill.workflowId,
+    slug: demoSkill.workflowSlug,
+    name: demoSkill.name,
+    category: demoSkill.category,
+    creatorId: "maiat-dojo",
+    creatorName: "Maiat Dojo",
+    runCount: demoSkill.workflowRunCount,
+    forkCount: demoSkill.workflowForkCount,
+    trustScore: demoSkill.trustScore,
+    royaltyBps: demoSkill.royaltyBps,
+  });
+
   return {
     id: demoSkill.workflowId,
     slug: demoSkill.workflowSlug,
@@ -33,6 +47,7 @@ function demoWorkflowData(id: string): WorkflowActionData | null {
     runs: demoSkill.workflowRunCount,
     forks: demoSkill.workflowForkCount,
     trustScore: demoSkill.trustScore,
+    spirit,
     creatorName: "Maiat Dojo",
     skill: {
       id: demoSkill.id,
@@ -56,7 +71,7 @@ async function loadWorkflow(id: string): Promise<WorkflowActionData | null> {
         OR: [{ id }, { slug: id }],
       },
       include: {
-        creator: { select: { displayName: true, walletAddress: true } },
+        creator: { select: { id: true, displayName: true, walletAddress: true } },
         skill: {
           select: {
             id: true,
@@ -80,6 +95,19 @@ async function loadWorkflow(id: string): Promise<WorkflowActionData | null> {
     }
 
     const latest = workflow.versions[0] ?? null;
+    const spirit = buildWorkflowSpiritProfile({
+      workflowId: workflow.id,
+      slug: workflow.slug,
+      name: workflow.name,
+      category: workflow.category,
+      creatorId: workflow.creator.id,
+      creatorName: workflow.creator.displayName ?? workflow.creator.walletAddress,
+      runCount: workflow.runCount,
+      forkCount: workflow.forkCount,
+      trustScore: workflow.trustScore,
+      royaltyBps: workflow.royaltyBps,
+    });
+
     return {
       id: workflow.id,
       slug: workflow.slug,
@@ -91,6 +119,7 @@ async function loadWorkflow(id: string): Promise<WorkflowActionData | null> {
       runs: workflow.runCount,
       forks: workflow.forkCount,
       trustScore: workflow.trustScore,
+      spirit,
       creatorName:
         workflow.creator.displayName ??
         workflow.creator.walletAddress ??

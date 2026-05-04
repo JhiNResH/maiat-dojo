@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { validateRegisteredWorkflowSlug } from '@/lib/swap-router';
+import { buildWorkflowSpiritProfile } from '@/lib/workflow-spirit';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,9 +46,13 @@ export async function GET() {
           select: {
             id: true,
             slug: true,
+            name: true,
+            category: true,
             runCount: true,
             forkCount: true,
+            trustScore: true,
             royaltyBps: true,
+            creatorId: true,
             versions: {
               orderBy: { version: 'desc' },
               take: 1,
@@ -109,6 +114,17 @@ export async function GET() {
           forks: s.workflow.forkCount,
           royalty_bps: s.workflow.royaltyBps,
           version: s.workflow.versions[0] ?? null,
+          spirit: buildWorkflowSpiritProfile({
+            workflowId: s.workflow.id,
+            slug: s.workflow.slug,
+            name: s.workflow.name,
+            category: s.workflow.category,
+            creatorId: s.workflow.creatorId,
+            runCount: s.workflow.runCount,
+            forkCount: s.workflow.forkCount,
+            trustScore: s.workflow.trustScore,
+            royaltyBps: s.workflow.royaltyBps,
+          }),
         }
       : null,
   }));

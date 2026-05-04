@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import {
+  buildWorkflowFeedingEvent,
+  buildWorkflowSpiritProfile,
+} from '@/lib/workflow-spirit';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,8 +25,12 @@ export async function GET(
           id: true,
           slug: true,
           name: true,
+          category: true,
           trustScore: true,
           runCount: true,
+          forkCount: true,
+          royaltyBps: true,
+          creatorId: true,
         },
       },
       version: {
@@ -81,6 +89,19 @@ export async function GET(
     return NextResponse.json({ error: 'Receipt not found' }, { status: 404 });
   }
 
+  const spirit = buildWorkflowSpiritProfile({
+    workflowId: receipt.workflow.id,
+    slug: receipt.workflow.slug,
+    name: receipt.workflow.name,
+    category: receipt.workflow.category,
+    creatorId: receipt.workflow.creatorId,
+    creatorName: receipt.creator.displayName,
+    runCount: receipt.workflow.runCount,
+    forkCount: receipt.workflow.forkCount,
+    trustScore: receipt.workflow.trustScore,
+    royaltyBps: receipt.workflow.royaltyBps,
+  });
+
   return NextResponse.json({
     id: receipt.id,
     url: `/r/${receipt.id}`,
@@ -90,6 +111,8 @@ export async function GET(
       name: receipt.workflow.name,
       trust_score: receipt.workflow.trustScore,
       run_count: receipt.workflow.runCount,
+      fork_count: receipt.workflow.forkCount,
+      spirit,
     },
     version: receipt.version
       ? {
@@ -143,6 +166,12 @@ export async function GET(
       status: receipt.session.status,
       onchain_job_id: receipt.session.onchainJobId,
     },
+    feeding_event: buildWorkflowFeedingEvent({
+      receiptId: receipt.id,
+      score: receipt.score,
+      settlementStatus: receipt.settlementStatus,
+      spirit,
+    }),
     created_at: receipt.createdAt.toISOString(),
   });
 }

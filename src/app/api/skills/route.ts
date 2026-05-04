@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { validateRegisteredWorkflowSlug } from "@/lib/swap-router";
+import { buildWorkflowSpiritProfile } from "@/lib/workflow-spirit";
 
 export const dynamic = "force-dynamic";
 
@@ -74,11 +75,14 @@ export async function GET(req: NextRequest) {
           select: {
             id: true,
             slug: true,
+            name: true,
+            category: true,
             pricePerRun: true,
             runCount: true,
             forkCount: true,
             trustScore: true,
             royaltyBps: true,
+            creatorId: true,
             versions: {
               orderBy: { version: "desc" },
               take: 1,
@@ -129,6 +133,20 @@ export async function GET(req: NextRequest) {
     workflowForkCount: s.workflow?.forkCount ?? 0,
     royaltyBps: s.workflow?.royaltyBps ?? null,
     workflowVersion: s.workflow?.versions[0] ?? null,
+    spirit: s.workflow
+      ? buildWorkflowSpiritProfile({
+          workflowId: s.workflow.id,
+          slug: s.workflow.slug,
+          name: s.workflow.name,
+          category: s.workflow.category,
+          creatorId: s.workflow.creatorId,
+          creatorName: s.creator.displayName,
+          runCount: s.workflow.runCount,
+          forkCount: s.workflow.forkCount,
+          trustScore: s.workflow.trustScore,
+          royaltyBps: s.workflow.royaltyBps,
+        })
+      : null,
   }));
 
   return NextResponse.json({ total: onchainReady.length, skills: mapped });

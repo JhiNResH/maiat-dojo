@@ -14,6 +14,7 @@ import { Footer } from "@/components/landing/Footer";
 import { BackgroundEffect } from "@/components/landing/BackgroundEffect";
 import { DojoSpirit } from "@/components/DojoSpirit";
 import { prisma } from "@/lib/prisma";
+import { buildWorkflowFeedingEvent, buildWorkflowSpiritProfile } from "@/lib/workflow-spirit";
 
 export const dynamic = "force-dynamic";
 
@@ -61,9 +62,12 @@ export default async function ReceiptPage({ params }: { params: { receiptId: str
           id: true,
           slug: true,
           name: true,
+          category: true,
           trustScore: true,
           runCount: true,
           forkCount: true,
+          royaltyBps: true,
+          creatorId: true,
           pricePerRun: true,
         },
       },
@@ -132,6 +136,24 @@ export default async function ReceiptPage({ params }: { params: { receiptId: str
   const trustImpact = receipt.score > 0 ? "+ execution proof" : "no positive impact";
   const swapUrl = bscTxUrl(receipt.swapTxHash);
   const settleUrl = bscTxUrl(receipt.settleTxHash);
+  const spirit = buildWorkflowSpiritProfile({
+    workflowId: receipt.workflow.id,
+    slug: receipt.workflow.slug,
+    name: receipt.workflow.name,
+    category: receipt.workflow.category,
+    creatorId: receipt.workflow.creatorId,
+    creatorName: receipt.creator.displayName ?? receipt.creator.walletAddress,
+    runCount: receipt.workflow.runCount,
+    forkCount: receipt.workflow.forkCount,
+    trustScore: receipt.workflow.trustScore,
+    royaltyBps: receipt.workflow.royaltyBps,
+  });
+  const feedingEvent = buildWorkflowFeedingEvent({
+    receiptId: receipt.id,
+    score: receipt.score,
+    settlementStatus: receipt.settlementStatus,
+    spirit,
+  });
 
   const checks = [
     ["Delivered", receipt.delivered],
@@ -193,11 +215,12 @@ export default async function ReceiptPage({ params }: { params: { receiptId: str
         <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
           <section className="dojo-card p-6">
             <DojoSpirit
+              profile={spirit}
               name={receipt.workflow.name}
               receipts={receipt.workflow.runCount}
               passRate={receipt.score}
               forks={receipt.workflow.forkCount}
-              status="this receipt updates the living asset"
+              status={`${feedingEvent.result} feeding event: ${feedingEvent.reputationDelta}`}
             />
           </section>
 
