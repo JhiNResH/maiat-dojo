@@ -12,6 +12,7 @@ import {
 import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
 import { BackgroundEffect } from "@/components/landing/BackgroundEffect";
+import { DojoSpirit } from "@/components/DojoSpirit";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -62,6 +63,7 @@ export default async function ReceiptPage({ params }: { params: { receiptId: str
           name: true,
           trustScore: true,
           runCount: true,
+          forkCount: true,
           pricePerRun: true,
         },
       },
@@ -154,17 +156,18 @@ export default async function ReceiptPage({ params }: { params: { receiptId: str
         </div>
 
         <header className="dojo-page-header">
-          <div className="label-sm mb-3">Execution Receipt</div>
+          <div className="label-sm mb-3">Asset Receipt</div>
           <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
             <div>
               <h1 className="dojo-page-title">
                 {receipt.workflow.name}
                 <br />
-                <span className="text-[var(--text-muted)]">cleared by execution.</span>
+                <span className="text-[var(--text-muted)]">fed by execution.</span>
               </h1>
               <p className="mt-5 max-w-2xl text-[15px] leading-relaxed text-[var(--text-secondary)]">
-                This receipt records the evaluator outcome, settlement result, request hash,
-                response hash, and reputation impact for one paid agent workflow run.
+                This receipt is the feeding log for a workflow asset. It records evaluator
+                outcome, settlement state, hashes, BSC testnet anchor, and reputation impact
+                for one cleared agent run.
               </p>
             </div>
             <section className={`dojo-card p-5 ${status.bg}`}>
@@ -188,6 +191,16 @@ export default async function ReceiptPage({ params }: { params: { receiptId: str
         </header>
 
         <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+          <section className="dojo-card p-6">
+            <DojoSpirit
+              name={receipt.workflow.name}
+              receipts={receipt.workflow.runCount}
+              passRate={receipt.score}
+              forks={receipt.workflow.forkCount}
+              status="this receipt updates the living asset"
+            />
+          </section>
+
           <section className="dojo-card p-6">
             <div className="mb-5 flex items-center gap-2">
               <ShieldCheck className="h-4 w-4 text-[var(--text-muted)]" />

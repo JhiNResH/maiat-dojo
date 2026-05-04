@@ -491,6 +491,10 @@ body {
   border-radius: 0;
   background: var(--bg);
 }
+.dojo-spirit-hero {
+  display: grid;
+  gap: 10px;
+}
 .dojo-filter-row {
   display: flex;
   flex-direction: column;
@@ -619,6 +623,143 @@ body {
 }
 .dark .dojo-ticker {
   background: rgba(10,10,10,0.62);
+}
+.dojo-spirit {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background:
+    linear-gradient(90deg, rgba(0,0,0,0.025) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(0,0,0,0.025) 1px, transparent 1px),
+    var(--card-bg);
+  background-size: 8px 8px, 8px 8px, auto;
+  padding: 10px;
+}
+.dark .dojo-spirit {
+  background:
+    linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(255,255,255,0.035) 1px, transparent 1px),
+    rgba(255,255,255,0.035);
+}
+.dojo-spirit-compact {
+  gap: 10px;
+  padding: 8px;
+}
+.dojo-spirit-screen {
+  position: relative;
+  display: flex;
+  height: 92px;
+  width: 92px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 2px solid var(--text);
+  border-radius: 8px;
+  background:
+    linear-gradient(90deg, rgba(0,0,0,0.08) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(0,0,0,0.08) 1px, transparent 1px),
+    #dff2b3;
+  background-size: 7px 7px;
+  box-shadow: inset 0 -8px 0 rgba(11, 12, 14, 0.08);
+  image-rendering: pixelated;
+}
+.dark .dojo-spirit-screen {
+  background:
+    linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(255,255,255,0.08) 1px, transparent 1px),
+    #20321f;
+}
+.dojo-spirit-compact .dojo-spirit-screen {
+  height: 70px;
+  width: 70px;
+}
+.dojo-spirit-avatar {
+  position: relative;
+  z-index: 2;
+  height: 54px;
+  width: 54px;
+  overflow: hidden;
+  border: 1px solid rgba(11, 12, 14, 0.35);
+  border-radius: 3px;
+  background: #f8f5ef;
+  transform: translateY(-2px);
+}
+.dojo-spirit-compact .dojo-spirit-avatar {
+  height: 42px;
+  width: 42px;
+}
+.dojo-spirit-shadow {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  height: 5px;
+  width: 46px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: rgba(11, 12, 14, 0.18);
+}
+.dojo-spirit-scanline {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255,255,255,0.16),
+    rgba(255,255,255,0.16) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+  mix-blend-mode: soft-light;
+}
+.dojo-spirit-level {
+  flex-shrink: 0;
+  border: 1px solid var(--text);
+  border-radius: 6px;
+  background: var(--text);
+  padding: 6px 8px;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--bg);
+}
+.dojo-spirit-stat {
+  min-width: 0;
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  padding: 6px;
+}
+.dojo-spirit-stat span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono), monospace;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.dojo-spirit-stat strong {
+  display: block;
+  margin-top: 3px;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  color: var(--text);
+}
+@media (max-width: 420px) {
+  .dojo-spirit {
+    flex-direction: column;
+  }
+  .dojo-spirit-screen {
+    width: 100%;
+  }
 }
 .dojo-empty {
   border: 1px solid var(--border);

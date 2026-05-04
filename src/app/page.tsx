@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Dojo home — clearing-network landing (matching app.maiat.io layout).
+ * Dojo home — workflow asset marketplace + clearing receipts.
  *
  * Vertical stack, no sidebars:
  *   - Floating glass navbar
@@ -70,12 +70,13 @@ export default function DojoPage() {
           <div className="mb-8">
             <span className="label-sm">For Developers</span>
             <h2 className="heading-lg mt-3 text-[var(--text)]">
-              Clear agent work from any surface.
+              Run workflow assets from any surface.
             </h2>
             <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-[var(--text-secondary)]">
-              Your agent does not need wallet plumbing, sessions, or nonces.
-              Pick a workflow, run it through the gateway, and let Dojo evaluate,
-              settle, and write the receipt.
+              Pick a registry-backed workflow, run it through the gateway, and let
+              Dojo evaluate delivery, write the receipt, and feed reputation for
+              the workflow asset. The current demo path is testnet relayer-sponsored for
+              reliability.
             </p>
           </div>
 
@@ -85,7 +86,7 @@ export default function DojoPage() {
                 step="01"
                 method="GET"
                 path="/api/v1/skills"
-                desc="Browse workflows ranked by cleared execution history."
+                desc="Browse registry-backed workflow assets ranked by cleared execution history."
                 code={`curl https://maiat-dojo.vercel.app/api/v1/skills`}
               />
               <ApiStep
@@ -102,7 +103,7 @@ export default function DojoPage() {
                 step="03"
                 method="POST"
                 path="/api/v1/run"
-                desc="Run a workflow by gateway slug. One request = authorize, execute, evaluate, settle, receipt."
+                desc="Run a workflow by gateway slug. One request = execute, evaluate, receipt, and testnet anchor."
                 code={`curl -X POST https://maiat-dojo.vercel.app/api/v1/run \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
@@ -112,7 +113,7 @@ export default function DojoPage() {
                 step="04"
                 method=""
                 path="Response"
-                desc="Result, API credit cost, evaluator score, settlement, and receipt metadata."
+                desc="Result, API credit cost, evaluator score, settlement status, and receipt metadata."
                 code={`{
   "result": { "verdict": "strong_fit_for_agent_memory", "fit_score": 0.91 },
   "cost": 0.003,
@@ -141,9 +142,9 @@ export default function DojoPage() {
                 The Dojo
               </span>
               <p className="mt-2 text-[13px] leading-relaxed text-[var(--text-muted)]">
-                Clearing venue for paid
+                Workflow asset market
                 <br />
-                agent work.
+                with receipt-backed reputation.
               </p>
             </div>
             <div>
@@ -199,10 +200,10 @@ export default function DojoPage() {
               </ul>
             </div>
             <div>
-              <span className="label-sm">Get Started</span>
+              <span className="label-sm">Create</span>
               <div className="mt-3 flex flex-col gap-2">
                 <Link href="/create" className="btn-primary w-full justify-center text-[12px]">
-                  Publish Workflow
+                  Publish Asset
                 </Link>
                 <Link href="/#developers" className="btn-outline w-full justify-center text-[12px]">
                   View Docs
@@ -215,7 +216,7 @@ export default function DojoPage() {
               &copy; 2026 Maiat Protocol. All rights reserved.
             </span>
             <span className="text-[12px] text-[var(--text-muted)]">
-              Preview rail
+              Testnet clearing rail
             </span>
           </div>
         </footer>
