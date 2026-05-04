@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   Zap,
 } from "lucide-react";
+import { DojoSpirit } from "@/components/DojoSpirit";
 import { type SkillRankItem } from "./SkillRankList";
 
 export interface LandingHeroProps {
@@ -92,10 +93,11 @@ function WorkflowCard({ skill }: { skill: SkillRankItem }) {
     "dojo creator";
 
   return (
-    <article className="dojo-card group flex min-h-[238px] flex-col p-4">
+    <article className="dojo-card group flex min-h-[292px] flex-col p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="mb-2 flex items-center gap-2">
+            <span className="dojo-chip">workflow asset</span>
             <span className="dojo-chip">{skill.category ?? "workflow"}</span>
             <span className="font-mono text-[10px] text-[var(--text-muted)]">
               v{skill.workflowVersion?.version ?? 1}
@@ -120,9 +122,20 @@ function WorkflowCard({ skill }: { skill: SkillRankItem }) {
         </div>
       </div>
 
+      <div className="mt-4">
+        <DojoSpirit
+          compact
+          name={skill.name}
+          receipts={runs}
+          passRate={trust}
+          forks={forks}
+          status={`${skill.royaltyBps ?? 0} bps creator royalty`}
+        />
+      </div>
+
       <div className="mt-4 flex items-center justify-between border-t border-[var(--border-light)] pt-3">
         <div className="flex min-w-0 items-center gap-2">
-          <div className="h-6 w-6 shrink-0 rounded-[6px] bg-gradient-to-br from-[var(--text)] to-[var(--steel)]" />
+          <div className="h-6 w-6 shrink-0 rounded-[6px] border border-[var(--border)] bg-[var(--bg-secondary)]" />
           <div className="min-w-0">
             <div className="truncate text-[12px] font-medium text-[var(--text)]">
               {creator}
@@ -148,13 +161,13 @@ function WorkflowCard({ skill }: { skill: SkillRankItem }) {
       <div className="mt-3 grid grid-cols-3 gap-2">
         <Metric label="Runs" value={compactNumber(runs)} />
         <Metric label="Pass rate" value={`${Math.round(trust * 100)}%`} />
-        <Metric label="Refunds" value={trust >= 0.9 ? "<10%" : "review"} />
+        <Metric label="Royalty" value={`${((skill.royaltyBps ?? 0) / 100).toFixed(1)}%`} />
       </div>
 
       <div className="mt-auto grid grid-cols-[1fr_auto_auto] gap-2 pt-4">
         <Link href={`/workflow/${key}/run`} className="dojo-action dojo-action-primary">
           <Play className="h-3.5 w-3.5 fill-current" />
-          Run with escrow · {priceLabel(skill.pricePerCall)}
+          Run · {priceLabel(skill.pricePerCall)}
         </Link>
         <Link href={`/workflow/${key}/fork`} className="dojo-action">
           <GitFork className="h-3.5 w-3.5" />
@@ -171,16 +184,16 @@ function WorkflowCard({ skill }: { skill: SkillRankItem }) {
 
 function ReceiptTicker() {
   const items = [
-    ["16:10:45", "agent-repo-analyst", "PASS", "1.00", "1.42s"],
-    ["16:10:44", "garrytan/gbrain", "PAID", "0.91", "public repo"],
-    ["16:10:43", "receipt", "PAID", "$0.003", "ledger"],
+    ["16:10:45", "agent-repo-analyst", "PASS", "Lv.5", "fed"],
+    ["16:10:44", "gbrain", "ROYALTY", "5.0%", "creator"],
+    ["16:10:43", "receipt", "SETTLED", "$0.003", "ledger"],
   ];
 
   return (
     <div className="dojo-ticker">
       <div className="flex items-center gap-2 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
         <span className="live-dot bg-[var(--signal)]" />
-        Receipts
+        Spirit feed
       </div>
       <div className="ticker-scroll flex-1">
         <div className="ticker-track">
@@ -253,23 +266,33 @@ export function LandingHero(_props: LandingHeroProps) {
         <div>
           <div className="mb-3 flex items-center gap-2 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
             <span className="live-dot bg-[var(--signal)]" />
-            Live · paid receipts
+            Live · workflow assets
           </div>
           <h2 className="text-[32px] font-bold leading-[1.05] tracking-[-0.025em] text-[var(--text)] md:text-[38px]">
-            Dojo clears paid
+            Collect, fork, and run
             <br />
-            <span className="font-medium text-[var(--text-secondary)]">agent work.</span>
+            <span className="font-medium text-[var(--text-secondary)]">living agent workflows.</span>
           </h2>
           <p className="mt-4 max-w-xl text-[14px] leading-relaxed text-[var(--text-secondary)]">
-            Agents hire workflows with escrow. Creators get paid when delivery passes evaluation.
-            Every run creates a receipt and updates reputation.
+            Dojo turns workflows into marketplace assets with royalties and lineage.
+            Every cleared run feeds a reputation pet backed by receipts, evaluation,
+            settlement, and BSC testnet anchors.
           </p>
         </div>
-        <div className="dojo-stat-grid">
-          <Metric label="Workflows" value={skillCount || "—"} />
-          <Metric label="Receipts" value={compactNumber(totalRuns)} />
-          <Metric label="Fork lineage" value={compactNumber(totalForks)} />
-          <Metric label="Median p95" value="0.84s" />
+        <div className="dojo-spirit-hero">
+          <DojoSpirit
+            name="Registry Spirit"
+            receipts={totalRuns}
+            passRate={skillCount > 0 ? 1 : 0}
+            forks={totalForks}
+            status="grows only from settled receipts"
+          />
+          <div className="dojo-stat-grid">
+            <Metric label="Assets" value={skillCount || "—"} />
+            <Metric label="Receipts" value={compactNumber(totalRuns)} />
+            <Metric label="Forks" value={compactNumber(totalForks)} />
+            <Metric label="Anchor" value="BSC testnet" />
+          </div>
         </div>
       </div>
 
@@ -280,7 +303,7 @@ export function LandingHero(_props: LandingHeroProps) {
             type="text"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search cleared workflows..."
+            placeholder="Search workflow assets..."
             className="dojo-input pl-9"
           />
         </div>
@@ -321,9 +344,9 @@ export function LandingHero(_props: LandingHeroProps) {
 
       <div className="mt-4 grid gap-3 md:grid-cols-3">
         {[
-          ["Hire", "Agents run workflows through escrow instead of trusting claims."],
-          ["Evaluate", "Delivery is scored against evaluator policy, format, and SLA."],
-          ["Clear", "PASS pays the creator. FAIL refunds the buyer and records why."],
+          ["Collect", "Workflows behave like forkable assets with creator royalties and lineage."],
+          ["Train", "Each successful run feeds the workflow spirit with receipt-backed reputation."],
+          ["Clear", "PASS/FAIL receipts prove delivery quality instead of trusting creator claims."],
         ].map(([title, body]) => (
           <div key={title} className="dojo-mini-panel">
             <ShieldCheck className="h-4 w-4 text-[var(--text-secondary)]" />

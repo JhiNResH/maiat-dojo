@@ -70,7 +70,7 @@ export function SkillRankList({
                 </span>
                 <div className="min-w-0 flex-1">
                   <Link
-                    href={`/skill/${s.id}`}
+                    href={`/workflow/${s.workflowId ?? s.workflowSlug ?? s.id}/run`}
                     className="inline-block max-w-full truncate text-[13px] font-semibold leading-tight text-[var(--text)] transition-colors hover:text-[var(--text-secondary)]"
                   >
                     {s.name}

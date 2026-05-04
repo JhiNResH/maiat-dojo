@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, CheckCircle2, ExternalLink, GitFork, Play, Rocket, ShieldCheck } from "lucide-react";
 import { usePrivy } from "@privy-io/react-auth";
 import { Navbar } from "@/components/landing/Navbar";
+import { DojoSpirit } from "@/components/DojoSpirit";
 
 type WorkflowAction = "run" | "fork" | "deploy";
 
@@ -158,26 +159,26 @@ function actionCopy(action: WorkflowAction) {
     case "run":
       return {
         icon: Play,
-        label: "Run with escrow",
-        eyebrow: "Clearing",
-        title: "Hire this workflow with escrow.",
-        body: "Dojo executes the workflow, evaluates delivery, settles PASS/FAIL, and writes an execution receipt for reputation.",
+        label: "Run workflow",
+        eyebrow: "Cleared asset",
+        title: "Run this workflow and feed its reputation.",
+        body: "Dojo executes the workflow, evaluates delivery, writes a receipt, and anchors the cleared run on BSC testnet.",
       };
     case "fork":
       return {
         icon: GitFork,
         label: "Fork workflow",
-        eyebrow: "Derivative",
-        title: "Create your own variant.",
-        body: "Fork the workflow logic, keep provenance attached, and prepare a draft version you can customize before publishing.",
+        eyebrow: "Derivative asset",
+        title: "Create your own tradable variant.",
+        body: "Fork the workflow logic, keep provenance attached, and prepare a draft version with lineage and creator royalty metadata.",
       };
     case "deploy":
       return {
         icon: Rocket,
         label: "Deploy workflow",
         eyebrow: "Runtime",
-        title: "Ship it behind a gateway.",
-        body: "Attach an endpoint to a workflow you own. If this is someone else's workflow, fork it first, then deploy your fork as an executable variant.",
+        title: "Ship the asset behind a gateway.",
+        body: "Attach an endpoint to a workflow you own, publish a version, and make future receipts feed this asset's reputation.",
       };
   }
 }
@@ -333,16 +334,16 @@ function RunPanel({ workflow }: { workflow: WorkflowActionData }) {
       <div className="space-y-4">
         <section className="dojo-card p-5">
           <div className="mb-4 flex items-center justify-between">
-            <span className="label-sm">Settlement policy</span>
+            <span className="label-sm">Clearing policy</span>
             <span className="rounded-[6px] bg-[var(--bg-secondary)] px-2 py-1 font-mono text-[10px] text-[var(--text-secondary)]">
-              escrow
+              testnet
             </span>
           </div>
           <div className="space-y-3 text-[13px] leading-relaxed text-[var(--text-secondary)]">
             <PolicyRow label="Price" value={`$${workflow.pricePerRun.toFixed(3)} per run`} />
             <PolicyRow label="Evaluator" value="dojo-sanity-v1" />
-            <PolicyRow label="PASS" value="creator paid, receipt improves reputation" />
-            <PolicyRow label="FAIL" value="buyer refunded, failure is recorded" />
+            <PolicyRow label="PASS" value="receipt feeds reputation and creator earnings" />
+            <PolicyRow label="FAIL" value="failure is recorded and does not feed the asset" />
           </div>
           <div className="mt-4 rounded-[8px] border border-[var(--border-light)] bg-[var(--bg-secondary)] p-3">
             <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--text-muted)]">
@@ -409,7 +410,7 @@ function RunPanel({ workflow }: { workflow: WorkflowActionData }) {
               disabled={paidPending || missingRequired || !apiKey.trim()}
               className="dojo-action dojo-action-primary w-full disabled:opacity-40"
             >
-              {paidPending ? "Clearing..." : `Run with escrow · $${workflow.pricePerRun.toFixed(3)}`}
+              {paidPending ? "Clearing..." : `Run cleared · $${workflow.pricePerRun.toFixed(3)}`}
             </button>
           </div>
         </div>
@@ -443,7 +444,7 @@ function RunPanel({ workflow }: { workflow: WorkflowActionData }) {
               : result ?? {
                   status: "ready",
                   workflow: workflow.slug,
-                  escrow: "Paid runs settle PASS/FAIL and write WorkflowRunReceipt.",
+                  clearing: "Paid runs write WorkflowRunReceipt and feed the workflow asset.",
                   sandbox: "Sandbox preview only checks endpoint shape; it does not affect reputation.",
                   receipt: "After a cleared run, open /r/<receiptId> for the proof artifact.",
                 },
@@ -775,7 +776,7 @@ export function WorkflowActionClient({
           className="dojo-back-link"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
-          Clearing network
+          Workflow market
         </Link>
 
         <section className="mb-5 flex flex-col gap-5 border-b border-[var(--border-light)] pb-5 lg:flex-row lg:items-start lg:justify-between">
@@ -787,7 +788,7 @@ export function WorkflowActionClient({
               </span>
             </div>
             <div className="mb-2 flex flex-wrap items-center gap-3 font-mono text-[10.5px] uppercase tracking-[0.12em] text-[var(--text-muted)]">
-              <Link href="/" className="hover:text-[var(--text)]">Clearing venue</Link>
+              <Link href="/" className="hover:text-[var(--text)]">Asset market</Link>
               <span>/</span>
               <span>{workflow.category}</span>
               <span>/</span>
@@ -796,7 +797,7 @@ export function WorkflowActionClient({
             <h1 className="text-[28px] font-bold leading-tight tracking-[-0.025em] text-[var(--text)] md:text-[34px]">
               {workflow.name}
               <span className="ml-3 align-middle font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--signal-deep)]">
-                active
+                living
               </span>
             </h1>
             <p className="mt-3 max-w-3xl text-[14px] leading-relaxed text-[var(--text-secondary)]">
@@ -823,7 +824,15 @@ export function WorkflowActionClient({
           </div>
 
           <aside className="dojo-card min-w-[330px] p-3">
-            <div className="grid grid-cols-3 overflow-hidden rounded-[8px] border border-[var(--border)]">
+            <DojoSpirit
+              compact
+              name={workflow.name}
+              receipts={workflow.runs}
+              passRate={workflow.trustScore > 1 ? workflow.trustScore / 100 : workflow.trustScore}
+              forks={workflow.forks}
+              status={`${(workflow.royaltyBps / 100).toFixed(1)}% creator royalty`}
+            />
+            <div className="mt-3 grid grid-cols-3 overflow-hidden rounded-[8px] border border-[var(--border)]">
               {(["run", "fork", "deploy"] as const).map((item) => (
                 <Link
                   key={item}
@@ -837,14 +846,14 @@ export function WorkflowActionClient({
                   {item === "run" && <Play className="h-3.5 w-3.5 fill-current" />}
                   {item === "fork" && <GitFork className="h-3.5 w-3.5" />}
                   {item === "deploy" && <Rocket className="h-3.5 w-3.5" />}
-                  {item === "run" ? `Run with escrow · $${workflow.pricePerRun.toFixed(3)}` : item}
+                  {item === "run" ? `Run · $${workflow.pricePerRun.toFixed(3)}` : item}
                 </Link>
               ))}
             </div>
             <div className="mt-3 flex items-center justify-between font-mono text-[10.5px] text-[var(--text-muted)]">
-              <span>PASS pays</span>
-              <span className="font-semibold text-[var(--text)]">API key</span>
-              <span>FAIL refunds</span>
+              <span>receipts feed</span>
+              <span className="font-semibold text-[var(--text)]">reputation</span>
+              <span>forks inherit</span>
             </div>
           </aside>
         </section>
@@ -855,9 +864,9 @@ export function WorkflowActionClient({
 
         <section className="mt-10 grid gap-4 md:grid-cols-3">
           {[
-            ["Executable", workflow.skill.gatewaySlug],
+            ["Asset slug", workflow.skill.gatewaySlug],
             ["Version", workflow.version ? `v${workflow.version.version}` : "demo"],
-            ["Creator", workflow.creatorName],
+            ["Royalty", `${(workflow.royaltyBps / 100).toFixed(1)}%`],
           ].map(([label, value]) => (
             <div key={label} className="dojo-card flex items-center gap-3 p-5">
               <ShieldCheck className="h-4 w-4 text-[var(--text-secondary)]" />
