@@ -84,9 +84,6 @@ export function Navbar() {
         </Link>
 
         <div className="hidden items-center gap-6 md:flex">
-          <Link href="/demo" className="text-[11px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] transition-colors hover:text-[var(--text)]">
-            Demo
-          </Link>
           <Link href="/leaderboard" className="text-[11px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] transition-colors hover:text-[var(--text)]">
             Leaderboard
           </Link>

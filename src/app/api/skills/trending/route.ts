@@ -34,7 +34,17 @@ export async function GET(req: NextRequest) {
   try {
     grouped = await prisma.session.groupBy({
       by: ["skillId"],
-      where: { openedAt: { gte: since } },
+      where: {
+        openedAt: { gte: since },
+        skill: {
+          is: {
+            skillType: "active",
+            endpointUrl: { not: null },
+            gatewaySlug: { not: null },
+            workflow: { is: { status: "published" } },
+          },
+        },
+      },
       _sum: { callCount: true },
       _count: { _all: true },
       orderBy: { _count: { skillId: "desc" } },
@@ -53,6 +63,7 @@ export async function GET(req: NextRequest) {
         skillType: "active",
         endpointUrl: { not: null },
         gatewaySlug: { not: null },
+        workflow: { is: { status: "published" } },
       },
       orderBy: { createdAt: "desc" },
       take: limit,
@@ -71,53 +82,56 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    const onchainReady: typeof rows = [];
+    const registryBySlug = new Map<string, Awaited<ReturnType<typeof validateRegisteredWorkflowSlug>>>();
     for (const skill of rows) {
       if (!skill.gatewaySlug) continue;
       const registry = await validateRegisteredWorkflowSlug(skill.gatewaySlug);
-      if (registry.ok) {
-        onchainReady.push(skill);
-        continue;
-      }
-      if (registry.status === 503) {
-        return NextResponse.json(
-          {
-            error: registry.error,
-            code: registry.code,
-            registry: registry.registry,
-            reason: registry.reason,
-          },
-          { status: 503 },
-        );
-      }
+      registryBySlug.set(skill.gatewaySlug, registry);
     }
 
     return NextResponse.json({
       window: { days, since: since.toISOString() },
       zeroState: true,
-      skills: onchainReady.map((s) => ({
-        id: s.id,
-        name: s.name,
-        description: s.description,
-        category: s.category,
-        pricePerCall: s.pricePerCall,
-        gatewaySlug: s.gatewaySlug,
-        trustScore: s.workflow?.trustScore ?? s.evaluationScore ?? 0,
-        callCount: 0,
-        workflowId: s.workflow?.id ?? null,
-        workflowSlug: s.workflow?.slug ?? null,
-        workflowRunCount: s.workflow?.runCount ?? 0,
-        workflowForkCount: s.workflow?.forkCount ?? 0,
-        royaltyBps: s.workflow?.royaltyBps ?? null,
-        recentSessions: 0,
-        recentCalls: 0,
-      })),
+      skills: rows.map((s) => {
+        const registry = s.gatewaySlug ? registryBySlug.get(s.gatewaySlug) : null;
+        return {
+          id: s.id,
+          name: s.name,
+          description: s.description,
+          category: s.category,
+          pricePerCall: s.pricePerCall,
+          gatewaySlug: s.gatewaySlug,
+          trustScore: s.workflow?.trustScore ?? s.evaluationScore ?? 0,
+          callCount: 0,
+          workflowId: s.workflow?.id ?? null,
+          workflowSlug: s.workflow?.slug ?? null,
+          workflowRunCount: s.workflow?.runCount ?? 0,
+          workflowForkCount: s.workflow?.forkCount ?? 0,
+          royaltyBps: s.workflow?.royaltyBps ?? null,
+          registryStatus: registry
+            ? {
+                ok: registry.ok,
+                status: registry.status,
+                code: registry.code ?? null,
+                reason: registry.reason ?? null,
+              }
+            : null,
+          recentSessions: 0,
+          recentCalls: 0,
+        };
+      }),
     });
   }
 
   const ids = grouped.map((g) => g.skillId);
   const rows = await prisma.skill.findMany({
-    where: { id: { in: ids } },
+    where: {
+      id: { in: ids },
+      skillType: "active",
+      endpointUrl: { not: null },
+      gatewaySlug: { not: null },
+      workflow: { is: { status: "published" } },
+    },
     include: {
       creator: { select: { id: true, displayName: true, avatarUrl: true } },
       _count: { select: { sessions: true } },
@@ -137,41 +151,33 @@ export async function GET(req: NextRequest) {
 
   const skills = [];
   for (const g of grouped) {
-      const s = byId.get(g.skillId);
-      if (!s?.gatewaySlug) continue;
-      const registry = await validateRegisteredWorkflowSlug(s.gatewaySlug);
-      if (!registry.ok) {
-        if (registry.status === 503) {
-          return NextResponse.json(
-            {
-              error: registry.error,
-              code: registry.code,
-              registry: registry.registry,
-              reason: registry.reason,
-            },
-            { status: 503 },
-          );
-        }
-        continue;
-      }
-      skills.push({
-        id: s.id,
-        name: s.name,
-        description: s.description,
-        category: s.category,
-        pricePerCall: s.pricePerCall,
-        gatewaySlug: s.gatewaySlug,
-        trustScore: s.workflow?.trustScore ?? s.evaluationScore ?? 0,
-        callCount: s._count.sessions,
-        workflowId: s.workflow?.id ?? null,
-        workflowSlug: s.workflow?.slug ?? null,
-        workflowRunCount: s.workflow?.runCount ?? s._count.sessions,
-        workflowForkCount: s.workflow?.forkCount ?? 0,
-        royaltyBps: s.workflow?.royaltyBps ?? null,
-        recentSessions: g._count._all,
-        recentCalls: g._sum.callCount ?? 0,
-      });
-    }
+    const s = byId.get(g.skillId);
+    if (!s?.gatewaySlug) continue;
+    const registry = await validateRegisteredWorkflowSlug(s.gatewaySlug);
+    skills.push({
+      id: s.id,
+      name: s.name,
+      description: s.description,
+      category: s.category,
+      pricePerCall: s.pricePerCall,
+      gatewaySlug: s.gatewaySlug,
+      trustScore: s.workflow?.trustScore ?? s.evaluationScore ?? 0,
+      callCount: s._count.sessions,
+      workflowId: s.workflow?.id ?? null,
+      workflowSlug: s.workflow?.slug ?? null,
+      workflowRunCount: s.workflow?.runCount ?? s._count.sessions,
+      workflowForkCount: s.workflow?.forkCount ?? 0,
+      royaltyBps: s.workflow?.royaltyBps ?? null,
+      registryStatus: {
+        ok: registry.ok,
+        status: registry.status,
+        code: registry.code ?? null,
+        reason: registry.reason ?? null,
+      },
+      recentSessions: g._count._all,
+      recentCalls: g._sum.callCount ?? 0,
+    });
+  }
 
   return NextResponse.json({
     window: { days, since: since.toISOString() },
