@@ -48,55 +48,55 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to load workflows' }, { status: 500 });
   }
 
-  const onchainReady: typeof workflows = [];
+  const registryBySlug = new Map<string, Awaited<ReturnType<typeof validateRegisteredWorkflowSlug>>>();
   for (const workflow of workflows) {
     const slug = workflow.skill?.gatewaySlug ?? workflow.slug;
     const registry = await validateRegisteredWorkflowSlug(slug);
-    if (registry.ok) {
-      onchainReady.push(workflow);
-      continue;
-    }
-    if (registry.status === 503) {
-      return NextResponse.json(
-        {
-          error: registry.error,
-          code: registry.code,
-          registry: registry.registry,
-          reason: registry.reason,
-        },
-        { status: 503 },
-      );
-    }
+    registryBySlug.set(slug, registry);
   }
 
   return NextResponse.json({
-    workflows: onchainReady.map((workflow) => ({
-      id: workflow.id,
-      slug: workflow.slug,
-      name: workflow.name,
-      description: workflow.description,
-      category: workflow.category,
-      icon: workflow.icon,
-      price_per_run: workflow.pricePerRun,
-      royalty_bps: workflow.royaltyBps,
-      runs: workflow.runCount,
-      forks: workflow.forkCount,
-      trust_score: workflow.trustScore,
-      spirit: buildWorkflowSpiritProfile({
-        workflowId: workflow.id,
+    workflows: workflows.map((workflow) => {
+      const slug = workflow.skill?.gatewaySlug ?? workflow.slug;
+      const registry = registryBySlug.get(slug);
+      return {
+        id: workflow.id,
         slug: workflow.slug,
         name: workflow.name,
+        description: workflow.description,
         category: workflow.category,
-        creatorId: workflow.creator.id,
-        creatorName: workflow.creator.displayName,
-        runCount: workflow.runCount,
-        forkCount: workflow.forkCount,
-        trustScore: workflow.trustScore,
-        royaltyBps: workflow.royaltyBps,
-      }),
-      creator: workflow.creator,
-      executable_skill: workflow.skill,
-      version: workflow.versions[0] ?? null,
-    })),
+        icon: workflow.icon,
+        price_per_run: workflow.pricePerRun,
+        royalty_bps: workflow.royaltyBps,
+        runs: workflow.runCount,
+        forks: workflow.forkCount,
+        trust_score: workflow.trustScore,
+        registry_status: registry
+          ? {
+              ok: registry.ok,
+              status: registry.status,
+              code: registry.code ?? null,
+              reason: registry.reason ?? null,
+              skill_id: registry.skillId,
+              registry: registry.registry,
+            }
+          : null,
+        spirit: buildWorkflowSpiritProfile({
+          workflowId: workflow.id,
+          slug: workflow.slug,
+          name: workflow.name,
+          category: workflow.category,
+          creatorId: workflow.creator.id,
+          creatorName: workflow.creator.displayName,
+          runCount: workflow.runCount,
+          forkCount: workflow.forkCount,
+          trustScore: workflow.trustScore,
+          royaltyBps: workflow.royaltyBps,
+        }),
+        creator: workflow.creator,
+        executable_skill: workflow.skill,
+        version: workflow.versions[0] ?? null,
+      };
+    }),
   });
 }

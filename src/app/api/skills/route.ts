@@ -50,6 +50,7 @@ export async function GET(req: NextRequest) {
     skillType: "active",
     endpointUrl: { not: null },
     gatewaySlug: { not: null },
+    workflow: { is: { status: "published" } },
     ...(category && { category }),
     ...(freeOnly && { price: 0 }),
     ...(q && {
@@ -102,52 +103,51 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Failed to load skills" }, { status: 500 });
   }
 
-  const onchainReady: typeof skills = [];
+  const registryBySlug = new Map<string, Awaited<ReturnType<typeof validateRegisteredWorkflowSlug>>>();
   for (const skill of skills) {
     if (!skill.gatewaySlug) continue;
     const registry = await validateRegisteredWorkflowSlug(skill.gatewaySlug);
-    if (registry.ok) {
-      onchainReady.push(skill);
-      continue;
-    }
-    if (registry.status === 503) {
-      return NextResponse.json(
-        {
-          error: registry.error,
-          code: registry.code,
-          registry: registry.registry,
-          reason: registry.reason,
-        },
-        { status: 503 },
-      );
-    }
+    registryBySlug.set(skill.gatewaySlug, registry);
   }
 
-  const mapped = onchainReady.map((s) => ({
-    ...s,
-    callCount: s._count.sessions,
-    trustScore: s.workflow?.trustScore ?? s.evaluationScore ?? 0,
-    workflowId: s.workflow?.id ?? null,
-    workflowSlug: s.workflow?.slug ?? null,
-    workflowRunCount: s.workflow?.runCount ?? s._count.sessions,
-    workflowForkCount: s.workflow?.forkCount ?? 0,
-    royaltyBps: s.workflow?.royaltyBps ?? null,
-    workflowVersion: s.workflow?.versions[0] ?? null,
-    spirit: s.workflow
-      ? buildWorkflowSpiritProfile({
-          workflowId: s.workflow.id,
-          slug: s.workflow.slug,
-          name: s.workflow.name,
-          category: s.workflow.category,
-          creatorId: s.workflow.creatorId,
-          creatorName: s.creator.displayName,
-          runCount: s.workflow.runCount,
-          forkCount: s.workflow.forkCount,
-          trustScore: s.workflow.trustScore,
-          royaltyBps: s.workflow.royaltyBps,
-        })
-      : null,
-  }));
+  const mapped = skills.map((s) => {
+    const registry = s.gatewaySlug ? registryBySlug.get(s.gatewaySlug) : null;
+    return {
+      ...s,
+      callCount: s._count.sessions,
+      trustScore: s.workflow?.trustScore ?? s.evaluationScore ?? 0,
+      workflowId: s.workflow?.id ?? null,
+      workflowSlug: s.workflow?.slug ?? null,
+      workflowRunCount: s.workflow?.runCount ?? s._count.sessions,
+      workflowForkCount: s.workflow?.forkCount ?? 0,
+      royaltyBps: s.workflow?.royaltyBps ?? null,
+      workflowVersion: s.workflow?.versions[0] ?? null,
+      registryStatus: registry
+        ? {
+            ok: registry.ok,
+            status: registry.status,
+            code: registry.code ?? null,
+            reason: registry.reason ?? null,
+            skillId: registry.skillId,
+            registry: registry.registry,
+          }
+        : null,
+      spirit: s.workflow
+        ? buildWorkflowSpiritProfile({
+            workflowId: s.workflow.id,
+            slug: s.workflow.slug,
+            name: s.workflow.name,
+            category: s.workflow.category,
+            creatorId: s.workflow.creatorId,
+            creatorName: s.creator.displayName,
+            runCount: s.workflow.runCount,
+            forkCount: s.workflow.forkCount,
+            trustScore: s.workflow.trustScore,
+            royaltyBps: s.workflow.royaltyBps,
+          })
+        : null,
+    };
+  });
 
-  return NextResponse.json({ total: onchainReady.length, skills: mapped });
+  return NextResponse.json({ total: skills.length, skills: mapped });
 }

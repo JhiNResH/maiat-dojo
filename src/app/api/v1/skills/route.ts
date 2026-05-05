@@ -28,6 +28,7 @@ export async function GET() {
         skillType: 'active',
         endpointUrl: { not: null },
         gatewaySlug: { not: null },
+        workflow: { is: { status: 'published' } },
       },
       select: {
         name: true,
@@ -68,66 +69,61 @@ export async function GET() {
     return NextResponse.json({ error: 'Failed to load skills' }, { status: 500 });
   }
 
-  const onchainReady: typeof skills = [];
+  const registryBySlug = new Map<string, Awaited<ReturnType<typeof validateRegisteredWorkflowSlug>>>();
   for (const skill of skills) {
     if (!skill.gatewaySlug) continue;
     const registry = await validateRegisteredWorkflowSlug(skill.gatewaySlug);
-    if (registry.ok) {
-      onchainReady.push(skill);
-      continue;
-    }
-    if (registry.status === 503) {
-      return NextResponse.json(
-        {
-          error: registry.error,
-          code: registry.code,
-          registry: registry.registry,
-          reason: registry.reason,
-        },
-        { status: 503 },
-      );
-    }
+    registryBySlug.set(skill.gatewaySlug, registry);
   }
 
-  if (onchainReady.length === 0) {
-    return NextResponse.json({ skills: [], count: 0 });
-  }
-
-  const result = onchainReady.map((s) => ({
-    skill: s.gatewaySlug,
-    name: s.name,
-    description: s.description,
-    price_per_call: s.pricePerCall ?? 0,
-    category: s.category,
-    tags: s.tags ? s.tags.split(',').map((t) => t.trim()).filter(Boolean) : [],
-    icon: s.icon,
-    latency_ms: s.estLatencyMs,
-    input_shape: s.inputShape,
-    output_shape: s.outputShape,
-    example_input: safeJsonParse(s.exampleInput),
-    example_output: safeJsonParse(s.exampleOutput),
-    workflow: s.workflow
-      ? {
-          id: s.workflow.id,
-          slug: s.workflow.slug,
-          runs: s.workflow.runCount,
-          forks: s.workflow.forkCount,
-          royalty_bps: s.workflow.royaltyBps,
-          version: s.workflow.versions[0] ?? null,
-          spirit: buildWorkflowSpiritProfile({
-            workflowId: s.workflow.id,
+  const result = skills.map((s) => {
+    const registry = s.gatewaySlug ? registryBySlug.get(s.gatewaySlug) : null;
+    return {
+      skill: s.gatewaySlug,
+      name: s.name,
+      description: s.description,
+      price_per_call: s.pricePerCall ?? 0,
+      category: s.category,
+      tags: s.tags ? s.tags.split(',').map((t) => t.trim()).filter(Boolean) : [],
+      icon: s.icon,
+      latency_ms: s.estLatencyMs,
+      input_shape: s.inputShape,
+      output_shape: s.outputShape,
+      example_input: safeJsonParse(s.exampleInput),
+      example_output: safeJsonParse(s.exampleOutput),
+      registry_status: registry
+        ? {
+            ok: registry.ok,
+            status: registry.status,
+            code: registry.code ?? null,
+            reason: registry.reason ?? null,
+            skill_id: registry.skillId,
+            registry: registry.registry,
+          }
+        : null,
+      workflow: s.workflow
+        ? {
+            id: s.workflow.id,
             slug: s.workflow.slug,
-            name: s.workflow.name,
-            category: s.workflow.category,
-            creatorId: s.workflow.creatorId,
-            runCount: s.workflow.runCount,
-            forkCount: s.workflow.forkCount,
-            trustScore: s.workflow.trustScore,
-            royaltyBps: s.workflow.royaltyBps,
-          }),
-        }
-      : null,
-  }));
+            runs: s.workflow.runCount,
+            forks: s.workflow.forkCount,
+            royalty_bps: s.workflow.royaltyBps,
+            version: s.workflow.versions[0] ?? null,
+            spirit: buildWorkflowSpiritProfile({
+              workflowId: s.workflow.id,
+              slug: s.workflow.slug,
+              name: s.workflow.name,
+              category: s.workflow.category,
+              creatorId: s.workflow.creatorId,
+              runCount: s.workflow.runCount,
+              forkCount: s.workflow.forkCount,
+              trustScore: s.workflow.trustScore,
+              royaltyBps: s.workflow.royaltyBps,
+            }),
+          }
+        : null,
+    };
+  });
 
   return NextResponse.json({ skills: result, count: result.length });
 }

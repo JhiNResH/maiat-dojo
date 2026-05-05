@@ -121,14 +121,6 @@ export function Footer() {
                 GitHub
               </a>
             </li>
-            <li>
-              <Link
-                href="/demo"
-                className={`transition-colors ${isDark ? 'hover:text-white' : 'hover:text-[#1a1a1a]'}`}
-              >
-                Demo
-              </Link>
-            </li>
           </ul>
         </div>
 
@@ -141,7 +133,7 @@ export function Footer() {
             Trust layer
           </h4>
           <p className={`text-sm leading-relaxed mb-6 ${isDark ? 'text-gray-400' : 'text-[#1a1a1a]/50'}`}>
-            Demo runs clear through the BSC testnet rail, then write receipts that feed workflow reputation.
+            Paid runs clear through the BSC testnet rail, then write receipts that feed workflow reputation.
           </p>
           <a
             href="https://maiat.io"
