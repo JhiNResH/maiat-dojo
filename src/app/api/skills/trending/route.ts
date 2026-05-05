@@ -34,7 +34,17 @@ export async function GET(req: NextRequest) {
   try {
     grouped = await prisma.session.groupBy({
       by: ["skillId"],
-      where: { openedAt: { gte: since } },
+      where: {
+        openedAt: { gte: since },
+        skill: {
+          is: {
+            skillType: "active",
+            endpointUrl: { not: null },
+            gatewaySlug: { not: null },
+            workflow: { is: { status: "published" } },
+          },
+        },
+      },
       _sum: { callCount: true },
       _count: { _all: true },
       orderBy: { _count: { skillId: "desc" } },
