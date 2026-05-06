@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { publicWorkflowWhere } from "@/lib/public-workflow-filter";
 import { buildWorkflowSpiritProfile } from "@/lib/workflow-spirit";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +22,7 @@ export async function GET(req: NextRequest) {
 
   if (type === "spirits") {
     const workflows = await prisma.workflow.findMany({
-      where: { status: "published" },
+      where: publicWorkflowWhere(),
       orderBy: [{ trustScore: "desc" }, { runCount: "desc" }, { forkCount: "desc" }],
       take: limit,
       select: {

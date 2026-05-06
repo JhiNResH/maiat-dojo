@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { publicWorkflowWhere } from "@/lib/public-workflow-filter";
 import { validateRegisteredWorkflowSlug } from "@/lib/swap-router";
 
 export const dynamic = "force-dynamic";
@@ -41,7 +42,7 @@ export async function GET(req: NextRequest) {
             skillType: "active",
             endpointUrl: { not: null },
             gatewaySlug: { not: null },
-            workflow: { is: { status: "published" } },
+            workflow: { is: publicWorkflowWhere() },
           },
         },
       },
@@ -63,7 +64,7 @@ export async function GET(req: NextRequest) {
         skillType: "active",
         endpointUrl: { not: null },
         gatewaySlug: { not: null },
-        workflow: { is: { status: "published" } },
+        workflow: { is: publicWorkflowWhere() },
       },
       orderBy: { createdAt: "desc" },
       take: limit,
@@ -130,7 +131,7 @@ export async function GET(req: NextRequest) {
       skillType: "active",
       endpointUrl: { not: null },
       gatewaySlug: { not: null },
-      workflow: { is: { status: "published" } },
+      workflow: { is: publicWorkflowWhere() },
     },
     include: {
       creator: { select: { id: true, displayName: true, avatarUrl: true } },

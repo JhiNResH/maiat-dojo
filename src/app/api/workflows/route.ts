@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { publicWorkflowWhere } from '@/lib/public-workflow-filter';
 import { validateRegisteredWorkflowSlug } from '@/lib/swap-router';
 import { buildWorkflowSpiritProfile } from '@/lib/workflow-spirit';
 
@@ -21,7 +22,7 @@ export async function GET(req: NextRequest) {
   try {
     workflows = await prisma.workflow.findMany({
       where: {
-        status: 'published',
+        ...publicWorkflowWhere(),
         ...(category && { category }),
         ...(q && {
           OR: [
