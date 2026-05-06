@@ -709,7 +709,7 @@ html.dark body {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 18px;
 }
 .dojo-market-header {
   position: relative;
@@ -718,79 +718,54 @@ html.dark body {
   flex-direction: column;
   gap: 14px;
   align-items: stretch;
-  padding: 18px;
-  border: 1px solid var(--card-border);
-  border-radius: 8px;
-  background:
-    linear-gradient(90deg, rgba(30,121,84,0.035) 1px, transparent 1px),
-    linear-gradient(0deg, rgba(30,121,84,0.035) 1px, transparent 1px),
-    rgba(255,255,250,0.56);
-  background-size: 28px 28px;
+  padding: 4px 0 10px;
+  border-bottom: 1px solid var(--border-light);
 }
 .dark .dojo-market-header {
-  background:
-    linear-gradient(90deg, rgba(112,230,164,0.055) 1px, transparent 1px),
-    linear-gradient(0deg, rgba(112,230,164,0.045) 1px, transparent 1px),
-    rgba(15,20,14,0.86);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.055), 0 18px 54px rgba(0,0,0,0.28);
+  box-shadow: none;
 }
 .dojo-market-header > * {
   position: relative;
   z-index: 1;
 }
 .dojo-market-header::after {
-  content: "稽古";
-  pointer-events: none;
-  position: absolute;
-  right: 18px;
-  top: 14px;
-  z-index: 0;
-  border: 1px solid var(--dojo-red);
-  border-radius: 3px;
-  padding: 4px 5px;
-  color: var(--dojo-red);
-  font-family: var(--font-serif), Georgia, serif;
-  font-size: 15px;
-  font-weight: 900;
-  line-height: 1;
-  opacity: 0.62;
-  transform: rotate(4deg);
+  content: none;
 }
 @media (min-width: 768px) {
   .dojo-market-header {
     flex-direction: row;
-    align-items: end;
+    align-items: center;
+    justify-content: space-between;
   }
 }
 @media (min-width: 1024px) {
   .dojo-market-header {
-    padding: 20px;
+    padding: 4px 0 14px;
   }
 }
-.dojo-market-stats {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1px;
-  overflow: hidden;
-  border: 1px solid var(--card-border);
-  border-radius: 8px;
-  background: var(--card-border);
+.dojo-market-subhead {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 14px;
 }
-.dojo-market-stats > * {
-  min-width: 96px;
-  border: 0;
-  border-radius: 0;
-  background: rgba(255,255,250,0.68);
+.dojo-market-subhead h3 {
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 750;
+  line-height: 1.1;
 }
-.dark .dojo-market-stats > * {
-  background: rgba(16,19,15,0.82);
+.dojo-market-subhead p {
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 12px;
 }
 .dojo-filter-row {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--border-light);
+  padding: 0;
+  border-bottom: 0;
 }
 @media (min-width: 768px) {
   .dojo-filter-row {
@@ -820,31 +795,32 @@ html.dark body {
 .dark .dojo-chip {
   background: rgba(222,232,204,0.055);
 }
-.dojo-listing-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  border: 1px solid var(--border-light);
-  border-radius: 8px;
-  background: rgba(255,255,250,0.58);
-  padding: 10px;
+.dojo-collection-meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
 }
-.dark .dojo-listing-row {
-  background: rgba(222,232,204,0.045);
-}
-.dojo-listing-row .text-right {
+.dojo-collection-meta div {
   min-width: 0;
 }
-.dojo-price-pill {
-  display: inline-flex;
-  align-items: center;
-  min-height: 26px;
-  border: 1px solid var(--text);
-  border-radius: 6px;
-  background: var(--text);
-  padding: 4px 8px;
-  color: var(--bg);
+.dojo-collection-meta span,
+.dojo-collection-meta strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dojo-collection-meta span {
+  color: var(--text-muted);
+  font-family: var(--font-mono), monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.dojo-collection-meta strong {
+  margin-top: 3px;
+  color: var(--text);
   font-family: var(--font-mono), monospace;
   font-size: 12px;
   font-weight: 800;
@@ -859,7 +835,8 @@ html.dark body {
 }
 .dojo-verify-badge {
   display: inline-flex;
-  min-height: 24px;
+  min-height: 22px;
+  flex-shrink: 0;
   align-items: center;
   gap: 4px;
   border: 1px solid rgba(166,122,43,0.28);
@@ -878,19 +855,22 @@ html.dark body {
   background: rgba(226,190,122,0.08);
   color: rgba(238,214,166,0.92);
 }
-.dojo-details-link {
+.dojo-icon-link {
   display: inline-flex;
-  width: fit-content;
+  height: 34px;
+  width: 34px;
   align-items: center;
-  gap: 4px;
-  color: var(--text-muted);
-  font-size: 11px;
-  font-weight: 700;
-  text-decoration: none;
-  transition: color 150ms ease;
+  justify-content: center;
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  background: rgba(255,255,250,0.68);
+  color: var(--text-secondary);
+  transition: border-color 150ms ease, color 150ms ease, background 150ms ease;
 }
-.dojo-details-link:hover {
+.dojo-icon-link:hover {
+  border-color: var(--dojo-bamboo);
   color: var(--text);
+  background: var(--signal-soft);
 }
 .dojo-action {
   display: inline-flex;
@@ -972,7 +952,8 @@ html.dark body {
   padding: 12px;
 }
 .dark .dojo-mini-panel,
-.dark .dojo-action {
+.dark .dojo-action,
+.dark .dojo-icon-link {
   background: rgba(222,232,204,0.055);
 }
 .dark .dojo-input {
@@ -989,88 +970,29 @@ html.dark body {
   background: var(--text);
   color: var(--bg);
 }
-.dojo-dev-details {
-  transform: none;
-}
-.dojo-dev-details:hover {
-  transform: none;
-}
-.dojo-dev-details summary {
-  display: flex;
-  cursor: pointer;
-  list-style: none;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-}
-.dojo-dev-details summary::-webkit-details-marker {
-  display: none;
-}
-.dojo-dev-summary-action {
-  display: inline-flex;
-  min-height: 34px;
-  flex-shrink: 0;
-  align-items: center;
-  border: 1px solid var(--card-border);
-  border-radius: 6px;
-  background: rgba(255,255,250,0.68);
-  padding: 8px 10px;
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-weight: 700;
-}
-.dojo-dev-details[open] .dojo-dev-summary-action {
-  border-color: var(--text);
-  background: var(--text);
-  color: var(--bg);
-}
-.dojo-api-panel {
-  border: 1px solid var(--border-light);
-  border-radius: 8px;
-  background: rgba(255,255,250,0.42);
-  padding: 0 16px;
-}
-.dark .dojo-dev-summary-action,
-.dark .dojo-api-panel {
-  background: rgba(222,232,204,0.045);
-}
 @media (max-width: 640px) {
   .dojo-marketplace,
   .dojo-market-header,
   .dojo-filter-row,
-  .dojo-asset-card,
-  .dojo-dev-details {
-    max-width: calc(100vw - 48px);
-    width: 100%;
-  }
   .dojo-asset-card {
-    width: calc(100vw - 48px);
+    max-width: 100%;
+    width: 100%;
   }
   .dojo-market-header h2 {
     overflow-wrap: anywhere;
   }
   .dojo-market-header p,
-  .dojo-asset-card p,
-  .dojo-listing-row {
+  .dojo-asset-card p {
     overflow-wrap: anywhere;
   }
-  .dojo-market-stats > * {
-    min-width: 0;
+  .dojo-market-header p {
+    max-width: 20rem;
   }
-  .dojo-listing-row {
-    align-items: flex-start;
-    flex-direction: column;
+  .dojo-card-actions {
+    grid-template-columns: 1fr;
   }
-  .dojo-listing-row .text-right {
-    text-align: left;
-  }
-  .dojo-dev-details summary {
-    align-items: stretch;
-    flex-direction: column;
-  }
-  .dojo-dev-summary-action {
-    justify-content: center;
-    width: 100%;
+  .dojo-card-actions .dojo-icon-link {
+    display: none;
   }
 }
 .dojo-ticker {

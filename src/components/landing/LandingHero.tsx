@@ -50,19 +50,6 @@ function listingDescription(description?: string | null) {
   return `${value.slice(0, 129).trim()}...`;
 }
 
-function Metric({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="rounded-[6px] border border-[var(--border-light)] bg-[var(--bg-secondary)] px-3 py-2">
-      <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)]">
-        {label}
-      </div>
-      <div className="mt-1 font-mono text-[12px] font-semibold text-[var(--text)]">
-        {value}
-      </div>
-    </div>
-  );
-}
-
 function WorkflowCard({ skill, featured = false }: { skill: SkillRankItem; featured?: boolean }) {
   const key = workflowKey(skill);
   const runs = skill.workflowRunCount ?? skill.callCount ?? 0;
@@ -76,7 +63,7 @@ function WorkflowCard({ skill, featured = false }: { skill: SkillRankItem; featu
 
   return (
     <article className={`dojo-card dojo-asset-card group ${featured ? "dojo-card-featured" : ""}`}>
-      <Link href={`/workflow/${key}/run`} className="dojo-asset-preview" aria-label={`Run ${skill.name}`}>
+      <Link href={`/workflow/${key}/run`} className="dojo-asset-preview" aria-label={`Open ${skill.name}`}>
         <div className="dojo-asset-mark">
           <Image
             src="/brand/dojo-mantis-logo.png"
@@ -88,12 +75,11 @@ function WorkflowCard({ skill, featured = false }: { skill: SkillRankItem; featu
         </div>
         <div className="dojo-asset-preview-meta">
           {featured && <span>Featured</span>}
-          <span>{skill.category ?? "Workflow"}</span>
-          <span>v{skill.workflowVersion?.version ?? 1}</span>
+          <span>{skill.category ?? "AI workflow"}</span>
         </div>
       </Link>
 
-      <div className="flex min-h-[220px] flex-col p-4">
+      <div className="flex min-h-[180px] flex-col p-4">
         <div className="min-w-0">
           <Link href={`/workflow/${key}/run`}>
             <h3 className="line-clamp-2 text-[16px] font-semibold leading-tight text-[var(--text)] transition-colors hover:text-[var(--text-secondary)]">
@@ -105,22 +91,22 @@ function WorkflowCard({ skill, featured = false }: { skill: SkillRankItem; featu
           </p>
         </div>
 
-        <div className="dojo-listing-row mt-4">
+        <div className="dojo-collection-meta mt-4">
           <div>
-            <span className="dojo-price-pill">{priceLabel(skill.pricePerCall)}</span>
-            <div className="mt-1 text-[10.5px] text-[var(--text-muted)]">per run</div>
+            <span>Price</span>
+            <strong>{priceLabel(skill.pricePerCall)}</strong>
           </div>
-          <div className="text-right">
-            <div className="font-mono text-[12px] font-semibold text-[var(--text)]">
-              {success}% success · {compactNumber(runs)} runs
-            </div>
-            <div className="mt-1 text-[10.5px] text-[var(--text-muted)]">
-              Based on cleared receipts
-            </div>
+          <div>
+            <span>Runs</span>
+            <strong>{compactNumber(runs)}</strong>
+          </div>
+          <div>
+            <span>Success</span>
+            <strong>{success}%</strong>
           </div>
         </div>
 
-        <div className="mt-4 border-t border-[var(--border-light)] pt-3">
+        <div className="mt-4 flex min-w-0 items-center justify-between gap-3 border-t border-[var(--border-light)] pt-3">
           <div className="flex min-w-0 items-center gap-2">
             <div className="h-6 w-6 shrink-0 rounded-[6px] border border-[var(--border)] bg-[var(--bg-secondary)]" />
             <div className="min-w-0">
@@ -132,43 +118,39 @@ function WorkflowCard({ skill, featured = false }: { skill: SkillRankItem; featu
               </div>
             </div>
           </div>
-          <div className="mt-3 flex flex-wrap items-center gap-1.5">
-            <span
-              className="dojo-verify-badge"
-              title="Creator verification has not been completed yet."
-            >
-              <ShieldCheck className="h-3 w-3" />
-              Pending
-            </span>
-            <span className="dojo-chip">{skill.category ?? "workflow"}</span>
-          </div>
+          <span
+            className="dojo-verify-badge"
+            title="Creator verification has not been completed yet."
+          >
+            <ShieldCheck className="h-3 w-3" />
+            Pending
+          </span>
         </div>
 
-        <Link
-          href={`/skill/${skill.id}`}
-          className="dojo-details-link mt-3"
-          title="Open the workflow listing, source details, and execution history."
-        >
-          Details
-          <ArrowUpRight className="h-3 w-3" />
-        </Link>
-
-        <div className="mt-auto grid grid-cols-[1fr_auto] gap-2 pt-3">
+        <div className="dojo-card-actions mt-auto grid grid-cols-[1fr_auto_auto] gap-2 pt-4">
           <Link
             href={`/workflow/${key}/run`}
             className="dojo-action dojo-action-primary"
             title="Run once, get a result, and receive an execution receipt."
           >
             <Play className="h-3.5 w-3.5 fill-current" />
-            Run workflow
+            Run
+          </Link>
+          <Link
+            href={`/skill/${skill.id}`}
+            className="dojo-icon-link"
+            title="View details"
+            aria-label={`View details for ${skill.name}`}
+          >
+            <ArrowUpRight className="h-3.5 w-3.5" />
           </Link>
           <Link
             href={`/workflow/${key}/fork`}
-            className="dojo-action"
+            className="dojo-icon-link"
             title="Create your own version of this workflow to customize or monetize it."
+            aria-label={`Fork ${skill.name}`}
           >
             <GitFork className="h-3.5 w-3.5" />
-            Fork & customize
           </Link>
         </div>
       </div>
@@ -186,7 +168,8 @@ function WorkflowSkeletonCard() {
         <div className="dojo-skeleton-line w-3/4" />
         <div className="mt-3 dojo-skeleton-line w-full" />
         <div className="mt-2 dojo-skeleton-line w-2/3" />
-        <div className="mt-5 grid grid-cols-2 gap-2">
+        <div className="mt-5 grid grid-cols-3 gap-2">
+          <div className="dojo-skeleton-box" />
           <div className="dojo-skeleton-box" />
           <div className="dojo-skeleton-box" />
         </div>
@@ -238,28 +221,18 @@ export function LandingHero(_props: LandingHeroProps) {
   }, [filter, query, skills]);
 
   const skillCount = skills?.length ?? 0;
-  const totalRuns =
-    skills?.reduce((sum, skill) => sum + (skill.workflowRunCount ?? skill.callCount ?? 0), 0) ?? 0;
-  const totalForks = skills?.reduce((sum, skill) => sum + (skill.workflowForkCount ?? 0), 0) ?? 0;
 
   return (
     <section className="dojo-marketplace">
       <div className="dojo-market-header">
         <div className="min-w-0">
-          <div className="label-sm">AI Workflow Marketplace</div>
-          <h2 className="mt-2 font-serif text-[30px] font-black leading-none text-[var(--text)] md:text-[42px]">
-            <span className="block sm:inline">Run and publish</span>{" "}
-            <span className="block sm:inline">AI workflows</span>
+          <div className="label-sm">Marketplace</div>
+          <h2 className="mt-2 font-serif text-[30px] font-black leading-none text-[var(--text)] md:text-[40px]">
+            AI workflows
           </h2>
           <p className="mt-2 max-w-xl text-[13.5px] leading-relaxed text-[var(--text-secondary)]">
-            Find ready-to-run AI tools. Execute them instantly, get results,
-            and build reputation from receipts.
+            Discover workflow assets. Run one, get a result, and leave a receipt.
           </p>
-        </div>
-        <div className="dojo-market-stats">
-          <Metric label="Workflows" value={skillCount || "—"} />
-          <Metric label="Runs" value={compactNumber(totalRuns)} />
-          <Metric label="Forks" value={compactNumber(totalForks)} />
         </div>
         <Link
           href="/create"
@@ -269,6 +242,13 @@ export function LandingHero(_props: LandingHeroProps) {
           <Rocket className="h-3.5 w-3.5" />
           Publish
         </Link>
+      </div>
+
+      <div className="dojo-market-subhead">
+        <div>
+          <h3>Featured workflows</h3>
+          <p>{skillCount || "—"} listed</p>
+        </div>
       </div>
 
       <div id="workflows" className="dojo-filter-row">
@@ -306,7 +286,7 @@ export function LandingHero(_props: LandingHeroProps) {
           No workflows found. Try another keyword or publish your own.
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filtered.map((skill, index) => (
             <WorkflowCard key={skill.id} skill={skill} featured={index === 0} />
           ))}

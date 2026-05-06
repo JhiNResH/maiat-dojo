@@ -90,9 +90,6 @@ export function Navbar() {
           <Link href="/dashboard" className="text-[11px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] transition-colors hover:text-[var(--text)]">
             Dashboard
           </Link>
-          <Link href="/#developers" className="text-[11px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] transition-colors hover:text-[var(--text)]">
-            Docs
-          </Link>
         </div>
 
         <div className="flex items-center gap-2">
