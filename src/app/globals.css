@@ -820,6 +820,78 @@ html.dark body {
 .dark .dojo-chip {
   background: rgba(222,232,204,0.055);
 }
+.dojo-listing-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  background: rgba(255,255,250,0.58);
+  padding: 10px;
+}
+.dark .dojo-listing-row {
+  background: rgba(222,232,204,0.045);
+}
+.dojo-listing-row .text-right {
+  min-width: 0;
+}
+.dojo-price-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  border: 1px solid var(--text);
+  border-radius: 6px;
+  background: var(--text);
+  padding: 4px 8px;
+  color: var(--bg);
+  font-family: var(--font-mono), monospace;
+  font-size: 12px;
+  font-weight: 800;
+}
+.dojo-card-meta-line {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+.dojo-verify-badge {
+  display: inline-flex;
+  min-height: 24px;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid rgba(166,122,43,0.28);
+  border-radius: 5px;
+  background: rgba(166,122,43,0.10);
+  padding: 3px 6px;
+  color: color-mix(in srgb, var(--dojo-gold) 78%, var(--text));
+  font-family: var(--font-mono), monospace;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.dark .dojo-verify-badge {
+  border-color: rgba(226,190,122,0.25);
+  background: rgba(226,190,122,0.08);
+  color: rgba(238,214,166,0.92);
+}
+.dojo-details-link {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: color 150ms ease;
+}
+.dojo-details-link:hover {
+  color: var(--text);
+}
 .dojo-action {
   display: inline-flex;
   min-height: 34px;
@@ -916,6 +988,90 @@ html.dark body {
   border-color: var(--text);
   background: var(--text);
   color: var(--bg);
+}
+.dojo-dev-details {
+  transform: none;
+}
+.dojo-dev-details:hover {
+  transform: none;
+}
+.dojo-dev-details summary {
+  display: flex;
+  cursor: pointer;
+  list-style: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+.dojo-dev-details summary::-webkit-details-marker {
+  display: none;
+}
+.dojo-dev-summary-action {
+  display: inline-flex;
+  min-height: 34px;
+  flex-shrink: 0;
+  align-items: center;
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  background: rgba(255,255,250,0.68);
+  padding: 8px 10px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+}
+.dojo-dev-details[open] .dojo-dev-summary-action {
+  border-color: var(--text);
+  background: var(--text);
+  color: var(--bg);
+}
+.dojo-api-panel {
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  background: rgba(255,255,250,0.42);
+  padding: 0 16px;
+}
+.dark .dojo-dev-summary-action,
+.dark .dojo-api-panel {
+  background: rgba(222,232,204,0.045);
+}
+@media (max-width: 640px) {
+  .dojo-marketplace,
+  .dojo-market-header,
+  .dojo-filter-row,
+  .dojo-asset-card,
+  .dojo-dev-details {
+    max-width: calc(100vw - 48px);
+    width: 100%;
+  }
+  .dojo-asset-card {
+    width: calc(100vw - 48px);
+  }
+  .dojo-market-header h2 {
+    overflow-wrap: anywhere;
+  }
+  .dojo-market-header p,
+  .dojo-asset-card p,
+  .dojo-listing-row {
+    overflow-wrap: anywhere;
+  }
+  .dojo-market-stats > * {
+    min-width: 0;
+  }
+  .dojo-listing-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .dojo-listing-row .text-right {
+    text-align: left;
+  }
+  .dojo-dev-details summary {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .dojo-dev-summary-action {
+    justify-content: center;
+    width: 100%;
+  }
 }
 .dojo-ticker {
   display: flex;

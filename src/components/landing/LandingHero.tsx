@@ -4,10 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
+  ArrowUpRight,
   GitFork,
   Play,
   Rocket,
   Search,
+  ShieldCheck,
 } from "lucide-react";
 import { type SkillRankItem } from "./SkillRankList";
 
@@ -38,6 +40,16 @@ function trustValue(skill: SkillRankItem) {
   return Math.min(raw, 1);
 }
 
+function listingDescription(description?: string | null) {
+  const value = description?.trim();
+  if (!value) return "Ready-to-run AI workflow with receipt-backed execution history.";
+
+  const sentenceEnd = value.search(/[.!?]\s/);
+  if (sentenceEnd > 32) return value.slice(0, sentenceEnd + 1);
+  if (value.length <= 132) return value;
+  return `${value.slice(0, 129).trim()}...`;
+}
+
 function Metric({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="rounded-[6px] border border-[var(--border-light)] bg-[var(--bg-secondary)] px-3 py-2">
@@ -60,6 +72,7 @@ function WorkflowCard({ skill, featured = false }: { skill: SkillRankItem; featu
     skill.creator?.displayName ??
     skill.creator?.id?.slice(0, 8) ??
     "dojo creator";
+  const success = Math.round(trust * 100);
 
   return (
     <article className={`dojo-card dojo-asset-card group ${featured ? "dojo-card-featured" : ""}`}>
@@ -87,46 +100,64 @@ function WorkflowCard({ skill, featured = false }: { skill: SkillRankItem; featu
               {skill.name}
             </h3>
           </Link>
-          {skill.description && (
-            <p className="mt-2 line-clamp-2 text-[12.5px] leading-relaxed text-[var(--text-secondary)]">
-              {skill.description}
-            </p>
-          )}
+          <p className="mt-2 line-clamp-2 text-[12.5px] leading-relaxed text-[var(--text-secondary)]">
+            {listingDescription(skill.description)}
+          </p>
         </div>
 
-        <div className="mt-4 grid grid-cols-2 gap-2">
-          <Metric label="Price" value={priceLabel(skill.pricePerCall)} />
-          <Metric label="Success rate" value={`${Math.round(trust * 100)}%`} />
+        <div className="dojo-listing-row mt-4">
+          <div>
+            <span className="dojo-price-pill">{priceLabel(skill.pricePerCall)}</span>
+            <div className="mt-1 text-[10.5px] text-[var(--text-muted)]">per run</div>
+          </div>
+          <div className="text-right">
+            <div className="font-mono text-[12px] font-semibold text-[var(--text)]">
+              {success}% success · {compactNumber(runs)} runs
+            </div>
+            <div className="mt-1 text-[10.5px] text-[var(--text-muted)]">
+              Based on cleared receipts
+            </div>
+          </div>
         </div>
 
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <Metric label="Runs" value={compactNumber(runs)} />
-          <Metric label="Forks" value={compactNumber(forks)} />
-        </div>
-
-        <div className="mt-4 flex items-center justify-between border-t border-[var(--border-light)] pt-3">
+        <div className="mt-4 border-t border-[var(--border-light)] pt-3">
           <div className="flex min-w-0 items-center gap-2">
             <div className="h-6 w-6 shrink-0 rounded-[6px] border border-[var(--border)] bg-[var(--bg-secondary)]" />
             <div className="min-w-0">
               <div className="truncate text-[12px] font-medium text-[var(--text)]">
                 {creator}
               </div>
-              <div
-                className="font-mono text-[10px] text-[var(--text-muted)]"
-                title="Creator verification has not been completed yet."
-              >
-                Verification pending
+              <div className="dojo-card-meta-line">
+                v{skill.workflowVersion?.version ?? 1} · {compactNumber(forks)} forks
               </div>
             </div>
           </div>
-          <span className="dojo-chip">{skill.category ?? "workflow"}</span>
+          <div className="mt-3 flex flex-wrap items-center gap-1.5">
+            <span
+              className="dojo-verify-badge"
+              title="Creator verification has not been completed yet."
+            >
+              <ShieldCheck className="h-3 w-3" />
+              Pending
+            </span>
+            <span className="dojo-chip">{skill.category ?? "workflow"}</span>
+          </div>
         </div>
 
-        <div className="mt-auto grid grid-cols-[1fr_auto] gap-2 pt-4">
+        <Link
+          href={`/skill/${skill.id}`}
+          className="dojo-details-link mt-3"
+          title="Open the workflow listing, source details, and execution history."
+        >
+          Details
+          <ArrowUpRight className="h-3 w-3" />
+        </Link>
+
+        <div className="mt-auto grid grid-cols-[1fr_auto] gap-2 pt-3">
           <Link
             href={`/workflow/${key}/run`}
             className="dojo-action dojo-action-primary"
-            title="Execute this workflow once. You pay the fee, receive the result, and get a receipt."
+            title="Run once, get a result, and receive an execution receipt."
           >
             <Play className="h-3.5 w-3.5 fill-current" />
             Run workflow
@@ -217,7 +248,8 @@ export function LandingHero(_props: LandingHeroProps) {
         <div className="min-w-0">
           <div className="label-sm">AI Workflow Marketplace</div>
           <h2 className="mt-2 font-serif text-[30px] font-black leading-none text-[var(--text)] md:text-[42px]">
-            Run and publish AI workflows
+            <span className="block sm:inline">Run and publish</span>{" "}
+            <span className="block sm:inline">AI workflows</span>
           </h2>
           <p className="mt-2 max-w-xl text-[13.5px] leading-relaxed text-[var(--text-secondary)]">
             Find ready-to-run AI tools. Execute them instantly, get results,

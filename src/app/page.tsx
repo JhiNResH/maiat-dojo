@@ -67,53 +67,64 @@ export default function DojoPage() {
 
         {/* ═══ FOR DEVELOPERS ═══ */}
         <section id="developers" className="mb-20">
-          <div className="mb-8">
-            <span className="label-sm">For Developers</span>
-            <h2 className="heading-lg mt-3 text-[var(--text)]">
-              Run AI workflows from any surface.
-            </h2>
-            <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-[var(--text-secondary)]">
-              Developers can call the same marketplace workflows through the API.
-              Dojo executes the workflow, evaluates the result, returns a receipt,
-              and records settlement on BNB Smart Chain testnet.
-            </p>
-          </div>
+          <details className="dojo-dev-details glass-card p-5 sm:p-6">
+            <summary>
+              <div>
+                <span className="label-sm">Developers</span>
+                <h2 className="mt-2 text-[22px] font-semibold leading-tight text-[var(--text)]">
+                  Run the same workflows through the API.
+                </h2>
+                <p className="mt-2 max-w-2xl text-[13.5px] leading-relaxed text-[var(--text-secondary)]">
+                  Use this when you want Dojo inside an agent, MCP server, CLI, or backend job.
+                </p>
+              </div>
+              <span className="dojo-dev-summary-action">View API quick start</span>
+            </summary>
 
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-            <div className="glass-card p-6">
-              <ApiStep
-                step="01"
-                method="GET"
-                path="/api/v1/skills"
-                desc="Browse ready-to-run AI workflows ranked by execution history."
-                code={`curl https://maiat-dojo.vercel.app/api/v1/skills`}
-              />
-              <ApiStep
-                step="02"
-                method="GET"
-                path="/api/v1/balance"
-                desc="Check your remaining API credits."
-                code={`curl https://maiat-dojo.vercel.app/api/v1/balance \\
-  -H "Authorization: Bearer YOUR_API_KEY"`}
-              />
+            <div className="mt-6 border-t border-[var(--border-light)] pt-5">
+              <p className="max-w-2xl text-[13.5px] leading-relaxed text-[var(--text-secondary)]">
+                Marketplace users can run from the UI. Developers can call the same
+                workflows through REST: Dojo executes the workflow, evaluates the
+                result, returns a receipt, and records settlement metadata on the
+                BNB Smart Chain testnet rail.
+              </p>
             </div>
-            <div className="glass-card p-6">
-              <ApiStep
-                step="03"
-                method="POST"
-                path="/api/v1/run"
-                desc="Run a workflow by gateway slug. One request = execute, evaluate, return a receipt."
-                code={`curl -X POST https://maiat-dojo.vercel.app/api/v1/run \\
+
+            <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-2">
+              <div className="dojo-api-panel">
+                <ApiStep
+                  step="01"
+                  method="GET"
+                  path="/api/v1/skills"
+                  desc="Browse ready-to-run AI workflows ranked by execution history."
+                  code={`curl https://maiat-dojo.vercel.app/api/v1/skills`}
+                />
+                <ApiStep
+                  step="02"
+                  method="GET"
+                  path="/api/v1/balance"
+                  desc="Check your remaining API credits."
+                  code={`curl https://maiat-dojo.vercel.app/api/v1/balance \\
+  -H "Authorization: Bearer YOUR_API_KEY"`}
+                />
+              </div>
+              <div className="dojo-api-panel">
+                <ApiStep
+                  step="03"
+                  method="POST"
+                  path="/api/v1/run"
+                  desc="Run a workflow by gateway slug. One request = execute, evaluate, return a receipt."
+                  code={`curl -X POST https://maiat-dojo.vercel.app/api/v1/run \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{"skill":"agent-repo-analyst","input":{"repo_url":"https://github.com/garrytan/gbrain"}}'`}
-              />
-              <ApiStep
-                step="04"
-                method=""
-                path="Response"
-                desc="Result, API credit cost, evaluator score, settlement status, and receipt metadata."
-                code={`{
+                />
+                <ApiStep
+                  step="04"
+                  method=""
+                  path="Response"
+                  desc="Result, API credit cost, evaluator score, settlement status, and receipt metadata."
+                  code={`{
   "result": { "verdict": "strong_fit_for_agent_memory", "fit_score": 0.91 },
   "cost": 0.003,
   "balance": 9.997,
@@ -128,9 +139,10 @@ export default function DojoPage() {
     "anchor_status": "pending"
   }
 }`}
-              />
+                />
+              </div>
             </div>
-          </div>
+          </details>
         </section>
       </div>
       <Footer />
