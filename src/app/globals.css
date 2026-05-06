@@ -1225,6 +1225,20 @@ html.dark body {
 .dojo-pet-avatar[data-belt="yellow belt"] .dojo-pet-belt {
   background: var(--dojo-gold);
 }
+.dojo-pixel-pet {
+  display: block;
+  height: 100%;
+  width: 100%;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 2px 0 rgba(11, 12, 14, 0.16));
+}
+.dojo-pet-avatar[data-kind="sage"] .dojo-pixel-pet {
+  transform: translateY(-2%);
+}
+.dojo-pet-avatar[data-kind="horned"] .dojo-pixel-pet,
+.dojo-pet-avatar[data-kind="crest"] .dojo-pixel-pet {
+  transform: translateY(-3%);
+}
 .dojo-catalog-badge,
 .dojo-catalog-pill,
 .dojo-catalog-status {
