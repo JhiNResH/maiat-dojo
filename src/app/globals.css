@@ -825,36 +825,6 @@ html.dark body {
   font-size: 12px;
   font-weight: 800;
 }
-.dojo-card-meta-line {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-family: var(--font-mono), monospace;
-  font-size: 10px;
-  color: var(--text-muted);
-}
-.dojo-verify-badge {
-  display: inline-flex;
-  min-height: 22px;
-  flex-shrink: 0;
-  align-items: center;
-  gap: 4px;
-  border: 1px solid rgba(166,122,43,0.28);
-  border-radius: 5px;
-  background: rgba(166,122,43,0.10);
-  padding: 3px 6px;
-  color: color-mix(in srgb, var(--dojo-gold) 78%, var(--text));
-  font-family: var(--font-mono), monospace;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-.dark .dojo-verify-badge {
-  border-color: rgba(226,190,122,0.25);
-  background: rgba(226,190,122,0.08);
-  color: rgba(238,214,166,0.92);
-}
 .dojo-icon-link {
   display: inline-flex;
   height: 34px;
