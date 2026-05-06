@@ -275,7 +275,7 @@ export default function SkillPageClient({
             Back to marketplace
           </Link>
 
-          <header className="mb-8 grid gap-5 lg:grid-cols-[1fr_360px] lg:items-start">
+          <header className="mb-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
             <div>
               {skill.category && (
                 <span className="mb-4 inline-block rounded-full border border-[var(--card-border)] bg-[var(--card-bg)] px-3 py-0.5 font-mono text-[10px] uppercase tracking-widest text-[var(--text-muted)] backdrop-blur-sm">
@@ -349,7 +349,7 @@ export default function SkillPageClient({
           </header>
 
           {/* Two-column layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
             {/* Left column */}
             <div className="space-y-6">
               <section className="glass-card p-8">

@@ -364,8 +364,8 @@ function RunPanel({ workflow }: { workflow: WorkflowActionData }) {
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[360px_1fr]">
-      <div className="space-y-4">
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
+      <div className="space-y-6">
         <section className="dojo-card p-5">
           <div className="mb-5 flex items-center justify-between">
             <span className="label-sm">Run input</span>
@@ -454,7 +454,7 @@ function RunPanel({ workflow }: { workflow: WorkflowActionData }) {
         </section>
       </div>
 
-      <section id="receipt" className="dojo-card p-5">
+      <section id="receipt" className="dojo-card p-5 lg:sticky lg:top-28">
         <div className="mb-5 flex items-center justify-between">
           <span className="label-sm">Receipt preview</span>
           {(paidResult || result) && (
@@ -544,7 +544,7 @@ function ForkPanel({ workflow }: { workflow: WorkflowActionData }) {
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
       <section className="dojo-card p-5">
         <span className="label-sm">Fork draft</span>
         <div className="mt-5 space-y-4">
@@ -702,7 +702,7 @@ function DeployPanel({ workflow }: { workflow: WorkflowActionData }) {
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
       <section className="dojo-card p-5">
         <span className="label-sm">Deploy target</span>
         <p className="mt-3 rounded-[8px] border border-[var(--border)] bg-[var(--bg-secondary)] px-4 py-3 text-[12px] leading-relaxed text-[var(--text-muted)]">
@@ -821,8 +821,8 @@ export function WorkflowActionClient({
           Workflow market
         </Link>
 
-        <section className="dojo-workflow-hero mb-5 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-          <div>
+        <section className="dojo-workflow-hero mb-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
+          <div className="min-w-0">
             <div className="dojo-rank-badge mb-3 inline-flex items-center gap-2 rounded-[6px] px-3 py-1.5">
               <Icon className="h-3.5 w-3.5" />
               <span className="font-mono text-[11px] font-semibold uppercase tracking-wider">
@@ -875,7 +875,7 @@ export function WorkflowActionClient({
             </div>
           </div>
 
-          <aside className="dojo-card min-w-[330px] p-3">
+          <aside className="dojo-card w-full p-3">
             <DojoSpirit
               compact
               profile={workflow.spirit}
