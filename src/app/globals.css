@@ -873,8 +873,11 @@ html.dark body {
 }
 .dojo-pet-avatar {
   --pet-accent: var(--dojo-red);
-  --pet-mat: var(--dojo-mat);
-  --pet-ink: var(--text);
+  --pet-leaf: #91cf24;
+  --pet-leaf-deep: #4f9b1e;
+  --pet-paper: #f7f5ec;
+  --pet-eye: #260303;
+  --pet-red: #b8322d;
   position: relative;
   display: flex;
   height: 100%;
@@ -882,6 +885,7 @@ html.dark body {
   align-items: center;
   justify-content: center;
   isolation: isolate;
+  filter: saturate(1.04);
 }
 .dojo-pet-avatar-sm {
   min-height: 38px;
@@ -898,91 +902,110 @@ html.dark body {
 .dojo-pet-head {
   position: relative;
   z-index: 2;
-  height: 68%;
-  width: 70%;
-  border: 2px solid color-mix(in srgb, var(--pet-ink) 84%, transparent);
-  border-radius: 42% 42% 36% 36%;
+  height: 72%;
+  width: 72%;
+  overflow: hidden;
+  border: 1px solid rgba(77, 57, 25, 0.28);
+  border-radius: 10px;
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.42), transparent 42%),
-    var(--pet-mat);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(250, 248, 240, 0.76)),
+    var(--pet-paper);
   box-shadow:
-    inset 0 -6px 0 color-mix(in srgb, var(--pet-accent) 16%, transparent),
-    0 8px 16px rgba(11, 12, 14, 0.14);
+    inset 0 1px 0 rgba(255, 255, 255, 0.76),
+    0 8px 16px rgba(11, 12, 14, 0.12);
+}
+.dojo-pet-head::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--pet-accent) 20%, transparent) 1px, transparent 1px),
+    linear-gradient(180deg, color-mix(in srgb, var(--pet-accent) 14%, transparent) 1px, transparent 1px);
+  background-size: 12px 12px;
+  opacity: 0.34;
+}
+.dojo-pet-head::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 3;
+  height: 18%;
+  background:
+    linear-gradient(90deg, transparent 0 24%, color-mix(in srgb, var(--pet-accent) 86%, var(--pet-red)) 24% 76%, transparent 76%);
+  opacity: 0.88;
+}
+.dojo-pet-logo {
+  position: absolute;
+  inset: -5% -6% -10%;
+  z-index: 2;
+  height: 115%;
+  width: 112%;
+  object-fit: cover;
+  object-position: 50% 43%;
+  mix-blend-mode: multiply;
 }
 .dojo-pet-ear {
   position: absolute;
-  top: 13%;
+  top: 9%;
   z-index: 1;
-  height: 24%;
-  width: 18%;
-  border: 2px solid color-mix(in srgb, var(--pet-ink) 82%, transparent);
-  background: var(--pet-accent);
+  height: 48%;
+  width: 7%;
+  border: 0;
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--pet-accent) 36%, #b0df3f), var(--pet-leaf-deep));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.42),
+    0 2px 5px rgba(72, 123, 26, 0.20);
+  transform-origin: 50% 100%;
 }
 .dojo-pet-ear-left {
-  left: 14%;
-  transform: rotate(-18deg);
-  border-radius: 70% 36% 52% 32%;
+  left: 15%;
+  transform: rotate(-46deg);
 }
 .dojo-pet-ear-right {
-  right: 14%;
-  transform: rotate(18deg);
-  border-radius: 36% 70% 32% 52%;
+  right: 15%;
+  transform: rotate(46deg);
 }
 .dojo-pet-eye {
-  position: absolute;
-  top: 38%;
-  height: 16%;
-  width: 18%;
-  border: 2px solid color-mix(in srgb, var(--pet-ink) 84%, transparent);
-  border-radius: 3px;
-  background: var(--pet-ink);
-  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--pet-accent) 28%, transparent);
+  display: none;
 }
 .dojo-pet-eye-left {
-  left: 20%;
+  left: 0;
 }
 .dojo-pet-eye-right {
-  right: 20%;
+  right: 0;
 }
 .dojo-pet-nose {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  height: 13%;
-  width: 13%;
-  transform: translateX(-50%) rotate(45deg);
-  border-radius: 2px;
-  background: var(--pet-accent);
+  display: none;
 }
 .dojo-pet-mouth {
-  position: absolute;
-  left: 50%;
-  bottom: 19%;
-  height: 2px;
-  width: 22%;
-  transform: translateX(-50%);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--pet-ink) 74%, transparent);
+  display: none;
 }
 .dojo-pet-crest {
   position: absolute;
-  left: 50%;
-  top: -12%;
-  height: 22%;
+  right: 7%;
+  top: 7%;
+  z-index: 4;
+  height: 16%;
   width: 16%;
-  transform: translateX(-50%);
-  border: 2px solid color-mix(in srgb, var(--pet-ink) 70%, transparent);
-  border-radius: 999px 999px 4px 4px;
-  background: var(--pet-accent);
+  border: 1px solid rgba(77, 57, 25, 0.18);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle, var(--pet-paper) 0 24%, transparent 25%),
+    color-mix(in srgb, var(--pet-accent) 84%, var(--pet-red));
+  box-shadow: 0 2px 7px rgba(11, 12, 14, 0.16);
 }
 .dojo-pet-belt {
   position: absolute;
-  left: 16%;
-  right: 16%;
+  left: 15%;
+  right: 15%;
   bottom: 8%;
-  height: 6%;
+  z-index: 4;
+  height: 4px;
   border-radius: 999px;
-  background: var(--pet-accent);
+  background: color-mix(in srgb, var(--pet-accent) 80%, var(--pet-red));
   opacity: 0.92;
 }
 .dojo-pet-shadow {
@@ -995,43 +1018,57 @@ html.dark body {
   filter: blur(1px);
 }
 .dojo-pet-seal .dojo-pet-head {
-  border-radius: 36% 48% 40% 42%;
+  border-radius: 12px 8px 12px 8px;
 }
 .dojo-pet-lineage .dojo-pet-ear-left,
 .dojo-pet-lineage .dojo-pet-ear-right {
-  height: 30%;
-  width: 12%;
+  height: 54%;
+  width: 7%;
   border-radius: 999px;
 }
 .dojo-pet-ring .dojo-pet-head {
-  border-radius: 48%;
+  border-radius: 999px;
 }
 .dojo-pet-ledger .dojo-pet-head {
-  border-radius: 26% 26% 42% 42%;
+  border-radius: 6px;
 }
 .dojo-pet-tatami .dojo-pet-crest {
-  width: 28%;
-  border-radius: 4px;
+  height: 14%;
+  width: 22%;
+  border-radius: 3px;
 }
-.dojo-pet-aura-gold .dojo-pet-eye {
-  box-shadow: 0 0 0 2px rgba(166, 122, 43, 0.18);
+.dojo-pet-aura-gold .dojo-pet-head {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.76),
+    0 8px 16px rgba(11, 12, 14, 0.12),
+    0 0 0 3px rgba(166, 122, 43, 0.14);
 }
-.dojo-pet-aura-bamboo .dojo-pet-eye {
-  box-shadow: 0 0 0 2px var(--signal-soft);
+.dojo-pet-aura-bamboo .dojo-pet-head {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.76),
+    0 8px 16px rgba(11, 12, 14, 0.12),
+    0 0 0 3px rgba(65, 132, 45, 0.14);
 }
-.dojo-pet-aura-vermilion .dojo-pet-eye {
-  box-shadow: 0 0 0 2px var(--dojo-red-soft);
+.dojo-pet-aura-vermilion .dojo-pet-head {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.76),
+    0 8px 16px rgba(11, 12, 14, 0.12),
+    0 0 0 3px var(--dojo-red-soft);
 }
 .dojo-pet-aura-night .dojo-pet-head {
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.18), transparent 42%),
-    color-mix(in srgb, var(--pet-mat) 74%, #111827);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(21, 27, 16, 0.18)),
+    #11170d;
+}
+.dojo-pet-aura-night .dojo-pet-logo {
+  mix-blend-mode: normal;
+  filter: saturate(1.12) brightness(0.94);
 }
 .dojo-pet-avatar[data-belt="black belt"] .dojo-pet-belt {
-  background: var(--pet-ink);
+  background: #16160f;
 }
 .dojo-pet-avatar[data-belt="green belt"] .dojo-pet-belt {
-  background: var(--dojo-bamboo);
+  background: #367f27;
 }
 .dojo-pet-avatar[data-belt="yellow belt"] .dojo-pet-belt {
   background: var(--dojo-gold);
