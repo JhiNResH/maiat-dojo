@@ -6,6 +6,7 @@ import { ArrowLeft, Calendar, DollarSign, ShieldCheck, Star, TrendingUp } from '
 import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
 import { BackgroundEffect } from '@/components/landing/BackgroundEffect';
+import { DojoPetAvatar } from '@/components/DojoPetAvatar';
 
 interface SkillSummary {
   id: string;
@@ -157,7 +158,18 @@ export default function CreatorPageClient({
                       className="group block rounded-[8px] p-5 border transition-all hover:opacity-80 border-[var(--border-light)] bg-[var(--bg-secondary)]"
                     >
                       <div className="flex items-start gap-3 mb-3">
-                        <span className="text-2xl">{skill.icon || '⚡'}</span>
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-visible rounded-[7px] border border-[var(--card-border)] bg-[var(--card-bg)]">
+                          <DojoPetAvatar
+                            name={skill.name}
+                            workflowId={skill.id}
+                            slug={skill.id}
+                            category={skill.category}
+                            creatorId={creator.id}
+                            receipts={skill.installs}
+                            passRate={skill.rating / 5}
+                            size="sm"
+                          />
+                        </span>
                         <div className="flex-1 min-w-0">
                           <div className="font-sans font-semibold text-sm truncate text-[var(--text)]">
                             {skill.name}

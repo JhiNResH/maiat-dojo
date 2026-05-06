@@ -871,6 +871,171 @@ html.dark body {
   background: #faf8f0;
   box-shadow: 0 8px 22px rgba(11, 12, 14, 0.10);
 }
+.dojo-pet-avatar {
+  --pet-accent: var(--dojo-red);
+  --pet-mat: var(--dojo-mat);
+  --pet-ink: var(--text);
+  position: relative;
+  display: flex;
+  height: 100%;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  isolation: isolate;
+}
+.dojo-pet-avatar-sm {
+  min-height: 38px;
+  min-width: 38px;
+}
+.dojo-pet-avatar-md {
+  min-height: 54px;
+  min-width: 54px;
+}
+.dojo-pet-avatar-lg {
+  min-height: 74px;
+  min-width: 74px;
+}
+.dojo-pet-head {
+  position: relative;
+  z-index: 2;
+  height: 68%;
+  width: 70%;
+  border: 2px solid color-mix(in srgb, var(--pet-ink) 84%, transparent);
+  border-radius: 42% 42% 36% 36%;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.42), transparent 42%),
+    var(--pet-mat);
+  box-shadow:
+    inset 0 -6px 0 color-mix(in srgb, var(--pet-accent) 16%, transparent),
+    0 8px 16px rgba(11, 12, 14, 0.14);
+}
+.dojo-pet-ear {
+  position: absolute;
+  top: 13%;
+  z-index: 1;
+  height: 24%;
+  width: 18%;
+  border: 2px solid color-mix(in srgb, var(--pet-ink) 82%, transparent);
+  background: var(--pet-accent);
+}
+.dojo-pet-ear-left {
+  left: 14%;
+  transform: rotate(-18deg);
+  border-radius: 70% 36% 52% 32%;
+}
+.dojo-pet-ear-right {
+  right: 14%;
+  transform: rotate(18deg);
+  border-radius: 36% 70% 32% 52%;
+}
+.dojo-pet-eye {
+  position: absolute;
+  top: 38%;
+  height: 16%;
+  width: 18%;
+  border: 2px solid color-mix(in srgb, var(--pet-ink) 84%, transparent);
+  border-radius: 3px;
+  background: var(--pet-ink);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--pet-accent) 28%, transparent);
+}
+.dojo-pet-eye-left {
+  left: 20%;
+}
+.dojo-pet-eye-right {
+  right: 20%;
+}
+.dojo-pet-nose {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  height: 13%;
+  width: 13%;
+  transform: translateX(-50%) rotate(45deg);
+  border-radius: 2px;
+  background: var(--pet-accent);
+}
+.dojo-pet-mouth {
+  position: absolute;
+  left: 50%;
+  bottom: 19%;
+  height: 2px;
+  width: 22%;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pet-ink) 74%, transparent);
+}
+.dojo-pet-crest {
+  position: absolute;
+  left: 50%;
+  top: -12%;
+  height: 22%;
+  width: 16%;
+  transform: translateX(-50%);
+  border: 2px solid color-mix(in srgb, var(--pet-ink) 70%, transparent);
+  border-radius: 999px 999px 4px 4px;
+  background: var(--pet-accent);
+}
+.dojo-pet-belt {
+  position: absolute;
+  left: 16%;
+  right: 16%;
+  bottom: 8%;
+  height: 6%;
+  border-radius: 999px;
+  background: var(--pet-accent);
+  opacity: 0.92;
+}
+.dojo-pet-shadow {
+  position: absolute;
+  bottom: 7%;
+  height: 7%;
+  width: 64%;
+  border-radius: 999px;
+  background: rgba(11, 12, 14, 0.14);
+  filter: blur(1px);
+}
+.dojo-pet-seal .dojo-pet-head {
+  border-radius: 36% 48% 40% 42%;
+}
+.dojo-pet-lineage .dojo-pet-ear-left,
+.dojo-pet-lineage .dojo-pet-ear-right {
+  height: 30%;
+  width: 12%;
+  border-radius: 999px;
+}
+.dojo-pet-ring .dojo-pet-head {
+  border-radius: 48%;
+}
+.dojo-pet-ledger .dojo-pet-head {
+  border-radius: 26% 26% 42% 42%;
+}
+.dojo-pet-tatami .dojo-pet-crest {
+  width: 28%;
+  border-radius: 4px;
+}
+.dojo-pet-aura-gold .dojo-pet-eye {
+  box-shadow: 0 0 0 2px rgba(166, 122, 43, 0.18);
+}
+.dojo-pet-aura-bamboo .dojo-pet-eye {
+  box-shadow: 0 0 0 2px var(--signal-soft);
+}
+.dojo-pet-aura-vermilion .dojo-pet-eye {
+  box-shadow: 0 0 0 2px var(--dojo-red-soft);
+}
+.dojo-pet-aura-night .dojo-pet-head {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.18), transparent 42%),
+    color-mix(in srgb, var(--pet-mat) 74%, #111827);
+}
+.dojo-pet-avatar[data-belt="black belt"] .dojo-pet-belt {
+  background: var(--pet-ink);
+}
+.dojo-pet-avatar[data-belt="green belt"] .dojo-pet-belt {
+  background: var(--dojo-bamboo);
+}
+.dojo-pet-avatar[data-belt="yellow belt"] .dojo-pet-belt {
+  background: var(--dojo-gold);
+}
 .dojo-catalog-badge,
 .dojo-catalog-pill,
 .dojo-catalog-status {
@@ -1224,10 +1389,10 @@ html.dark body {
   z-index: 2;
   height: 54px;
   width: 54px;
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid rgba(11, 12, 14, 0.35);
   border-radius: 3px;
-  background: #faf8f0;
+  background: color-mix(in srgb, var(--spirit-mat) 72%, #faf8f0);
   transform: translateY(-2px);
 }
 .dojo-spirit-compact .dojo-spirit-avatar {
