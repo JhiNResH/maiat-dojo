@@ -74,11 +74,8 @@ export function Navbar() {
             />
           </span>
           <span className="leading-none">
-            <span className="block text-[14px] font-bold tracking-tight text-[var(--text)]">
+            <span className="block text-[18px] font-black tracking-tight text-[var(--text)] sm:text-[20px]">
               The Dojo
-            </span>
-            <span className="mt-1 hidden font-mono text-[8.5px] font-bold uppercase tracking-[0.18em] text-[var(--dojo-red)] sm:block">
-              agent training hall
             </span>
           </span>
         </Link>

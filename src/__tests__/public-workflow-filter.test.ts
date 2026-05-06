@@ -12,6 +12,12 @@ describe("publicWorkflowWhere", () => {
     expect(JSON.stringify(publicWorkflowWhere())).toContain("mohseow");
   });
 
+  it("excludes Codex quick audit test workflows from public catalogs", () => {
+    expect(JSON.stringify(publicWorkflowWhere())).toContain("Codex E2E Quick Audit");
+    expect(JSON.stringify(publicWorkflowWhere())).toContain("codex-e2e-quick-audit");
+    expect(JSON.stringify(publicWorkflowWhere())).toContain("mohs6djl");
+  });
+
   it("preserves route-specific filters", () => {
     expect(publicWorkflowWhere({ category: "Agent Research" })).toMatchObject({
       status: "published",
@@ -19,4 +25,3 @@ describe("publicWorkflowWhere", () => {
     });
   });
 });
-
