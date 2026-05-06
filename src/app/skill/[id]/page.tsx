@@ -24,6 +24,12 @@ export default async function SkillPage({ params }: { params: { id: string } }) 
       where: { id: params.id },
       include: {
         creator: true,
+        workflow: {
+          select: {
+            runCount: true,
+            trustScore: true,
+          },
+        },
         sessions: {
           where: { status: { in: ['settled', 'refunded'] } },
           orderBy: { settledAt: 'asc' },
@@ -121,11 +127,18 @@ export default async function SkillPage({ params }: { params: { id: string } }) 
     );
   }
 
-  const totalCalls = skill.sessions.reduce((sum, s) => sum + s.callCount, 0);
-  const totalSessions = skill.sessions.length;
-  const passedSessions = skill.sessions.filter((s) => s.status === 'settled').length;
-  const failedSessions = skill.sessions.filter((s) => s.status === 'refunded').length;
-  const passRate = totalSessions > 0 ? Math.round((passedSessions / totalSessions) * 100) : 0;
+  const sessionCallCount = skill.sessions.reduce((sum, s) => sum + s.callCount, 0);
+  const workflowRunCount = skill.workflow?.runCount ?? 0;
+  const totalCalls = Math.max(sessionCallCount, workflowRunCount);
+  const totalSessions = Math.max(skill.sessions.length, workflowRunCount);
+  const settledSessionCount = skill.sessions.filter((s) => s.status === 'settled').length;
+  const refundedSessionCount = skill.sessions.filter((s) => s.status === 'refunded').length;
+  const passedSessions = skill.sessions.length > 0 ? settledSessionCount : workflowRunCount;
+  const failedSessions = skill.sessions.length > 0 ? refundedSessionCount : 0;
+  const passRate =
+    skill.sessions.length > 0
+      ? Math.round((passedSessions / skill.sessions.length) * 100)
+      : Math.round(skill.workflow?.trustScore ?? 0);
 
   // Trust sparkline: running pass rate over last N sessions (chronological)
   const recentSessions = skill.sessions.slice(-SPARKLINE_WINDOW);
@@ -202,7 +215,7 @@ export default async function SkillPage({ params }: { params: { id: string } }) 
         skillType: skill.skillType,
         gatewaySlug: skill.gatewaySlug,
         fileContent: skill.fileContent,
-        evaluationScore: skill.evaluationScore,
+        evaluationScore: skill.evaluationScore ?? skill.workflow?.trustScore ?? null,
         executionKind: skill.executionKind,
         inputShape: skill.inputShape,
         outputShape: skill.outputShape,

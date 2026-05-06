@@ -3,7 +3,19 @@
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { ArrowLeft, Calendar, Network, ShieldCheck, Tag, Wallet, Zap } from 'lucide-react';
+import {
+  ArrowLeft,
+  Calendar,
+  FileInput,
+  FileOutput,
+  GitFork,
+  Network,
+  Play,
+  ShieldCheck,
+  Tag,
+  Wallet,
+  Zap,
+} from 'lucide-react';
 import { usePrivy } from '@privy-io/react-auth';
 import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
@@ -85,6 +97,18 @@ interface SettledSession {
   settledAt: string | null;
 }
 
+type SchemaProperty = {
+  type?: string;
+  title?: string;
+  description?: string;
+  default?: unknown;
+};
+
+type SchemaObject = {
+  properties?: Record<string, SchemaProperty>;
+  required?: string[];
+};
+
 interface Props {
   skill: SkillData;
   totalCalls: number;
@@ -112,10 +136,81 @@ function formatDate(date: string): string {
   }).format(new Date(date));
 }
 
+function safeParseJson<T>(raw: string | null | undefined, fallback: T): T {
+  if (!raw) return fallback;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+function formatJson(value: unknown): string {
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
+}
+
+function humanizeKey(key: string): string {
+  return key
+    .replace(/[_-]+/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function schemaItems(schema: SchemaObject | null, fallbackShape: string | null | undefined) {
+  const entries = Object.entries(schema?.properties ?? {});
+  if (entries.length === 0) {
+    return [
+      {
+        label: fallbackShape ? humanizeKey(fallbackShape) : 'Input payload',
+        description: fallbackShape === 'form'
+          ? 'Fill the form fields and run the workflow.'
+          : 'Send a JSON payload to the workflow.',
+      },
+    ];
+  }
+
+  const required = new Set(schema?.required ?? []);
+  return entries.slice(0, 4).map(([key, prop]) => ({
+    label: prop.title ?? humanizeKey(key),
+    description:
+      prop.description ??
+      `${prop.type ?? 'value'}${required.has(key) ? ' · required' : ''}`,
+  }));
+}
+
+function outputItems(schema: SchemaObject | null, fallbackShape: string | null | undefined) {
+  const entries = Object.entries(schema?.properties ?? {});
+  if (entries.length === 0) {
+    return [
+      {
+        label: fallbackShape ? humanizeKey(fallbackShape) : 'Workflow result',
+        description: 'A structured result returned by the workflow.',
+      },
+      {
+        label: 'Receipt',
+        description: 'A cleared execution record when run through the paid path.',
+      },
+    ];
+  }
+
+  return entries.slice(0, 4).map(([key, prop]) => ({
+    label: prop.title ?? humanizeKey(key),
+    description: prop.description ?? 'Returned as part of the workflow result.',
+  }));
+}
+
+function shortList(items: { label: string }[]): string {
+  return items.map((item) => item.label).join(', ');
+}
+
 export default function SkillPageClient({
   skill,
   totalCalls,
   totalSessions,
+  passRate,
   passedSessions,
   failedSessions,
   sparkline,
@@ -128,6 +223,23 @@ export default function SkillPageClient({
   const { authenticated, user, getAccessToken } = usePrivy();
   const [userSessions, setUserSessions] = useState<SettledSession[]>([]);
   const [dbUserId, setDbUserId] = useState<string | undefined>();
+  const inputSchema = safeParseJson<SchemaObject | null>(skill.inputSchema, null);
+  const outputSchema = safeParseJson<SchemaObject | null>(skill.outputSchema, null);
+  const exampleOutput = safeParseJson<Record<string, unknown>>(skill.exampleOutput, {});
+  const inputSummary = schemaItems(inputSchema, skill.inputShape);
+  const resultSummary = outputItems(outputSchema, skill.outputShape);
+  const workflowTarget = skill.gatewaySlug ?? skill.id;
+  const primaryDescription =
+    skill.description ||
+    skill.longDescription?.split('\n').find(Boolean) ||
+    'Run this workflow with your input and receive a structured result.';
+  const sampleResult =
+    Object.keys(exampleOutput).length > 0
+      ? exampleOutput
+      : {
+          result: `${skill.name} returns a structured ${skill.outputShape ?? 'JSON'} response.`,
+          receipt: 'Paid runs also create a workflow receipt.',
+        };
 
   useEffect(() => {
     if (!authenticated || !user) return;
@@ -163,47 +275,78 @@ export default function SkillPageClient({
             Back to marketplace
           </Link>
 
-          {/* Header */}
-          <header className="mb-12">
-            {skill.category && (
-              <span className="inline-block font-mono text-[10px] uppercase tracking-widest px-3 py-0.5 rounded-full border border-[var(--card-border)] bg-[var(--card-bg)] backdrop-blur-sm text-[var(--text-muted)] mb-5">
-                {skill.category}
-              </span>
-            )}
-            <h1 className="text-[40px] md:text-[56px] font-bold tracking-tight leading-tight mb-5 text-[var(--text)]">
-              {skill.name}
-            </h1>
-            <div className="flex items-center gap-2 text-[14px] text-[var(--text-muted)]">
-              <span>by</span>
-              <span className="text-[var(--text)]">
-                {skill.creator.displayName || truncateAddress(skill.creator.walletAddress)}
-              </span>
-              <span>·</span>
-              <span>Listed {formatDate(skill.createdAt)}</span>
+          <header className="mb-8 grid gap-5 lg:grid-cols-[1fr_360px] lg:items-start">
+            <div>
+              {skill.category && (
+                <span className="mb-4 inline-block rounded-full border border-[var(--card-border)] bg-[var(--card-bg)] px-3 py-0.5 font-mono text-[10px] uppercase tracking-widest text-[var(--text-muted)] backdrop-blur-sm">
+                  {skill.category}
+                </span>
+              )}
+              <h1 className="mb-4 text-[38px] font-bold leading-tight tracking-tight text-[var(--text)] md:text-[54px]">
+                {skill.name}
+              </h1>
+              <p className="max-w-3xl text-[17px] leading-relaxed text-[var(--text-secondary)]">
+                {primaryDescription}
+              </p>
+              <div className="mt-6 flex flex-wrap gap-3">
+                <a href="#run-workflow" className="dojo-action dojo-action-primary">
+                  <Play className="h-4 w-4 fill-current" />
+                  Run workflow
+                </a>
+                <Link href={`/workflow/${workflowTarget}/fork`} className="dojo-action">
+                  <GitFork className="h-4 w-4" />
+                  Fork & customize
+                </Link>
+              </div>
             </div>
-          </header>
 
-          {/* Stats grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-12">
-            {[
-              {
-                label: 'Per call',
-                value: skill.pricePerCall ? `$${skill.pricePerCall.toFixed(2)}` : 'FREE',
-              },
-              { label: 'Total calls', value: totalCalls.toLocaleString() },
-              { label: 'Sessions', value: totalSessions.toLocaleString() },
-              { label: 'Trust score', value: trustScore.toString() },
-            ].map((stat) => (
-              <div key={stat.label} className="glass-card p-5">
-                <div className="font-mono text-2xl font-bold tabular-nums text-[var(--text)]">
-                  {stat.value}
+            <aside className="glass-card p-6">
+              <div className="mb-4 flex items-center justify-between">
+                <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--text-muted)]">
+                  Quick read
+                </span>
+                <span className="rounded-full bg-[var(--bg-secondary)] px-3 py-1 font-mono text-[11px] text-[var(--text)]">
+                  {skill.pricePerCall ? `$${skill.pricePerCall.toFixed(3)}` : 'Free'}
+                </span>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <div className="mb-1 flex items-center gap-2 text-[12px] font-semibold text-[var(--text)]">
+                    <FileInput className="h-4 w-4" />
+                    Input
+                  </div>
+                  <p className="text-[13px] leading-relaxed text-[var(--text-secondary)]">
+                    {shortList(inputSummary)}
+                  </p>
                 </div>
-                <div className="text-[9px] font-bold uppercase tracking-[0.2em] mt-1 text-[var(--text-muted)]">
-                  {stat.label}
+                <div>
+                  <div className="mb-1 flex items-center gap-2 text-[12px] font-semibold text-[var(--text)]">
+                    <FileOutput className="h-4 w-4" />
+                    Output
+                  </div>
+                  <p className="text-[13px] leading-relaxed text-[var(--text-secondary)]">
+                    {shortList(resultSummary)}
+                  </p>
+                </div>
+                <div className="grid grid-cols-3 gap-2 border-t border-[var(--border-light)] pt-4">
+                  {[
+                    ['Runs', totalCalls.toLocaleString()],
+                    ['Success', `${passRate}%`],
+                    ['Trust', trustScore.toString()],
+                  ].map(([label, value]) => (
+                    <div key={label}>
+                      <div className="font-mono text-[15px] font-bold text-[var(--text)]">
+                        {value}
+                      </div>
+                      <div className="font-mono text-[9px] uppercase tracking-[0.16em] text-[var(--text-muted)]">
+                        {label}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-            ))}
-          </div>
+            </aside>
+          </header>
 
           {/* Two-column layout */}
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6">
@@ -211,26 +354,69 @@ export default function SkillPageClient({
             <div className="space-y-6">
               <section className="glass-card p-8">
                 <div className="font-mono text-[9px] uppercase tracking-[0.15em] mb-5 text-[var(--text-muted)]">
-                  About this skill
+                  How it works
                 </div>
-                <div className="text-base leading-relaxed space-y-4 text-[var(--text-secondary)]">
-                  {(skill.longDescription || skill.description || 'No description provided.')
-                    .split('\n\n')
-                    .map((p, i) => (
-                      <p key={i}>{p}</p>
-                    ))}
+                <div className="grid gap-4 md:grid-cols-3">
+                  {[
+                    {
+                      icon: FileInput,
+                      label: 'Input',
+                      body: inputSummary[0]?.description ?? 'Provide the workflow payload.',
+                    },
+                    {
+                      icon: Zap,
+                      label: 'Process',
+                      body: 'Dojo sends the request to the workflow endpoint and checks delivery.',
+                    },
+                    {
+                      icon: FileOutput,
+                      label: 'Output',
+                      body: `Receive ${shortList(resultSummary).toLowerCase()} after the workflow completes.`,
+                    },
+                  ].map(({ icon: Icon, label, body }) => (
+                    <div key={label} className="rounded-[8px] border border-[var(--border-light)] bg-[var(--bg-secondary)] p-4">
+                      <Icon className="mb-3 h-4 w-4 text-[var(--text-secondary)]" />
+                      <div className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--text-muted)]">
+                        {label}
+                      </div>
+                      <p className="mt-2 text-[13px] leading-relaxed text-[var(--text-secondary)]">
+                        {body}
+                      </p>
+                    </div>
+                  ))}
                 </div>
+              </section>
+
+              <section className="glass-card p-8">
+                <div className="mb-5 flex items-center justify-between">
+                  <div className="font-mono text-[9px] uppercase tracking-[0.15em] text-[var(--text-muted)]">
+                    Sample result
+                  </div>
+                  <span className="font-mono text-[10px] text-[var(--text-muted)]">
+                    preview
+                  </span>
+                </div>
+                <pre className="overflow-auto rounded-[8px] border border-[var(--border)] bg-[var(--bg-secondary)] p-4 font-mono text-[12px] leading-relaxed text-[var(--text-secondary)]">
+                  {formatJson(sampleResult)}
+                </pre>
               </section>
 
               {/* Flagship: live sandbox (token-price-oracle only) */}
               {skill.gatewaySlug === 'token-price-oracle' && (
-                <SkillSandbox />
+                <div id="run-workflow">
+                  <SkillSandbox />
+                </div>
               )}
 
               {skill.skillType === 'active' && skill.gatewaySlug !== 'token-price-oracle' && (
-                <section className="glass-card p-8">
-                  <div className="font-mono text-[9px] uppercase tracking-[0.15em] mb-5 text-[var(--text-muted)]">
-                    Run workflow
+                <section id="run-workflow" className="glass-card p-8">
+                  <div className="mb-5 flex items-center justify-between">
+                    <div className="font-mono text-[9px] uppercase tracking-[0.15em] text-[var(--text-muted)]">
+                      Run workflow
+                    </div>
+                    <span className="font-mono text-[11px] text-[var(--text-muted)]">
+                      {skill.estLatencyMs ? `${skill.estLatencyMs}ms est.` : 'Live endpoint'}
+                    </span>
                   </div>
                   <SkillExecutor
                     skill={{
@@ -299,8 +485,11 @@ export default function SkillPageClient({
 
               <div className="glass-card p-7">
                 <div className="font-mono text-[9px] uppercase tracking-[0.15em] mb-5 text-[var(--text-muted)]">
-                  Specification
+                  Trust & receipts
                 </div>
+                <p className="mb-5 text-[13px] leading-relaxed text-[var(--text-secondary)]">
+                  Paid runs create receipts after delivery is evaluated. This is the proof layer behind workflow reputation.
+                </p>
                 <div className="space-y-3">
                   {[
                     { icon: Network, label: 'Network', value: 'BNB Smart Chain' },
