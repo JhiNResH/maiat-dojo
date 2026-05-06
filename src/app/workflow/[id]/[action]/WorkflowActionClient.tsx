@@ -136,6 +136,37 @@ function safeParseRecord(raw: string | null): Record<string, unknown> {
   }
 }
 
+function humanizeKey(value: string) {
+  return value
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function fieldSummary(schema: SchemaObject | null, example: Record<string, unknown>) {
+  const fields = Object.entries(schema?.properties ?? {});
+  if (fields.length > 0) {
+    return fields
+      .slice(0, 3)
+      .map(([key, prop]) => prop.title ?? humanizeKey(key))
+      .join(", ");
+  }
+
+  const exampleKeys = Object.keys(example);
+  if (exampleKeys.length > 0) {
+    return exampleKeys.slice(0, 3).map(humanizeKey).join(", ");
+  }
+
+  return "JSON input";
+}
+
+function examplePreview(example: Record<string, unknown>, workflow: WorkflowActionData) {
+  if (Object.keys(example).length > 0) return example;
+  return {
+    input: fieldSummary(safeParseSchema(workflow.skill.inputSchema), example),
+    result: `${workflow.name} returns a structured workflow result.`,
+  };
+}
+
 function defaultsFromSchema(schema: SchemaObject | null, example: Record<string, unknown>) {
   const seed: Record<string, unknown> = { ...example };
   for (const [key, prop] of Object.entries(schema?.properties ?? {})) {
@@ -265,6 +296,7 @@ function RunPanel({ workflow }: { workflow: WorkflowActionData }) {
 
   const fields = Object.entries(schema?.properties ?? {});
   const required = new Set(schema?.required ?? []);
+  const inputSummary = fieldSummary(schema, example);
   const missingRequired = fields.some(
     ([key]) => required.has(key) && (values[key] === "" || values[key] == null),
   );
@@ -335,8 +367,63 @@ function RunPanel({ workflow }: { workflow: WorkflowActionData }) {
     <div className="grid gap-4 lg:grid-cols-[360px_1fr]">
       <div className="space-y-4">
         <section className="dojo-card p-5">
+          <div className="mb-5 flex items-center justify-between">
+            <span className="label-sm">Run input</span>
+            <span className="font-mono text-[11px] text-[var(--text-muted)]">
+              {workflow.version?.slaMs ?? 1200}ms SLA
+            </span>
+          </div>
+          <p className="mb-5 rounded-[8px] border border-[var(--border-light)] bg-[var(--bg-secondary)] p-3 text-[13px] leading-relaxed text-[var(--text-secondary)]">
+            Provide {inputSummary}. Dojo runs the workflow and returns a structured result.
+          </p>
+          <div className="space-y-4">
+            {fields.length > 0 ? (
+              fields.map(([key, prop]) => (
+                <FieldInput
+                  key={key}
+                  name={key}
+                  prop={prop}
+                  value={values[key]}
+                  onChange={(value) => setValues((prev) => ({ ...prev, [key]: value }))}
+                />
+              ))
+            ) : (
+              <p className="text-[14px] text-[var(--text-muted)]">
+                This workflow takes an empty payload.
+              </p>
+            )}
+            <div className="grid gap-2">
+              <button
+                onClick={runWorkflow}
+                disabled={pending || missingRequired}
+                className="dojo-action w-full disabled:opacity-40"
+              >
+                {pending ? "Previewing..." : "Sandbox preview"}
+              </button>
+              <label className="block">
+                <span className="label-sm mb-2 block">API key for paid run</span>
+                <input
+                  value={apiKey}
+                  onChange={(event) => setApiKey(event.target.value)}
+                  placeholder="dojo_sk_..."
+                  className="dojo-input font-mono"
+                  type="password"
+                />
+              </label>
+              <button
+                onClick={runPaidWorkflow}
+                disabled={paidPending || missingRequired || !apiKey.trim()}
+                className="dojo-action dojo-action-primary w-full disabled:opacity-40"
+              >
+                {paidPending ? "Clearing..." : `Run cleared · $${workflow.pricePerRun.toFixed(3)}`}
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section className="dojo-card p-5">
           <div className="mb-4 flex items-center justify-between">
-            <span className="label-sm">Clearing policy</span>
+            <span className="label-sm">Trust & receipts</span>
             <span className="rounded-[6px] bg-[var(--bg-secondary)] px-2 py-1 font-mono text-[10px] text-[var(--text-secondary)]">
               testnet
             </span>
@@ -365,58 +452,6 @@ function RunPanel({ workflow }: { workflow: WorkflowActionData }) {
             </div>
           </div>
         </section>
-
-        <section className="dojo-card p-5">
-        <div className="mb-5 flex items-center justify-between">
-          <span className="label-sm">Input</span>
-          <span className="font-mono text-[11px] text-[var(--text-muted)]">
-            {workflow.version?.slaMs ?? 1200}ms SLA
-          </span>
-        </div>
-        <div className="space-y-4">
-          {fields.length > 0 ? (
-            fields.map(([key, prop]) => (
-              <FieldInput
-                key={key}
-                name={key}
-                prop={prop}
-                value={values[key]}
-                onChange={(value) => setValues((prev) => ({ ...prev, [key]: value }))}
-              />
-            ))
-          ) : (
-            <p className="text-[14px] text-[var(--text-muted)]">
-              This workflow takes an empty payload.
-            </p>
-          )}
-          <div className="grid gap-2">
-            <button
-              onClick={runWorkflow}
-              disabled={pending || missingRequired}
-              className="dojo-action w-full disabled:opacity-40"
-            >
-              {pending ? "Previewing..." : "Sandbox preview"}
-            </button>
-            <label className="block">
-              <span className="label-sm mb-2 block">API key for paid run</span>
-              <input
-                value={apiKey}
-                onChange={(event) => setApiKey(event.target.value)}
-                placeholder="dojo_sk_..."
-                className="dojo-input font-mono"
-                type="password"
-              />
-            </label>
-            <button
-              onClick={runPaidWorkflow}
-              disabled={paidPending || missingRequired || !apiKey.trim()}
-              className="dojo-action dojo-action-primary w-full disabled:opacity-40"
-            >
-              {paidPending ? "Clearing..." : `Run cleared · $${workflow.pricePerRun.toFixed(3)}`}
-            </button>
-          </div>
-        </div>
-      </section>
       </div>
 
       <section id="receipt" className="dojo-card p-5">
@@ -767,6 +802,11 @@ export function WorkflowActionClient({
 }) {
   const copy = actionCopy(action);
   const Icon = copy.icon;
+  const schema = safeParseSchema(workflow.skill.inputSchema);
+  const example = safeParseRecord(workflow.skill.exampleInput);
+  const inputSummary = fieldSummary(schema, example);
+  const sampleInput = examplePreview(example, workflow);
+  const resultSummary = "Structured result + execution receipt";
 
   return (
     <div className="flex min-h-screen flex-col bg-[var(--bg)] text-[var(--text)]">
@@ -803,23 +843,33 @@ export function WorkflowActionClient({
               </span>
             </h1>
             <p className="mt-3 max-w-3xl text-[14px] leading-relaxed text-[var(--text-secondary)]">
-              {workflow.description || copy.body}
+              {workflow.description || copy.title}
             </p>
-            <div className="mt-4 flex flex-wrap items-center gap-4 text-[12px]">
+            <div className="mt-5 grid gap-3 md:grid-cols-3">
               {[
-                ["Verified runs", workflow.runs],
-                ["Trust score", workflow.trustScore],
-                ["Evaluator SLA", workflow.version?.slaMs ? `${workflow.version.slaMs}ms` : "1.2s"],
-                ["Fork lineage", workflow.forks],
-                ["Creator", workflow.creatorName],
+                ["Input", inputSummary],
+                ["Output", resultSummary],
+                ["Price", `$${workflow.pricePerRun.toFixed(3)} per run`],
               ].map(([label, value]) => (
-                <div key={label} className="flex flex-col gap-1">
+                <div key={label} className="rounded-[8px] border border-[var(--border-light)] bg-[var(--bg-secondary)] p-3">
                   <span className="font-mono text-[9.5px] uppercase tracking-[0.12em] text-[var(--text-muted)]">
                     {label}
                   </span>
-                  <span className="font-mono text-[12px] font-semibold text-[var(--text)]">
+                  <span className="mt-1 block text-[13px] font-semibold leading-relaxed text-[var(--text)]">
                     {value}
                   </span>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 flex flex-wrap items-center gap-4 text-[12px]">
+              {[
+                ["Runs", workflow.runs],
+                ["Trust", workflow.trustScore],
+                ["SLA", workflow.version?.slaMs ? `${workflow.version.slaMs}ms` : "1.2s"],
+              ].map(([label, value]) => (
+                <div key={label} className="flex items-center gap-2 font-mono text-[11px] text-[var(--text-muted)]">
+                  <span>{label}</span>
+                  <span className="font-semibold text-[var(--text)]">{value}</span>
                 </div>
               ))}
             </div>
@@ -864,6 +914,32 @@ export function WorkflowActionClient({
             </div>
           </aside>
         </section>
+
+        {action === "run" && (
+          <section className="dojo-card mb-4 grid gap-4 p-5 md:grid-cols-[1fr_1fr]">
+            <div>
+              <span className="label-sm">Example input</span>
+              <pre className="mt-3 overflow-auto rounded-[8px] border border-[var(--border)] bg-[var(--bg-secondary)] p-4 font-mono text-[12px] leading-relaxed text-[var(--text-secondary)]">
+                {formatJson(sampleInput)}
+              </pre>
+            </div>
+            <div>
+              <span className="label-sm">What you get</span>
+              <div className="mt-3 grid gap-3">
+                {[
+                  "A structured workflow result returned by the endpoint.",
+                  "An evaluator score for delivery, format, and SLA.",
+                  "A receipt link after a paid cleared run.",
+                ].map((item) => (
+                  <div key={item} className="flex items-start gap-2 rounded-[8px] border border-[var(--border-light)] bg-[var(--bg-secondary)] p-3 text-[13px] leading-relaxed text-[var(--text-secondary)]">
+                    <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--signal)]" />
+                    <span>{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
 
         {action === "run" && <RunPanel workflow={workflow} />}
         {action === "fork" && <ForkPanel workflow={workflow} />}
