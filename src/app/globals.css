@@ -795,6 +795,131 @@ html.dark body {
 .dark .dojo-chip {
   background: rgba(222,232,204,0.055);
 }
+.dojo-catalog-table {
+  overflow: hidden;
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.72), rgba(255,255,250,0.54)),
+    var(--card-bg);
+  box-shadow: 0 10px 34px rgba(11, 12, 14, 0.045);
+}
+.dark .dojo-catalog-table {
+  background:
+    linear-gradient(180deg, rgba(24,31,22,0.9), rgba(9,12,8,0.82)),
+    var(--card-bg);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 18px 52px rgba(0,0,0,0.38);
+}
+.dojo-catalog-head,
+.dojo-catalog-row {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.75fr) minmax(100px, 0.72fr) minmax(74px, 0.48fr) minmax(64px, 0.42fr) minmax(74px, 0.48fr) minmax(84px, 0.52fr) minmax(128px, 0.78fr);
+  gap: 12px;
+  align-items: center;
+}
+.dojo-catalog-head {
+  border-bottom: 1px solid var(--card-border);
+  background:
+    linear-gradient(90deg, rgba(30,121,84,0.045) 1px, transparent 1px),
+    rgba(255,255,250,0.56);
+  background-size: 24px 24px, auto;
+  padding: 10px 14px;
+  color: var(--text-muted);
+  font-family: var(--font-mono), monospace;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+.dark .dojo-catalog-head {
+  background:
+    linear-gradient(90deg, rgba(112,230,164,0.055) 1px, transparent 1px),
+    rgba(8,10,7,0.72);
+  background-size: 24px 24px, auto;
+}
+.dojo-catalog-row {
+  position: relative;
+  padding: 13px 14px;
+  border-bottom: 1px solid var(--border-light);
+  transition: background 150ms ease, border-color 150ms ease;
+}
+.dojo-catalog-row:last-child {
+  border-bottom: 0;
+}
+.dojo-catalog-row:hover {
+  background: var(--signal-soft);
+}
+.dojo-catalog-row-featured {
+  box-shadow: inset 3px 0 0 var(--dojo-red);
+}
+.dojo-catalog-workflow {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+}
+.dojo-catalog-mark {
+  display: flex;
+  height: 44px;
+  width: 44px;
+  flex: 0 0 auto;
+  overflow: hidden;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--paper-border-strong);
+  border-radius: 8px;
+  background: #faf8f0;
+  box-shadow: 0 8px 22px rgba(11, 12, 14, 0.10);
+}
+.dojo-catalog-badge,
+.dojo-catalog-pill,
+.dojo-catalog-status {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  border: 1px solid var(--card-border);
+  border-radius: 5px;
+  padding: 3px 7px;
+  font-family: var(--font-mono), monospace;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.dojo-catalog-badge {
+  border-color: var(--dojo-red-soft);
+  background: var(--dojo-red-soft);
+  color: var(--dojo-red);
+}
+.dojo-catalog-pill,
+.dojo-catalog-status {
+  background: rgba(255,255,250,0.58);
+  color: var(--text-secondary);
+}
+.dark .dojo-catalog-pill,
+.dark .dojo-catalog-status {
+  background: rgba(222,232,204,0.055);
+}
+.dojo-catalog-cell {
+  min-width: 0;
+}
+.dojo-catalog-cell strong {
+  color: var(--text);
+  font-family: var(--font-mono), monospace;
+  font-size: 12px;
+  font-weight: 850;
+}
+.dojo-catalog-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 8px;
+  align-items: center;
+}
+.dojo-catalog-workflow .dojo-skeleton-mark {
+  height: 44px;
+  width: 44px;
+  border-radius: 8px;
+}
 .dojo-collection-meta {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -963,6 +1088,51 @@ html.dark body {
   }
   .dojo-card-actions .dojo-icon-link {
     display: none;
+  }
+}
+@media (max-width: 920px) {
+  .dojo-catalog-head {
+    display: none;
+  }
+  .dojo-catalog-table {
+    display: grid;
+    gap: 10px;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  .dojo-catalog-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.76), rgba(255,255,250,0.6)),
+      var(--card-bg);
+  }
+  .dark .dojo-catalog-row {
+    background:
+      linear-gradient(180deg, rgba(24,31,22,0.92), rgba(9,12,8,0.86)),
+      var(--card-bg);
+  }
+  .dojo-catalog-cell {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .dojo-catalog-cell::before {
+    content: attr(data-label);
+    color: var(--text-muted);
+    font-family: var(--font-mono), monospace;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+  }
+  .dojo-catalog-actions {
+    grid-template-columns: 1fr auto auto;
   }
 }
 .dojo-ticker {
