@@ -204,7 +204,7 @@ export function LandingHero(_props: LandingHeroProps) {
             AI workflows
           </h2>
           <p className="mt-2 max-w-xl text-[13.5px] leading-relaxed text-[var(--text-secondary)]">
-            Discover workflow assets. Run one, get a result, and leave a receipt.
+            Browse useful AI workflows. Run one instantly, get the output, and keep a receipt-backed record.
           </p>
         </div>
         <Link
