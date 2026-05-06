@@ -515,6 +515,48 @@ html.dark body {
 .dark .dojo-asset-preview-meta span {
   background: rgba(8,10,7,0.76);
 }
+.dojo-skeleton-card {
+  pointer-events: none;
+}
+.dojo-skeleton-mark,
+.dojo-skeleton-line,
+.dojo-skeleton-box,
+.dojo-skeleton-button {
+  position: relative;
+  overflow: hidden;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--text-muted) 14%, transparent);
+}
+.dojo-skeleton-mark {
+  height: 96px;
+  width: 96px;
+  border-radius: 10px;
+}
+.dojo-skeleton-line {
+  height: 13px;
+}
+.dojo-skeleton-box {
+  height: 54px;
+}
+.dojo-skeleton-button {
+  height: 36px;
+}
+.dojo-skeleton-mark::after,
+.dojo-skeleton-line::after,
+.dojo-skeleton-box::after,
+.dojo-skeleton-button::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--text) 8%, transparent), transparent);
+  animation: dojo-skeleton-sheen 1.4s ease-in-out infinite;
+  transform: translateX(-100%);
+}
+@keyframes dojo-skeleton-sheen {
+  to {
+    transform: translateX(100%);
+  }
+}
 
 .dojo-page-shell {
   position: relative;
