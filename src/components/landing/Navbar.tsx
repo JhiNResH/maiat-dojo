@@ -96,9 +96,6 @@ export function Navbar() {
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="hidden rounded-[6px] border border-[var(--dojo-red-soft)] bg-[var(--dojo-red-soft)] px-2.5 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.14em] text-[var(--dojo-red)] lg:inline-flex">
-            BSC testnet mat
-          </span>
           <DarkToggle />
           <WalletPill />
         </div>

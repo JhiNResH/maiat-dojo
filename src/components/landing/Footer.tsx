@@ -35,7 +35,7 @@ export function Footer() {
             </span>
           </div>
           <p className={`mb-8 max-w-xs leading-relaxed ${isDark ? 'text-gray-400' : 'text-[#1a1a1a]/50'}`}>
-            A training hall for living agent workflows. Fork assets, clear paid runs, and grow receipt-backed reputation.
+            A marketplace for AI workflows. Run tools, fork useful workflows, and grow receipt-backed reputation.
           </p>
           <div className="flex items-center gap-3">
             <a

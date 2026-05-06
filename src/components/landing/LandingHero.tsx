@@ -96,7 +96,7 @@ function WorkflowCard({ skill, featured = false }: { skill: SkillRankItem; featu
 
         <div className="mt-4 grid grid-cols-2 gap-2">
           <Metric label="Price" value={priceLabel(skill.pricePerCall)} />
-          <Metric label="Pass" value={`${Math.round(trust * 100)}%`} />
+          <Metric label="Success rate" value={`${Math.round(trust * 100)}%`} />
         </div>
 
         <div className="mt-3 grid grid-cols-2 gap-2">
@@ -111,8 +111,11 @@ function WorkflowCard({ skill, featured = false }: { skill: SkillRankItem; featu
               <div className="truncate text-[12px] font-medium text-[var(--text)]">
                 {creator}
               </div>
-              <div className="font-mono text-[10px] text-[var(--text-muted)]">
-                KYA pending
+              <div
+                className="font-mono text-[10px] text-[var(--text-muted)]"
+                title="Creator verification has not been completed yet."
+              >
+                Verification pending
               </div>
             </div>
           </div>
@@ -120,17 +123,48 @@ function WorkflowCard({ skill, featured = false }: { skill: SkillRankItem; featu
         </div>
 
         <div className="mt-auto grid grid-cols-[1fr_auto] gap-2 pt-4">
-          <Link href={`/workflow/${key}/run`} className="dojo-action dojo-action-primary">
+          <Link
+            href={`/workflow/${key}/run`}
+            className="dojo-action dojo-action-primary"
+            title="Execute this workflow once. You pay the fee, receive the result, and get a receipt."
+          >
             <Play className="h-3.5 w-3.5 fill-current" />
-            Run
+            Run workflow
           </Link>
-          <Link href={`/workflow/${key}/fork`} className="dojo-action">
+          <Link
+            href={`/workflow/${key}/fork`}
+            className="dojo-action"
+            title="Create your own version of this workflow to customize or monetize it."
+          >
             <GitFork className="h-3.5 w-3.5" />
-            Fork
+            Fork & customize
           </Link>
         </div>
       </div>
     </article>
+  );
+}
+
+function WorkflowSkeletonCard() {
+  return (
+    <div className="dojo-card dojo-asset-card dojo-skeleton-card" aria-hidden="true">
+      <div className="dojo-asset-preview">
+        <div className="dojo-skeleton-mark" />
+      </div>
+      <div className="flex min-h-[220px] flex-col p-4">
+        <div className="dojo-skeleton-line w-3/4" />
+        <div className="mt-3 dojo-skeleton-line w-full" />
+        <div className="mt-2 dojo-skeleton-line w-2/3" />
+        <div className="mt-5 grid grid-cols-2 gap-2">
+          <div className="dojo-skeleton-box" />
+          <div className="dojo-skeleton-box" />
+        </div>
+        <div className="mt-auto grid grid-cols-[1fr_auto] gap-2 pt-4">
+          <div className="dojo-skeleton-button" />
+          <div className="dojo-skeleton-button w-24" />
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -181,21 +215,25 @@ export function LandingHero(_props: LandingHeroProps) {
     <section className="dojo-marketplace">
       <div className="dojo-market-header">
         <div className="min-w-0">
-          <div className="label-sm">Dojo Marketplace</div>
+          <div className="label-sm">AI Workflow Marketplace</div>
           <h2 className="mt-2 font-serif text-[30px] font-black leading-none text-[var(--text)] md:text-[42px]">
-            Workflow assets
+            Run and publish AI workflows
           </h2>
           <p className="mt-2 max-w-xl text-[13.5px] leading-relaxed text-[var(--text-secondary)]">
-            Run, fork, or publish executable agent workflows. Every cleared run
-            leaves a receipt and updates reputation.
+            Find ready-to-run AI tools. Execute them instantly, get results,
+            and build reputation from receipts.
           </p>
         </div>
         <div className="dojo-market-stats">
-          <Metric label="Items" value={skillCount || "—"} />
+          <Metric label="Workflows" value={skillCount || "—"} />
           <Metric label="Runs" value={compactNumber(totalRuns)} />
           <Metric label="Forks" value={compactNumber(totalForks)} />
         </div>
-        <Link href="/create" className="dojo-action dojo-action-primary">
+        <Link
+          href="/create"
+          className="dojo-action dojo-action-primary"
+          title="Publish your AI workflow and earn when other users run it."
+        >
           <Rocket className="h-3.5 w-3.5" />
           Publish
         </Link>
@@ -208,7 +246,7 @@ export function LandingHero(_props: LandingHeroProps) {
             type="text"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search workflow assets..."
+            placeholder="Search AI workflows..."
             className="dojo-input pl-9"
           />
         </div>
@@ -226,9 +264,15 @@ export function LandingHero(_props: LandingHeroProps) {
       </div>
 
       {filtered === null ? (
-        <div className="dojo-empty">Loading workflows...</div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {[0, 1, 2, 3].map((item) => (
+            <WorkflowSkeletonCard key={item} />
+          ))}
+        </div>
       ) : filtered.length === 0 ? (
-        <div className="dojo-empty">No workflows found.</div>
+        <div className="dojo-empty">
+          No workflows found. Try another keyword or publish your own.
+        </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filtered.map((skill, index) => (
