@@ -56,7 +56,7 @@ function WorkflowCard({ skill, featured = false }: { skill: SkillRankItem; featu
   const success = Math.round(trust * 100);
 
   return (
-    <article className={`dojo-card dojo-asset-card group ${featured ? "dojo-card-featured" : ""}`}>
+    <article className={`dojo-card dojo-asset-card group h-full ${featured ? "dojo-card-featured" : ""}`}>
       <Link href={`/workflow/${key}/run`} className="dojo-asset-preview" aria-label={`Open ${skill.name}`}>
         <div className="dojo-asset-mark">
           <Image
@@ -73,8 +73,8 @@ function WorkflowCard({ skill, featured = false }: { skill: SkillRankItem; featu
         </div>
       </Link>
 
-      <div className="flex min-h-[180px] flex-col p-4">
-        <div className="min-w-0">
+      <div className="flex min-h-[210px] flex-1 flex-col p-4">
+        <div className="min-h-[78px] min-w-0">
           <Link href={`/workflow/${key}/run`}>
             <h3 className="line-clamp-2 text-[16px] font-semibold leading-tight text-[var(--text)] transition-colors hover:text-[var(--text-secondary)]">
               {skill.name}
