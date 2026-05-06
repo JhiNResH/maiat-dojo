@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import Image from "next/image";
 import {
   buildWorkflowSpiritProfile,
   type WorkflowSpiritProfile,
@@ -62,6 +63,14 @@ export function DojoPetAvatar({
       <div className="dojo-pet-ear dojo-pet-ear-left" />
       <div className="dojo-pet-ear dojo-pet-ear-right" />
       <div className="dojo-pet-head">
+        <Image
+          className="dojo-pet-logo"
+          src="/brand/dojo-mantis-logo.png"
+          alt=""
+          width={225}
+          height={210}
+          sizes="74px"
+        />
         <div className="dojo-pet-crest" />
         <div className="dojo-pet-eye dojo-pet-eye-left" />
         <div className="dojo-pet-eye dojo-pet-eye-right" />
