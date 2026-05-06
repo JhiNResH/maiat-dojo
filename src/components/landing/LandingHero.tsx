@@ -1,14 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import {
-  ArrowRight,
   GitFork,
   Play,
   Rocket,
   Search,
-  ShieldCheck,
 } from "lucide-react";
 import { type SkillRankItem } from "./SkillRankList";
 
@@ -41,7 +40,7 @@ function trustValue(skill: SkillRankItem) {
 
 function Metric({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="rounded-[6px] border border-[var(--border-light)] bg-[var(--bg-secondary)] px-2.5 py-2">
+    <div className="rounded-[6px] border border-[var(--border-light)] bg-[var(--bg-secondary)] px-3 py-2">
       <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)]">
         {label}
       </div>
@@ -63,67 +62,73 @@ function WorkflowCard({ skill, featured = false }: { skill: SkillRankItem; featu
     "dojo creator";
 
   return (
-    <article className={`dojo-card group flex min-h-[246px] flex-col p-4 ${featured ? "dojo-card-featured" : ""}`}>
-      <div className="flex items-start justify-between gap-3">
+    <article className={`dojo-card dojo-asset-card group ${featured ? "dojo-card-featured" : ""}`}>
+      <Link href={`/workflow/${key}/run`} className="dojo-asset-preview" aria-label={`Run ${skill.name}`}>
+        <div className="dojo-asset-mark">
+          <Image
+            src="/brand/dojo-mantis-logo.png"
+            alt=""
+            width={82}
+            height={82}
+            className="h-full w-full object-cover"
+          />
+        </div>
+        <div className="dojo-asset-preview-meta">
+          {featured && <span>Featured</span>}
+          <span>{skill.category ?? "Workflow"}</span>
+          <span>v{skill.workflowVersion?.version ?? 1}</span>
+        </div>
+      </Link>
+
+      <div className="flex min-h-[220px] flex-col p-4">
         <div className="min-w-0">
-          <div className="mb-2 flex items-center gap-2">
-            {featured && <span className="dojo-chip">start here</span>}
-            <span className="dojo-chip">workflow asset</span>
-            <span className="dojo-chip">{skill.category ?? "workflow"}</span>
-            <span className="font-mono text-[10px] text-[var(--text-muted)]">
-              v{skill.workflowVersion?.version ?? 1}
-            </span>
-          </div>
           <Link href={`/workflow/${key}/run`}>
-            <h3 className="line-clamp-2 text-[17px] font-semibold leading-tight tracking-[-0.01em] text-[var(--text)] transition-colors hover:text-[var(--text-secondary)]">
+            <h3 className="line-clamp-2 text-[16px] font-semibold leading-tight text-[var(--text)] transition-colors hover:text-[var(--text-secondary)]">
               {skill.name}
             </h3>
           </Link>
           {skill.description && (
-            <p className="mt-2 line-clamp-3 text-[13px] leading-relaxed text-[var(--text-secondary)]">
+            <p className="mt-2 line-clamp-2 text-[12.5px] leading-relaxed text-[var(--text-secondary)]">
               {skill.description}
             </p>
           )}
         </div>
-      </div>
 
-      <div className="mt-4 flex items-center justify-between border-t border-[var(--border-light)] pt-3">
-        <div className="flex min-w-0 items-center gap-2">
-          <div className="h-6 w-6 shrink-0 rounded-[6px] border border-[var(--border)] bg-[var(--bg-secondary)]" />
-          <div className="min-w-0">
-            <div className="truncate text-[12px] font-medium text-[var(--text)]">
-              {creator}
-            </div>
-            <div className="font-mono text-[10px] text-[var(--text-muted)]">
-              KYA pending
-            </div>
-          </div>
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <Metric label="Price" value={priceLabel(skill.pricePerCall)} />
+          <Metric label="Pass" value={`${Math.round(trust * 100)}%`} />
         </div>
-        <div className="rounded-[6px] border border-[var(--border-light)] px-2.5 py-1.5 text-right">
-          <div className="font-mono text-[12px] font-bold text-[var(--text)]">
-            {Math.round(trust * 100)}%
-          </div>
-          <div className="font-mono text-[9px] uppercase tracking-[0.12em] text-[var(--text-muted)]">
-            pass
-          </div>
+
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <Metric label="Runs" value={compactNumber(runs)} />
+          <Metric label="Forks" value={compactNumber(forks)} />
         </div>
-      </div>
 
-      <div className="mt-3 grid grid-cols-3 gap-2">
-        <Metric label="Runs" value={compactNumber(runs)} />
-        <Metric label="Price" value={priceLabel(skill.pricePerCall)} />
-        <Metric label="Forks" value={compactNumber(forks)} />
-      </div>
+        <div className="mt-4 flex items-center justify-between border-t border-[var(--border-light)] pt-3">
+          <div className="flex min-w-0 items-center gap-2">
+            <div className="h-6 w-6 shrink-0 rounded-[6px] border border-[var(--border)] bg-[var(--bg-secondary)]" />
+            <div className="min-w-0">
+              <div className="truncate text-[12px] font-medium text-[var(--text)]">
+                {creator}
+              </div>
+              <div className="font-mono text-[10px] text-[var(--text-muted)]">
+                KYA pending
+              </div>
+            </div>
+          </div>
+          <span className="dojo-chip">{skill.category ?? "workflow"}</span>
+        </div>
 
-      <div className="mt-auto grid grid-cols-[1fr_auto] gap-2 pt-4">
-        <Link href={`/workflow/${key}/run`} className="dojo-action dojo-action-primary">
-          <Play className="h-3.5 w-3.5 fill-current" />
-          Run workflow
-        </Link>
-        <Link href={`/workflow/${key}/fork`} className="dojo-action">
-          <GitFork className="h-3.5 w-3.5" />
-          Fork
-        </Link>
+        <div className="mt-auto grid grid-cols-[1fr_auto] gap-2 pt-4">
+          <Link href={`/workflow/${key}/run`} className="dojo-action dojo-action-primary">
+            <Play className="h-3.5 w-3.5 fill-current" />
+            Run
+          </Link>
+          <Link href={`/workflow/${key}/fork`} className="dojo-action">
+            <GitFork className="h-3.5 w-3.5" />
+            Fork
+          </Link>
+        </div>
       </div>
     </article>
   );
@@ -170,59 +175,30 @@ export function LandingHero(_props: LandingHeroProps) {
   const skillCount = skills?.length ?? 0;
   const totalRuns =
     skills?.reduce((sum, skill) => sum + (skill.workflowRunCount ?? skill.callCount ?? 0), 0) ?? 0;
+  const totalForks = skills?.reduce((sum, skill) => sum + (skill.workflowForkCount ?? 0), 0) ?? 0;
 
   return (
     <section className="dojo-marketplace">
-      <div className="dojo-marketplace-head">
-        <div>
-          <div className="mb-3 flex items-center gap-2 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
-            <span className="live-dot bg-[var(--dojo-red)]" />
-            Start with one workflow
-          </div>
-          <h2 className="font-serif text-[34px] font-black leading-[1.02] tracking-[0] text-[var(--text)] md:text-[42px]">
-            Run an agent workflow.
-            <br />
-            <span className="font-normal text-[var(--text-secondary)]">Get a receipt if it works.</span>
+      <div className="dojo-market-header">
+        <div className="min-w-0">
+          <div className="label-sm">Dojo Marketplace</div>
+          <h2 className="mt-2 font-serif text-[30px] font-black leading-none text-[var(--text)] md:text-[42px]">
+            Workflow assets
           </h2>
-          <p className="mt-4 max-w-xl text-[14px] leading-relaxed text-[var(--text-secondary)]">
-            Dojo is a small marketplace for executable agent workflows. Pick one,
-            run it through escrow and evaluation, then get a receipt that updates
-            the workflow&apos;s reputation.
+          <p className="mt-2 max-w-xl text-[13.5px] leading-relaxed text-[var(--text-secondary)]">
+            Run, fork, or publish executable agent workflows. Every cleared run
+            leaves a receipt and updates reputation.
           </p>
-          <div className="mt-6 flex flex-col gap-2 sm:flex-row">
-            <a href="#workflows" className="dojo-action dojo-action-primary">
-              <Play className="h-3.5 w-3.5 fill-current" />
-              Browse workflows
-            </a>
-            <Link href="/create" className="dojo-action">
-              <Rocket className="h-3.5 w-3.5" />
-              Publish a workflow
-            </Link>
-          </div>
         </div>
-        <div className="dojo-start-panel">
-          <div className="label-sm">How to start</div>
-          <ol className="mt-4 space-y-3">
-            {[
-              ["Pick", "Choose a workflow that matches the task."],
-              ["Run", "Pay for one execution and see the output."],
-              ["Trust", "A receipt records result, score, and settlement."],
-            ].map(([title, body], index) => (
-              <li key={title} className="dojo-start-step">
-                <span>{index + 1}</span>
-                <div>
-                  <strong>{title}</strong>
-                  <p>{body}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
-          <div className="dojo-stat-grid">
-            <Metric label="Workflows" value={skillCount || "—"} />
-            <Metric label="Receipts" value={compactNumber(totalRuns)} />
-            <Metric label="Anchor" value="BSC testnet" />
-          </div>
+        <div className="dojo-market-stats">
+          <Metric label="Items" value={skillCount || "—"} />
+          <Metric label="Runs" value={compactNumber(totalRuns)} />
+          <Metric label="Forks" value={compactNumber(totalForks)} />
         </div>
+        <Link href="/create" className="dojo-action dojo-action-primary">
+          <Rocket className="h-3.5 w-3.5" />
+          Publish
+        </Link>
       </div>
 
       <div id="workflows" className="dojo-filter-row">
@@ -254,33 +230,12 @@ export function LandingHero(_props: LandingHeroProps) {
       ) : filtered.length === 0 ? (
         <div className="dojo-empty">No workflows found.</div>
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filtered.map((skill, index) => (
             <WorkflowCard key={skill.id} skill={skill} featured={index === 0} />
           ))}
         </div>
       )}
-
-      <div className="mt-4 grid gap-3 md:grid-cols-3">
-        {[
-          ["For users", "Run a workflow online and inspect the receipt before trusting it again."],
-          ["For creators", "Publish a repeatable workflow, then earn from successful executions and forks."],
-          ["For agents", "Call the same workflow through the API when you need a paid capability."],
-        ].map(([title, body]) => (
-          <div key={title} className="dojo-mini-panel">
-            <ShieldCheck className="h-4 w-4 text-[var(--text-secondary)]" />
-            <div>
-              <div className="text-[13px] font-semibold text-[var(--text)]">{title}</div>
-              <p className="mt-1 text-[12px] leading-relaxed text-[var(--text-muted)]">{body}</p>
-              {title === "For creators" && (
-                <Link href="/create" className="mt-2 inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--text)]">
-                  Publish <ArrowRight className="h-3 w-3" />
-                </Link>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
     </section>
   );
 }
