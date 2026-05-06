@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { publicWorkflowWhere } from '@/lib/public-workflow-filter';
 import { validateRegisteredWorkflowSlug } from '@/lib/swap-router';
 import { buildWorkflowSpiritProfile } from '@/lib/workflow-spirit';
 
@@ -28,7 +29,7 @@ export async function GET() {
         skillType: 'active',
         endpointUrl: { not: null },
         gatewaySlug: { not: null },
-        workflow: { is: { status: 'published' } },
+        workflow: { is: publicWorkflowWhere() },
       },
       select: {
         name: true,
