@@ -9,7 +9,6 @@ import {
   Play,
   Rocket,
   Search,
-  ShieldCheck,
 } from "lucide-react";
 import { type SkillRankItem } from "./SkillRankList";
 
@@ -53,12 +52,7 @@ function listingDescription(description?: string | null) {
 function WorkflowCard({ skill, featured = false }: { skill: SkillRankItem; featured?: boolean }) {
   const key = workflowKey(skill);
   const runs = skill.workflowRunCount ?? skill.callCount ?? 0;
-  const forks = skill.workflowForkCount ?? 0;
   const trust = trustValue(skill);
-  const creator =
-    skill.creator?.displayName ??
-    skill.creator?.id?.slice(0, 8) ??
-    "dojo creator";
   const success = Math.round(trust * 100);
 
   return (
@@ -104,27 +98,6 @@ function WorkflowCard({ skill, featured = false }: { skill: SkillRankItem; featu
             <span>Success</span>
             <strong>{success}%</strong>
           </div>
-        </div>
-
-        <div className="mt-4 flex min-w-0 items-center justify-between gap-3 border-t border-[var(--border-light)] pt-3">
-          <div className="flex min-w-0 items-center gap-2">
-            <div className="h-6 w-6 shrink-0 rounded-[6px] border border-[var(--border)] bg-[var(--bg-secondary)]" />
-            <div className="min-w-0">
-              <div className="truncate text-[12px] font-medium text-[var(--text)]">
-                {creator}
-              </div>
-              <div className="dojo-card-meta-line">
-                v{skill.workflowVersion?.version ?? 1} · {compactNumber(forks)} forks
-              </div>
-            </div>
-          </div>
-          <span
-            className="dojo-verify-badge"
-            title="Creator verification has not been completed yet."
-          >
-            <ShieldCheck className="h-3 w-3" />
-            Pending
-          </span>
         </div>
 
         <div className="dojo-card-actions mt-auto grid grid-cols-[1fr_auto_auto] gap-2 pt-4">
