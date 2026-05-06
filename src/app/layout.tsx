@@ -25,6 +25,11 @@ export const metadata: Metadata = {
   title: "The Dojo — Agent Workflow Marketplace",
   description:
     "Run, fork, and monetize agent workflows with execution receipts and on-chain reputation.",
+  icons: {
+    icon: "/favicon.png",
+    shortcut: "/favicon.png",
+    apple: "/apple-icon.png",
+  },
 };
 
 export default function RootLayout({
