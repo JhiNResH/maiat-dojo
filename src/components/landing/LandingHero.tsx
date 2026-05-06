@@ -114,10 +114,10 @@ function WorkflowCatalogRow({ skill, featured = false }: { skill: SkillRankItem;
         <Link
           href={`/workflow/${key}/run`}
           className="dojo-action dojo-action-primary"
-          title="Run once, get a result, and receive an execution receipt."
+          title="Train this workflow once, get the output, and receive an execution receipt."
         >
           <Play className="h-3.5 w-3.5 fill-current" />
-          Run
+          Train
         </Link>
         <Link
           href={`/skill/${skill.id}`}
