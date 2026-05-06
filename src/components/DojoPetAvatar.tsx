@@ -6,9 +6,21 @@ import {
 } from "@/lib/workflow-spirit";
 
 type DojoPetAvatarSize = "sm" | "md" | "lg";
+type DojoPetKind = "mantis" | "leaf" | "orb" | "mask" | "spark";
+
+const petKinds: readonly DojoPetKind[] = ["mantis", "leaf", "orb", "mask", "spark"];
 
 function slugify(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+function hashSeed(input: string) {
+  let hash = 2166136261;
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
 }
 
 export function DojoPetAvatar({
@@ -52,12 +64,14 @@ export function DojoPetAvatar({
     "--pet-mat": spirit.palette.mat,
     "--pet-ink": spirit.palette.ink,
   } as CSSProperties;
+  const petKind = petKinds[hashSeed(`${spirit.profileId}:${spirit.discipline}:${spirit.pattern}`) % petKinds.length];
 
   return (
     <div
       aria-hidden="true"
-      className={`dojo-pet-avatar dojo-pet-avatar-${size} dojo-pet-${spirit.pattern} dojo-pet-aura-${spirit.aura}`}
+      className={`dojo-pet-avatar dojo-pet-avatar-${size} dojo-pet-${spirit.pattern} dojo-pet-aura-${spirit.aura} dojo-pet-kind-${petKind}`}
       data-belt={spirit.belt}
+      data-kind={petKind}
       style={style}
     >
       <div className="dojo-pet-ear dojo-pet-ear-left" />
