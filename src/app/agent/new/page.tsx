@@ -10,6 +10,7 @@ import { useAutoCreateUser } from '@/hooks/useAutoCreateUser';
 import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
 import { BackgroundEffect } from '@/components/landing/BackgroundEffect';
+import { DojoPetAvatar } from '@/components/DojoPetAvatar';
 
 const EMOJI_OPTIONS = [
   '⚡', '🔍', '🛡️', '📊', '🎯', '🔒', '⛽', '🐦',
@@ -314,7 +315,15 @@ export default function NewAgentPage() {
                             : 'border-[var(--border)] hover:border-[var(--text-secondary)]'
                         }`}
                       >
-                        <div className="text-2xl mb-2">{skill.icon}</div>
+                        <div className="mb-2 flex h-10 w-10 items-center justify-center overflow-visible rounded-[7px] border border-[var(--card-border)] bg-[var(--bg-secondary)]">
+                          <DojoPetAvatar
+                            name={skill.name}
+                            workflowId={skill.id}
+                            slug={skill.id}
+                            category={skill.category}
+                            size="sm"
+                          />
+                        </div>
                         <div className="text-xs font-semibold leading-tight mb-1 text-[var(--text)]">
                           {skill.name}
                         </div>

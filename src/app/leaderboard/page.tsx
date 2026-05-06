@@ -8,6 +8,7 @@ import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
 import { BackgroundEffect } from '@/components/landing/BackgroundEffect';
 import { DojoSpirit } from '@/components/DojoSpirit';
+import { DojoPetAvatar } from '@/components/DojoPetAvatar';
 import type { WorkflowSpiritProfile } from '@/lib/workflow-spirit';
 
 type Skill = {
@@ -290,7 +291,18 @@ export default function LeaderboardPage() {
                         </span>
                       </div>
                       <div className="col-span-4 flex items-center gap-3 min-w-0">
-                        <span className="text-xl shrink-0">{skill.icon}</span>
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-visible rounded-[7px] border border-[var(--card-border)] bg-[var(--bg-secondary)]">
+                          <DojoPetAvatar
+                            name={skill.name}
+                            workflowId={skill.id}
+                            slug={skill.id}
+                            category={skill.category}
+                            creatorId={skill.creator?.id ?? skill.creator?.displayName ?? null}
+                            receipts={skill.installs}
+                            passRate={skill.rating / 5}
+                            size="sm"
+                          />
+                        </span>
                         <div className="min-w-0">
                           <div className="font-sans font-semibold text-sm truncate text-[var(--text)]">
                             {skill.name}

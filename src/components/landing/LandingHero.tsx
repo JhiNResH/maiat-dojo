@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowUpRight,
@@ -10,6 +9,7 @@ import {
   Rocket,
   Search,
 } from "lucide-react";
+import { DojoPetAvatar } from "@/components/DojoPetAvatar";
 import { type SkillRankItem } from "./SkillRankList";
 
 export interface LandingHeroProps {
@@ -62,17 +62,21 @@ function WorkflowCatalogRow({ skill, featured = false }: { skill: SkillRankItem;
   const trust = trustValue(skill);
   const success = Math.round(trust * 100);
   const category = skill.category ?? "AI workflow";
+  const creatorId = skill.creator?.id ?? skill.creator?.displayName ?? null;
 
   return (
     <article className={`dojo-catalog-row group ${featured ? "dojo-catalog-row-featured" : ""}`}>
       <div className="dojo-catalog-workflow">
         <Link href={`/workflow/${key}/run`} className="dojo-catalog-mark" aria-label={`Open ${skill.name}`}>
-          <Image
-            src="/brand/dojo-mantis-logo.png"
-            alt=""
-            width={44}
-            height={44}
-            className="h-full w-full object-cover"
+          <DojoPetAvatar
+            name={skill.name}
+            workflowId={key}
+            slug={skill.workflowSlug ?? key}
+            category={category}
+            creatorId={creatorId}
+            receipts={runs}
+            passRate={trust}
+            size="sm"
           />
         </Link>
         <div className="min-w-0">

@@ -1,9 +1,9 @@
-import Image from "next/image";
 import type { CSSProperties } from "react";
 import {
   buildWorkflowSpiritProfile,
   type WorkflowSpiritProfile,
 } from "@/lib/workflow-spirit";
+import { DojoPetAvatar } from "./DojoPetAvatar";
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
@@ -70,13 +70,7 @@ export function DojoSpirit({
       <div className="dojo-spirit-screen">
         <div className="dojo-spirit-scanline" />
         <div className="dojo-spirit-avatar">
-          <Image
-            src="/brand/dojo-mantis-logo.png"
-            alt=""
-            width={64}
-            height={64}
-            className="h-full w-full object-cover"
-          />
+          <DojoPetAvatar profile={spirit} name={name} size={compact ? "sm" : "md"} />
         </div>
         <div className="dojo-spirit-shadow" />
       </div>

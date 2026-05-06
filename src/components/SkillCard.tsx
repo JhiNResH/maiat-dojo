@@ -7,6 +7,7 @@ import {
   RARITY_LABELS,
   type Rarity,
 } from "@/lib/rarity";
+import { DojoPetAvatar } from "@/components/DojoPetAvatar";
 
 export interface SkillCardData {
   id: string;
@@ -31,7 +32,7 @@ interface SkillCardProps {
 const SIZE_CONFIG = {
   sm: {
     card: "p-2",
-    icon: "text-xl",
+    icon: "h-8 w-8",
     name: "text-xs leading-tight",
     categoryBar: "h-1 mt-1.5",
     categoryText: "text-[8px] mt-0.5",
@@ -42,7 +43,7 @@ const SIZE_CONFIG = {
   },
   md: {
     card: "w-40 p-3",
-    icon: "text-3xl",
+    icon: "h-11 w-11",
     name: "text-sm leading-tight",
     categoryBar: "h-1.5 mt-2",
     categoryText: "text-[9px] mt-1",
@@ -53,7 +54,7 @@ const SIZE_CONFIG = {
   },
   lg: {
     card: "w-52 p-4",
-    icon: "text-4xl",
+    icon: "h-14 w-14",
     name: "text-base leading-tight",
     categoryBar: "h-2 mt-3",
     categoryText: "text-[10px] mt-1",
@@ -94,8 +95,20 @@ export function SkillCard({
       }}
       onClick={onClick}
     >
-      {/* Icon */}
-      <div className={`${config.icon} text-center`}>{skill.icon}</div>
+      {/* Avatar */}
+      <div className="flex justify-center">
+        <div className={`${config.icon} flex items-center justify-center overflow-visible rounded-[8px] border border-[var(--card-border)] bg-[var(--bg-secondary)]`}>
+          <DojoPetAvatar
+            name={skill.name}
+            workflowId={skill.id}
+            slug={skill.id}
+            category={skill.category}
+            receipts={skill.installs}
+            passRate={skill.rating / 5}
+            size={size === "lg" ? "md" : "sm"}
+          />
+        </div>
+      </div>
 
       {/* Name */}
       <h3

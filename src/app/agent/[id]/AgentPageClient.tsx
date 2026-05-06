@@ -17,6 +17,7 @@ import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
 import { BackgroundEffect } from '@/components/landing/BackgroundEffect';
 import CopyBuildModal from '@/components/CopyBuildModal';
+import { DojoPetAvatar } from '@/components/DojoPetAvatar';
 import ReviewForm from '@/components/ReviewForm';
 
 interface SkillData {
@@ -214,7 +215,17 @@ export default function AgentPageClient({
                       href={`/skill/${skill.id}`}
                       className="block rounded-[8px] p-4 border transition-all hover:opacity-80 border-[var(--border-light)] bg-[var(--bg-secondary)]"
                     >
-                      <div className="text-2xl mb-2">{skill.icon}</div>
+                      <div className="mb-2 flex h-10 w-10 items-center justify-center overflow-visible rounded-[7px] border border-[var(--card-border)] bg-[var(--card-bg)]">
+                        <DojoPetAvatar
+                          name={skill.name}
+                          workflowId={skill.id}
+                          slug={skill.id}
+                          category={skill.category}
+                          receipts={skill.installs}
+                          passRate={skill.rating / 5}
+                          size="sm"
+                        />
+                      </div>
                       <div className="font-sans font-semibold text-xs truncate text-[var(--text)]">
                         {skill.name}
                       </div>

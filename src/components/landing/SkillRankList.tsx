@@ -9,6 +9,7 @@
  */
 
 import Link from "next/link";
+import { DojoPetAvatar } from "@/components/DojoPetAvatar";
 import type { ChatSkillSummary } from "../chat/types";
 
 export interface SkillRankItem extends ChatSkillSummary {
@@ -67,6 +68,18 @@ export function SkillRankList({
               <div className="flex items-start gap-2.5">
                 <span className="w-5 shrink-0 pt-0.5 text-right font-mono text-[13px] font-bold leading-none text-[var(--text-muted)]">
                   {String(i + 1).padStart(2, "0")}
+                </span>
+                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center overflow-visible rounded-[7px] border border-[var(--card-border)] bg-[var(--bg-secondary)]">
+                  <DojoPetAvatar
+                    name={s.name}
+                    workflowId={s.workflowId ?? s.workflowSlug ?? s.id}
+                    slug={s.workflowSlug ?? s.id}
+                    category={s.category ?? null}
+                    creatorId={s.creator?.id ?? s.creator?.displayName ?? null}
+                    receipts={s.workflowRunCount ?? s.callCount ?? 0}
+                    passRate={s.trustScore ?? 1}
+                    size="sm"
+                  />
                 </span>
                 <div className="min-w-0 flex-1">
                   <Link

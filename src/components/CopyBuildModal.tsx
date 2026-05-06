@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { X, Check, ShoppingCart, Heart, Loader2 } from "lucide-react";
+import { DojoPetAvatar } from "@/components/DojoPetAvatar";
 import { SkillCard, type SkillCardData } from "@/components/SkillCard";
 
 interface SkillWithOwnership extends SkillCardData {
@@ -188,7 +189,17 @@ export default function CopyBuildModal({
                         key={skill.id}
                         className="flex items-center gap-2 border border-[var(--paper-success)] bg-[var(--paper-success-bg)] px-3 py-1.5"
                       >
-                        <span>{skill.icon}</span>
+                        <span className="flex h-6 w-6 shrink-0 items-center justify-center overflow-visible rounded-[5px] border border-[var(--paper-success)] bg-[var(--paper-bg)]">
+                          <DojoPetAvatar
+                            name={skill.name}
+                            workflowId={skill.id}
+                            slug={skill.id}
+                            category={skill.category}
+                            receipts={skill.installs}
+                            passRate={skill.rating / 5}
+                            size="sm"
+                          />
+                        </span>
                         <span className="font-mono text-xs text-[var(--paper-success)]">
                           {skill.name}
                         </span>
@@ -215,7 +226,17 @@ export default function CopyBuildModal({
                         className="flex items-center justify-between py-2 border-b border-dotted border-[var(--paper-ink-15)] last:border-b-0"
                       >
                         <div className="flex items-center gap-3">
-                          <span className="text-xl">{skill.icon}</span>
+                          <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-visible rounded-[6px] border border-[var(--paper-ink-15)] bg-[var(--paper-bg)]">
+                            <DojoPetAvatar
+                              name={skill.name}
+                              workflowId={skill.id}
+                              slug={skill.id}
+                              category={skill.category}
+                              receipts={skill.installs}
+                              passRate={skill.rating / 5}
+                              size="sm"
+                            />
+                          </span>
                           <div>
                             <div className="font-serif font-bold text-sm text-[var(--paper-ink)]">
                               {skill.name}
