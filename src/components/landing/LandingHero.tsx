@@ -49,108 +49,113 @@ function listingDescription(description?: string | null) {
   return `${value.slice(0, 129).trim()}...`;
 }
 
-function WorkflowCard({ skill, featured = false }: { skill: SkillRankItem; featured?: boolean }) {
+function statusLabel(runs: number, success: number) {
+  if (runs === 0) return "Ready";
+  if (success >= 90) return "Cleared";
+  if (success >= 70) return "Observed";
+  return "Watch";
+}
+
+function WorkflowCatalogRow({ skill, featured = false }: { skill: SkillRankItem; featured?: boolean }) {
   const key = workflowKey(skill);
   const runs = skill.workflowRunCount ?? skill.callCount ?? 0;
   const trust = trustValue(skill);
   const success = Math.round(trust * 100);
+  const category = skill.category ?? "AI workflow";
 
   return (
-    <article className={`dojo-card dojo-asset-card group h-full ${featured ? "dojo-card-featured" : ""}`}>
-      <Link href={`/workflow/${key}/run`} className="dojo-asset-preview" aria-label={`Open ${skill.name}`}>
-        <div className="dojo-asset-mark">
+    <article className={`dojo-catalog-row group ${featured ? "dojo-catalog-row-featured" : ""}`}>
+      <div className="dojo-catalog-workflow">
+        <Link href={`/workflow/${key}/run`} className="dojo-catalog-mark" aria-label={`Open ${skill.name}`}>
           <Image
             src="/brand/dojo-mantis-logo.png"
             alt=""
-            width={82}
-            height={82}
+            width={44}
+            height={44}
             className="h-full w-full object-cover"
           />
-        </div>
-        <div className="dojo-asset-preview-meta">
-          {featured && <span>Featured</span>}
-          <span>{skill.category ?? "AI workflow"}</span>
-        </div>
-      </Link>
-
-      <div className="flex min-h-[210px] flex-1 flex-col p-4">
-        <div className="min-h-[78px] min-w-0">
-          <Link href={`/workflow/${key}/run`}>
-            <h3 className="line-clamp-2 text-[16px] font-semibold leading-tight text-[var(--text)] transition-colors hover:text-[var(--text-secondary)]">
-              {skill.name}
-            </h3>
-          </Link>
-          <p className="mt-2 line-clamp-2 text-[12.5px] leading-relaxed text-[var(--text-secondary)]">
+        </Link>
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <Link href={`/workflow/${key}/run`}>
+              <h3 className="text-[14px] font-bold leading-tight text-[var(--text)] transition-colors hover:text-[var(--text-secondary)]">
+                {skill.name}
+              </h3>
+            </Link>
+            {featured && <span className="dojo-catalog-badge">Featured</span>}
+          </div>
+          <p className="mt-1 line-clamp-2 text-[12px] leading-relaxed text-[var(--text-secondary)]">
             {listingDescription(skill.description)}
           </p>
         </div>
+      </div>
 
-        <div className="dojo-collection-meta mt-4">
-          <div>
-            <span>Price</span>
-            <strong>{priceLabel(skill.pricePerCall)}</strong>
-          </div>
-          <div>
-            <span>Runs</span>
-            <strong>{compactNumber(runs)}</strong>
-          </div>
-          <div>
-            <span>Success</span>
-            <strong>{success}%</strong>
-          </div>
-        </div>
+      <div className="dojo-catalog-cell" data-label="Category">
+        <span className="dojo-catalog-pill">{category}</span>
+      </div>
 
-        <div className="dojo-card-actions mt-auto grid grid-cols-[1fr_auto_auto] gap-2 pt-4">
-          <Link
-            href={`/workflow/${key}/run`}
-            className="dojo-action dojo-action-primary"
-            title="Run once, get a result, and receive an execution receipt."
-          >
-            <Play className="h-3.5 w-3.5 fill-current" />
-            Run
-          </Link>
-          <Link
-            href={`/skill/${skill.id}`}
-            className="dojo-icon-link"
-            title="View details"
-            aria-label={`View details for ${skill.name}`}
-          >
-            <ArrowUpRight className="h-3.5 w-3.5" />
-          </Link>
-          <Link
-            href={`/workflow/${key}/fork`}
-            className="dojo-icon-link"
-            title="Create your own version of this workflow to customize or monetize it."
-            aria-label={`Fork ${skill.name}`}
-          >
-            <GitFork className="h-3.5 w-3.5" />
-          </Link>
-        </div>
+      <div className="dojo-catalog-cell" data-label="Price">
+        <strong>{priceLabel(skill.pricePerCall)}</strong>
+      </div>
+
+      <div className="dojo-catalog-cell" data-label="Runs">
+        <strong>{compactNumber(runs)}</strong>
+      </div>
+
+      <div className="dojo-catalog-cell" data-label="Success">
+        <strong>{success}%</strong>
+      </div>
+
+      <div className="dojo-catalog-cell" data-label="Status">
+        <span className="dojo-catalog-status">{statusLabel(runs, success)}</span>
+      </div>
+
+      <div className="dojo-catalog-actions">
+        <Link
+          href={`/workflow/${key}/run`}
+          className="dojo-action dojo-action-primary"
+          title="Run once, get a result, and receive an execution receipt."
+        >
+          <Play className="h-3.5 w-3.5 fill-current" />
+          Run
+        </Link>
+        <Link
+          href={`/skill/${skill.id}`}
+          className="dojo-icon-link"
+          title="View details"
+          aria-label={`View details for ${skill.name}`}
+        >
+          <ArrowUpRight className="h-3.5 w-3.5" />
+        </Link>
+        <Link
+          href={`/workflow/${key}/fork`}
+          className="dojo-icon-link"
+          title="Create your own version of this workflow to customize or monetize it."
+          aria-label={`Fork ${skill.name}`}
+        >
+          <GitFork className="h-3.5 w-3.5" />
+        </Link>
       </div>
     </article>
   );
 }
 
-function WorkflowSkeletonCard() {
+function WorkflowSkeletonRow() {
   return (
-    <div className="dojo-card dojo-asset-card dojo-skeleton-card" aria-hidden="true">
-      <div className="dojo-asset-preview">
+    <div className="dojo-catalog-row dojo-skeleton-card" aria-hidden="true">
+      <div className="dojo-catalog-workflow">
         <div className="dojo-skeleton-mark" />
-      </div>
-      <div className="flex min-h-[220px] flex-col p-4">
-        <div className="dojo-skeleton-line w-3/4" />
-        <div className="mt-3 dojo-skeleton-line w-full" />
-        <div className="mt-2 dojo-skeleton-line w-2/3" />
-        <div className="mt-5 grid grid-cols-3 gap-2">
-          <div className="dojo-skeleton-box" />
-          <div className="dojo-skeleton-box" />
-          <div className="dojo-skeleton-box" />
-        </div>
-        <div className="mt-auto grid grid-cols-[1fr_auto] gap-2 pt-4">
-          <div className="dojo-skeleton-button" />
-          <div className="dojo-skeleton-button w-24" />
+        <div className="min-w-0 flex-1">
+          <div className="dojo-skeleton-line w-1/2" />
+          <div className="mt-3 dojo-skeleton-line w-full" />
         </div>
       </div>
+      <div className="dojo-skeleton-line" />
+      <div className="dojo-skeleton-line" />
+      <div className="dojo-skeleton-line" />
+      <div className="dojo-skeleton-line" />
+      <div className="dojo-skeleton-line" />
+      <div className="dojo-skeleton-button" />
     </div>
   );
 }
@@ -249,9 +254,18 @@ export function LandingHero(_props: LandingHeroProps) {
       </div>
 
       {filtered === null ? (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="dojo-catalog-table">
+          <div className="dojo-catalog-head">
+            <span>Workflow</span>
+            <span>Category</span>
+            <span>Price</span>
+            <span>Runs</span>
+            <span>Success</span>
+            <span>Status</span>
+            <span>Action</span>
+          </div>
           {[0, 1, 2, 3].map((item) => (
-            <WorkflowSkeletonCard key={item} />
+            <WorkflowSkeletonRow key={item} />
           ))}
         </div>
       ) : filtered.length === 0 ? (
@@ -259,9 +273,18 @@ export function LandingHero(_props: LandingHeroProps) {
           No workflows found. Try another keyword or publish your own.
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="dojo-catalog-table">
+          <div className="dojo-catalog-head">
+            <span>Workflow</span>
+            <span>Category</span>
+            <span>Price</span>
+            <span>Runs</span>
+            <span>Success</span>
+            <span>Status</span>
+            <span>Action</span>
+          </div>
           {filtered.map((skill, index) => (
-            <WorkflowCard key={skill.id} skill={skill} featured={index === 0} />
+            <WorkflowCatalogRow key={skill.id} skill={skill} featured={index === 0} />
           ))}
         </div>
       )}
