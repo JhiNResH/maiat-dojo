@@ -7,6 +7,16 @@ import {
 
 export const dynamic = 'force-dynamic';
 
+function safeJsonArray(value: string | null): unknown[] {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 /**
  * GET /api/v1/receipts/:receiptId
  *
@@ -133,6 +143,8 @@ export async function GET(
       score: receipt.score,
       settlement_status: receipt.settlementStatus,
       cost_usdc: receipt.costUsdc,
+      quoted_price_usdc: receipt.quotedPriceUsdc,
+      max_price_usdc: receipt.maxPriceUsdc,
       creator_received_usdc: receipt.settlementStatus === 'paid'
         ? Math.max(0, receipt.costUsdc * 0.9)
         : 0,
@@ -146,6 +158,19 @@ export async function GET(
       within_sla: receipt.withinSla,
       latency_ms: receipt.skillCall?.latencyMs ?? null,
       http_status: receipt.skillCall?.httpStatus ?? null,
+      evidence: safeJsonArray(receipt.evaluatorEvidence),
+    },
+    provenance: {
+      context_refs: safeJsonArray(receipt.contextRefs),
+      plan_summary: receipt.planSummary,
+      artifact_refs: safeJsonArray(receipt.artifactRefs),
+      evaluator_evidence: safeJsonArray(receipt.evaluatorEvidence),
+      skill_version: receipt.skillVersion,
+      skill_update_suggested: receipt.skillUpdateSuggested,
+      protocol_update_suggested: receipt.protocolUpdateSuggested,
+      failure_patch_type: receipt.failurePatchType,
+      lineage_parent_workflow_id: receipt.lineageParentWorkflowId,
+      lineage_depth: receipt.lineageDepth,
     },
     proof: {
       request_hash: receipt.requestHash,

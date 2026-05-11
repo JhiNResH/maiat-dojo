@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
   // --- Parse body ---
   const parsed = await parseBody(req, v1RunInput);
   if (!parsed.success) return parsed.response;
-  const { skill: skillSlug, input } = parsed.data;
+  const { skill: skillSlug, input, provenance } = parsed.data;
 
   // --- Find skill ---
   const skill = await prisma.skill.findUnique({
@@ -236,6 +236,28 @@ export async function POST(req: NextRequest) {
         score: evalResult.score,
         costUsdc: cost,
         settlementStatus: shouldCharge ? 'paid' : 'refunded',
+        httpStatus: creatorStatus,
+        latencyMs,
+        failureReason: failureReason || null,
+        provenance: {
+          contextRefs: [
+            'api:/api/v1/run',
+            `skill:${skillSlug}`,
+            `session:${session!.id}`,
+            `nonce:${nonce}`,
+            ...(provenance?.contextRefs ?? []),
+          ],
+          planSummary: provenance?.planSummary ?? `Run ${skillSlug} through the REST clearing path.`,
+          artifactRefs: provenance?.artifactRefs ?? (
+            evalResult.responseHash ? [`response:${evalResult.responseHash}`] : []
+          ),
+          evaluatorEvidence: provenance?.evaluatorEvidence,
+          skillUpdateSuggested: provenance?.skillUpdateSuggested ?? (!evalResult.delivered || !evalResult.validFormat),
+          protocolUpdateSuggested: provenance?.protocolUpdateSuggested ?? failed,
+          failurePatchType: provenance?.failurePatchType ?? (failed ? 'protocol' : null),
+          quotedPriceUsdc: provenance?.quotedPriceUsdc ?? pricePerCall,
+          maxPriceUsdc: provenance?.maxPriceUsdc ?? pricePerCall,
+        },
       });
 
       if (shouldCharge) {
@@ -329,6 +351,7 @@ export async function POST(req: NextRequest) {
             version_id: receiptForResponse.versionId,
             settlement_status: receiptForResponse.settlementStatus,
             anchor_status: receiptForResponse.anchorStatus,
+            provenance: receiptForResponse.provenance,
           },
         } : {}),
       },
@@ -417,6 +440,7 @@ export async function POST(req: NextRequest) {
         onchain_request_id: receiptForResponse.onchainRequestId,
         swap_tx_hash: receiptForResponse.swapTxHash,
         settle_tx_hash: receiptForResponse.settleTxHash,
+        provenance: receiptForResponse.provenance,
       },
     } : {}),
     latency_ms: latencyMs,

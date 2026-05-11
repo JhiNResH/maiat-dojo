@@ -3,7 +3,10 @@ import { prisma } from '@/lib/prisma';
 import { publicWorkflowWhere } from '@/lib/public-workflow-filter';
 import { validateRegisteredWorkflowSlug } from '@/lib/swap-router';
 import { buildWorkflowSpiritProfile } from '@/lib/workflow-spirit';
-import { computeSkillMaturity } from '@/lib/skill-maturity';
+import {
+  computeMaturityEvidenceFromReceipts,
+  computeSkillMaturity,
+} from '@/lib/skill-maturity';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,6 +54,19 @@ export async function GET(req: NextRequest) {
           take: 1,
           select: { id: true, version: true, summary: true, slaMs: true },
         },
+        receipts: {
+          orderBy: { createdAt: 'desc' },
+          take: 100,
+          select: {
+            settlementStatus: true,
+            score: true,
+            skillVersion: true,
+            contextRefs: true,
+            artifactRefs: true,
+            evaluatorEvidence: true,
+            lineageDepth: true,
+          },
+        },
       },
     });
   } catch (error) {
@@ -70,13 +86,11 @@ export async function GET(req: NextRequest) {
       const slug = workflow.skill?.gatewaySlug ?? workflow.slug;
       const registry = registryBySlug.get(slug);
       const version = workflow.versions[0] ?? null;
-      const maturity = computeSkillMaturity({
+      const maturity = computeSkillMaturity(computeMaturityEvidenceFromReceipts(workflow.receipts, {
         evaluationPassed: workflow.skill?.evaluationPassed,
         evaluationScore: workflow.skill?.evaluationScore,
-        clearedRunCount: workflow.runCount,
-        passRate: workflow.trustScore,
         version: version?.version ?? null,
-      });
+      }));
       return {
         id: workflow.id,
         slug: workflow.slug,
