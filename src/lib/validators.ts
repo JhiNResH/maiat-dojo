@@ -3,25 +3,39 @@ import { z, ZodSchema, ZodError } from 'zod';
 
 // --- Schemas ---
 
+const v1RunProvenanceInput = z.object({
+  contextRefs: z.array(z.string().max(512)).max(24).optional(),
+  planSummary: z.string().max(2000).optional(),
+  artifactRefs: z.array(z.string().max(512)).max(24).optional(),
+  evaluatorEvidence: z.array(z.record(z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.null(),
+  ]))).max(16).optional(),
+  skillUpdateSuggested: z.boolean().optional(),
+  protocolUpdateSuggested: z.boolean().optional(),
+  failurePatchType: z.enum(['skill', 'protocol', 'work_order', 'memory']).optional(),
+  quotedPriceUsdc: z.number().nonnegative().optional(),
+  maxPriceUsdc: z.number().nonnegative().optional(),
+}).superRefine((value, ctx) => {
+  if (
+    value.quotedPriceUsdc !== undefined &&
+    value.maxPriceUsdc !== undefined &&
+    value.quotedPriceUsdc > value.maxPriceUsdc
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'quotedPriceUsdc must be <= maxPriceUsdc',
+      path: ['quotedPriceUsdc'],
+    });
+  }
+});
+
 export const v1RunInput = z.object({
   skill: z.string().min(1, 'skill (gatewaySlug) is required'),
   input: z.record(z.unknown()).optional(),
-  provenance: z.object({
-    contextRefs: z.array(z.string().max(512)).max(24).optional(),
-    planSummary: z.string().max(2000).optional(),
-    artifactRefs: z.array(z.string().max(512)).max(24).optional(),
-    evaluatorEvidence: z.array(z.record(z.union([
-      z.string(),
-      z.number(),
-      z.boolean(),
-      z.null(),
-    ]))).max(16).optional(),
-    skillUpdateSuggested: z.boolean().optional(),
-    protocolUpdateSuggested: z.boolean().optional(),
-    failurePatchType: z.enum(['skill', 'protocol', 'work_order', 'memory']).optional(),
-    quotedPriceUsdc: z.number().nonnegative().optional(),
-    maxPriceUsdc: z.number().nonnegative().optional(),
-  }).optional(),
+  provenance: v1RunProvenanceInput.optional(),
 });
 
 export const v1DepositInput = z.object({

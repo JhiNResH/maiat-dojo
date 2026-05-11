@@ -56,6 +56,10 @@ export type SkillMaturityReceiptEvidence = {
   lineageDepth?: number | null;
 };
 
+export type WorkflowMaturityReceiptEvidence = SkillMaturityReceiptEvidence & {
+  workflowId: string;
+};
+
 const TESTED_SCORE_THRESHOLD = 80;
 const REPUTABLE_MIN_CLEARED_RUNS = 10;
 const REPUTABLE_MIN_PASS_RATE = 90;
@@ -120,6 +124,18 @@ export function computeMaturityEvidenceFromReceipts(
     versionLineageCount: receipts.filter((receipt) => receipt.skillVersion != null).length,
     lineageDepth: receipts.reduce((max, receipt) => Math.max(max, nonNegativeInt(receipt.lineageDepth)), 0),
   };
+}
+
+export function groupMaturityReceiptsByWorkflowId(
+  receipts: WorkflowMaturityReceiptEvidence[],
+): Map<string, SkillMaturityReceiptEvidence[]> {
+  const grouped = new Map<string, SkillMaturityReceiptEvidence[]>();
+  for (const receipt of receipts) {
+    const existing = grouped.get(receipt.workflowId) ?? [];
+    existing.push(receipt);
+    grouped.set(receipt.workflowId, existing);
+  }
+  return grouped;
 }
 
 export function computeSkillMaturity(input: SkillMaturityEvidence): SkillMaturity {

@@ -6,6 +6,7 @@ import { buildWorkflowSpiritProfile } from "@/lib/workflow-spirit";
 import {
   computeMaturityEvidenceFromReceipts,
   computeSkillMaturity,
+  groupMaturityReceiptsByWorkflowId,
 } from "@/lib/skill-maturity";
 
 export const dynamic = "force-dynamic";
@@ -99,19 +100,6 @@ export async function GET(req: NextRequest) {
                 slaMs: true,
               },
             },
-            receipts: {
-              orderBy: { createdAt: "desc" },
-              take: 100,
-              select: {
-                settlementStatus: true,
-                score: true,
-                skillVersion: true,
-                contextRefs: true,
-                artifactRefs: true,
-                evaluatorEvidence: true,
-                lineageDepth: true,
-              },
-            },
           },
         },
       },
@@ -120,6 +108,28 @@ export async function GET(req: NextRequest) {
     console.error("[GET /api/skills] failed:", error);
     return NextResponse.json({ error: "Failed to load skills" }, { status: 500 });
   }
+
+  const workflowIds = skills
+    .map((skill) => skill.workflow?.id)
+    .filter((id): id is string => Boolean(id));
+  const receiptRows = workflowIds.length > 0
+    ? await prisma.workflowRunReceipt.findMany({
+        where: { workflowId: { in: workflowIds } },
+        orderBy: { createdAt: "desc" },
+        take: Math.min(1000, Math.max(100, workflowIds.length * 20)),
+        select: {
+          workflowId: true,
+          settlementStatus: true,
+          score: true,
+          skillVersion: true,
+          contextRefs: true,
+          artifactRefs: true,
+          evaluatorEvidence: true,
+          lineageDepth: true,
+        },
+      })
+    : [];
+  const receiptsByWorkflowId = groupMaturityReceiptsByWorkflowId(receiptRows);
 
   const registryBySlug = new Map<string, Awaited<ReturnType<typeof validateRegisteredWorkflowSlug>>>();
   for (const skill of skills) {
@@ -131,15 +141,16 @@ export async function GET(req: NextRequest) {
   const mapped = skills.map((s) => {
     const registry = s.gatewaySlug ? registryBySlug.get(s.gatewaySlug) : null;
     const workflowVersion = s.workflow?.versions[0] ?? null;
-    const publicWorkflow = s.workflow ? { ...s.workflow, receipts: undefined } : null;
-    const maturity = computeSkillMaturity(computeMaturityEvidenceFromReceipts(s.workflow?.receipts ?? [], {
+    const maturity = computeSkillMaturity(computeMaturityEvidenceFromReceipts(
+      s.workflow ? receiptsByWorkflowId.get(s.workflow.id) ?? [] : [],
+      {
       evaluationPassed: s.evaluationPassed,
       evaluationScore: s.evaluationScore,
       version: workflowVersion?.version ?? null,
-    }));
+      },
+    ));
     return {
       ...s,
-      workflow: publicWorkflow,
       callCount: s._count.sessions,
       trustScore: s.workflow?.trustScore ?? s.evaluationScore ?? 0,
       workflowId: s.workflow?.id ?? null,

@@ -6,6 +6,7 @@ import { buildWorkflowSpiritProfile } from '@/lib/workflow-spirit';
 import {
   computeMaturityEvidenceFromReceipts,
   computeSkillMaturity,
+  groupMaturityReceiptsByWorkflowId,
 } from '@/lib/skill-maturity';
 
 export const dynamic = 'force-dynamic';
@@ -66,19 +67,6 @@ export async function GET() {
               take: 1,
               select: { version: true, summary: true, slaMs: true },
             },
-            receipts: {
-              orderBy: { createdAt: 'desc' },
-              take: 100,
-              select: {
-                settlementStatus: true,
-                score: true,
-                skillVersion: true,
-                contextRefs: true,
-                artifactRefs: true,
-                evaluatorEvidence: true,
-                lineageDepth: true,
-              },
-            },
           },
         },
       },
@@ -88,6 +76,28 @@ export async function GET() {
     console.error('[GET /api/v1/skills] failed:', error);
     return NextResponse.json({ error: 'Failed to load skills' }, { status: 500 });
   }
+
+  const workflowIds = skills
+    .map((skill) => skill.workflow?.id)
+    .filter((id): id is string => Boolean(id));
+  const receiptRows = workflowIds.length > 0
+    ? await prisma.workflowRunReceipt.findMany({
+        where: { workflowId: { in: workflowIds } },
+        orderBy: { createdAt: 'desc' },
+        take: Math.min(1000, Math.max(100, workflowIds.length * 20)),
+        select: {
+          workflowId: true,
+          settlementStatus: true,
+          score: true,
+          skillVersion: true,
+          contextRefs: true,
+          artifactRefs: true,
+          evaluatorEvidence: true,
+          lineageDepth: true,
+        },
+      })
+    : [];
+  const receiptsByWorkflowId = groupMaturityReceiptsByWorkflowId(receiptRows);
 
   const registryBySlug = new Map<string, Awaited<ReturnType<typeof validateRegisteredWorkflowSlug>>>();
   for (const skill of skills) {
@@ -99,11 +109,14 @@ export async function GET() {
   const result = skills.map((s) => {
     const registry = s.gatewaySlug ? registryBySlug.get(s.gatewaySlug) : null;
     const version = s.workflow?.versions[0] ?? null;
-    const maturity = computeSkillMaturity(computeMaturityEvidenceFromReceipts(s.workflow?.receipts ?? [], {
-      evaluationPassed: s.evaluationPassed,
-      evaluationScore: s.evaluationScore,
-      version: version?.version ?? null,
-    }));
+    const maturity = computeSkillMaturity(computeMaturityEvidenceFromReceipts(
+      s.workflow ? receiptsByWorkflowId.get(s.workflow.id) ?? [] : [],
+      {
+        evaluationPassed: s.evaluationPassed,
+        evaluationScore: s.evaluationScore,
+        version: version?.version ?? null,
+      },
+    ));
     return {
       skill: s.gatewaySlug,
       name: s.name,
