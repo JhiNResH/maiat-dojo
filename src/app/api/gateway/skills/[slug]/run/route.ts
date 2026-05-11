@@ -403,6 +403,22 @@ export async function POST(
             score: evalResult.score,
             costUsdc: session.pricePerCall,
             settlementStatus: 'paid',
+            httpStatus: 200,
+            latencyMs: 0,
+            provenance: {
+              contextRefs: [
+                `gateway:${gatewaySlug}`,
+                `session:${session.id}`,
+                `nonce:${nonce}`,
+                `job:${jobIdHeader}`,
+                `agent_token:${tokenIdHeader}`,
+                'mode:passive',
+              ],
+              planSummary: `Run passive workflow ${gatewaySlug} through funded gateway session.`,
+              artifactRefs: evalResult.responseHash ? [`response:${evalResult.responseHash}`] : [],
+              quotedPriceUsdc: session.pricePerCall,
+              maxPriceUsdc: session.pricePerCall,
+            },
           });
           workflowReceiptId = receipt?.id ?? null;
           const updateResult = await tx.session.updateMany({
@@ -599,6 +615,25 @@ export async function POST(
             score: evalResult.score,
             costUsdc: 0,
             settlementStatus: 'refunded',
+            httpStatus,
+            latencyMs,
+            failureReason: responseReadError || (forwardError instanceof Error ? forwardError.message : null),
+            provenance: {
+              contextRefs: [
+                `gateway:${gatewaySlug}`,
+                `session:${session.id}`,
+                `nonce:${nonce}`,
+                `job:${jobIdHeader}`,
+                `agent_token:${tokenIdHeader}`,
+                'mode:active',
+              ],
+              planSummary: `Run active workflow ${gatewaySlug} through funded gateway session.`,
+              artifactRefs: evalResult.responseHash ? [`response:${evalResult.responseHash}`] : [],
+              protocolUpdateSuggested: true,
+              failurePatchType: 'protocol',
+              quotedPriceUsdc: session.pricePerCall,
+              maxPriceUsdc: session.pricePerCall,
+            },
           });
           workflowReceiptId = receipt?.id ?? null;
         });
@@ -634,6 +669,24 @@ export async function POST(
             score: evalResult.score,
             costUsdc: session.pricePerCall,
             settlementStatus: 'paid',
+            httpStatus,
+            latencyMs,
+            provenance: {
+              contextRefs: [
+                `gateway:${gatewaySlug}`,
+                `session:${session.id}`,
+                `nonce:${nonce}`,
+                `job:${jobIdHeader}`,
+                `agent_token:${tokenIdHeader}`,
+                'mode:active',
+              ],
+              planSummary: `Run active workflow ${gatewaySlug} through funded gateway session.`,
+              artifactRefs: evalResult.responseHash ? [`response:${evalResult.responseHash}`] : [],
+              skillUpdateSuggested: !evalResult.delivered || !evalResult.validFormat || !evalResult.withinSla,
+              failurePatchType: successRes!.ok ? null : 'skill',
+              quotedPriceUsdc: session.pricePerCall,
+              maxPriceUsdc: session.pricePerCall,
+            },
           });
           workflowReceiptId = receipt?.id ?? null;
 

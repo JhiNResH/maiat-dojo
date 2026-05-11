@@ -354,6 +354,18 @@ model WorkflowRunReceipt {
   score            Float    @default(0)
   costUsdc         Float    @default(0)
   settlementStatus String   @default("paid") // paid | refunded | disputed
+  contextRefs      String?  // JSON array: source refs used by buyer/agent context
+  planSummary      String?  // concise run/work-order plan at execution time
+  artifactRefs     String?  // JSON array: output artifacts, logs, traces, URLs
+  evaluatorEvidence String? // JSON array: evaluator checks supporting score/settlement
+  skillVersion     Int?     // denormalized WorkflowVersion.version for maturity history
+  skillUpdateSuggested Boolean @default(false)
+  protocolUpdateSuggested Boolean @default(false)
+  failurePatchType String?  // skill | protocol | work_order | memory
+  quotedPriceUsdc  Float?
+  maxPriceUsdc     Float?
+  lineageParentWorkflowId String?
+  lineageDepth     Int      @default(0)
   attestationUid   String?
   anchorStatus     String   @default("not_started") // not_started | pending | settled | failed
   onchainRequestId String?
@@ -373,4 +385,6 @@ model WorkflowRunReceipt {
   @@index([buyerAgentId, createdAt])
   @@index([creatorId, createdAt])
   @@index([sessionId])
+  @@index([skillVersion])
+  @@index([lineageParentWorkflowId])
 }

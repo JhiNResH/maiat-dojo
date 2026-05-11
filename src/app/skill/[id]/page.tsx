@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { getDemoSkillById, toPublicSkill } from '@/lib/demo-catalog';
+import { computeSkillMaturity } from '@/lib/skill-maturity';
 import SkillPageClient from './SkillPageClient';
 
 export const dynamic = 'force-dynamic';
@@ -28,6 +29,11 @@ export default async function SkillPage({ params }: { params: { id: string } }) 
           select: {
             runCount: true,
             trustScore: true,
+            versions: {
+              orderBy: { version: 'desc' },
+              take: 1,
+              select: { version: true },
+            },
           },
         },
         sessions: {
@@ -61,6 +67,11 @@ export default async function SkillPage({ params }: { params: { id: string } }) 
 
     const publicSkill = toPublicSkill(demoSkill);
     const now = new Date().toISOString();
+    const maturity = computeSkillMaturity({
+      clearedRunCount: demoSkill.workflowRunCount,
+      passRate: demoSkill.trustScore,
+      version: 1,
+    });
 
     return (
       <SkillPageClient
@@ -100,6 +111,7 @@ export default async function SkillPage({ params }: { params: { id: string } }) 
         passRate={demoSkill.trustScore}
         passedSessions={demoSkill.workflowRunCount}
         failedSessions={Math.max(0, Math.round(demoSkill.workflowRunCount * 0.03))}
+        maturity={maturity}
         sparkline={[80, 84, 86, 88, 90, demoSkill.trustScore]}
         medianLatencyMs={demoSkill.estLatencyMs}
         heatmap={Array.from({ length: HEATMAP_DAYS }, (_, i) => ({
@@ -139,6 +151,14 @@ export default async function SkillPage({ params }: { params: { id: string } }) 
     skill.sessions.length > 0
       ? Math.round((passedSessions / skill.sessions.length) * 100)
       : Math.round(skill.workflow?.trustScore ?? 0);
+  const workflowVersion = skill.workflow?.versions[0]?.version ?? null;
+  const maturity = computeSkillMaturity({
+    evaluationPassed: skill.evaluationPassed,
+    evaluationScore: skill.evaluationScore,
+    clearedRunCount: workflowRunCount,
+    passRate,
+    version: workflowVersion,
+  });
 
   // Trust sparkline: running pass rate over last N sessions (chronological)
   const recentSessions = skill.sessions.slice(-SPARKLINE_WINDOW);
@@ -242,6 +262,7 @@ export default async function SkillPage({ params }: { params: { id: string } }) 
       passRate={passRate}
       passedSessions={passedSessions}
       failedSessions={failedSessions}
+      maturity={maturity}
       sparkline={sparkline}
       medianLatencyMs={medianLatencyMs}
       heatmap={heatmap}

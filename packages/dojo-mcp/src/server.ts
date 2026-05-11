@@ -137,6 +137,7 @@ async function dojoSearchWorkflows(args: Record<string, unknown>): Promise<ToolR
       description: item.description,
       price_per_call: item.price_per_call,
       category: item.category,
+      maturity: item.maturity,
       workflow: item.workflow,
       example_input: item.example_input,
     }));

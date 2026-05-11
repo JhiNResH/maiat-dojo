@@ -9,6 +9,7 @@
  */
 
 import type { SkillExecutorSkill } from "../skill/SkillExecutor";
+import type { SkillMaturity } from "@/lib/skill-maturity";
 import type { WorkflowSpiritProfile } from "@/lib/workflow-spirit";
 
 export interface ChatSkillSummary {
@@ -26,6 +27,7 @@ export interface ChatSkillSummary {
   workflowForkCount?: number;
   royaltyBps?: number | null;
   spirit?: WorkflowSpiritProfile | null;
+  maturity?: SkillMaturity | null;
 }
 
 export type ChatMessage =

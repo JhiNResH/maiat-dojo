@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { DojoPetAvatar } from "@/components/DojoPetAvatar";
 import { type SkillRankItem } from "./SkillRankList";
+import type { SkillMaturity } from "@/lib/skill-maturity";
 
 export interface LandingHeroProps {
   pending?: boolean;
@@ -49,11 +50,9 @@ function listingDescription(description?: string | null) {
   return `${value.slice(0, 129).trim()}...`;
 }
 
-function statusLabel(runs: number, success: number) {
-  if (runs === 0) return "Ready";
-  if (success >= 90) return "Cleared";
-  if (success >= 70) return "Observed";
-  return "Watch";
+function maturityLabel(maturity: SkillMaturity | null | undefined) {
+  if (maturity) return maturity.label;
+  return "Draft";
 }
 
 function WorkflowCatalogRow({ skill, featured = false }: { skill: SkillRankItem; featured?: boolean }) {
@@ -110,8 +109,10 @@ function WorkflowCatalogRow({ skill, featured = false }: { skill: SkillRankItem;
         <strong>{success}%</strong>
       </div>
 
-      <div className="dojo-catalog-cell" data-label="Status">
-        <span className="dojo-catalog-status">{statusLabel(runs, success)}</span>
+      <div className="dojo-catalog-cell" data-label="Maturity">
+        <span className="dojo-catalog-status" title={skill.maturity?.summary}>
+          {maturityLabel(skill.maturity)}
+        </span>
       </div>
 
       <div className="dojo-catalog-actions">
@@ -265,7 +266,7 @@ export function LandingHero(_props: LandingHeroProps) {
             <span>Price</span>
             <span>Runs</span>
             <span>Success</span>
-            <span>Status</span>
+            <span>Maturity</span>
             <span>Action</span>
           </div>
           {[0, 1, 2, 3].map((item) => (
@@ -284,7 +285,7 @@ export function LandingHero(_props: LandingHeroProps) {
             <span>Price</span>
             <span>Runs</span>
             <span>Success</span>
-            <span>Status</span>
+            <span>Maturity</span>
             <span>Action</span>
           </div>
           {filtered.map((skill, index) => (

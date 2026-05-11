@@ -26,6 +26,50 @@ describe('v1RunInput', () => {
     const result = v1RunInput.safeParse({ skill: 'test', extra: 'data' });
     expect(result.success).toBe(true);
   });
+
+  it('accepts bounded W3 receipt provenance with explicit price cap', () => {
+    const result = v1RunInput.safeParse({
+      skill: 'repo-auditor',
+      input: { repo: 'maiat-dojo' },
+      provenance: {
+        contextRefs: ['telegram:thread', 'repo:maiat-dojo'],
+        planSummary: 'Run repo auditor and preserve source-grounded evidence.',
+        artifactRefs: ['receipt:abc'],
+        evaluatorEvidence: [{ delivered: true, score: 1 }],
+        skillUpdateSuggested: false,
+        protocolUpdateSuggested: false,
+        failurePatchType: 'skill',
+        quotedPriceUsdc: 0.01,
+        maxPriceUsdc: 0.011,
+      },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects unbounded W3 provenance lists', () => {
+    const result = v1RunInput.safeParse({
+      skill: 'repo-auditor',
+      provenance: {
+        contextRefs: Array.from({ length: 25 }, (_, index) => `ref:${index}`),
+      },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects provenance when quoted price exceeds max price cap', () => {
+    const result = v1RunInput.safeParse({
+      skill: 'repo-auditor',
+      provenance: {
+        quotedPriceUsdc: 0.02,
+        maxPriceUsdc: 0.01,
+      },
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe('quotedPriceUsdc must be <= maxPriceUsdc');
+      expect(result.error.issues[0]?.path).toEqual(['provenance', 'quotedPriceUsdc']);
+    }
+  });
 });
 
 describe('v1DepositInput', () => {

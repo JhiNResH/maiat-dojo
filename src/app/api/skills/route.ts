@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { fetchLatestMaturityReceiptsByWorkflowId } from "@/lib/maturity-receipts";
 import { publicWorkflowWhere } from "@/lib/public-workflow-filter";
 import { validateRegisteredWorkflowSlug } from "@/lib/swap-router";
 import { buildWorkflowSpiritProfile } from "@/lib/workflow-spirit";
+import {
+  computeMaturityEvidenceFromReceipts,
+  computeSkillMaturity,
+  groupMaturityReceiptsByWorkflowId,
+} from "@/lib/skill-maturity";
 
 export const dynamic = "force-dynamic";
 
@@ -104,6 +110,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Failed to load skills" }, { status: 500 });
   }
 
+  const workflowIds = skills
+    .map((skill) => skill.workflow?.id)
+    .filter((id): id is string => Boolean(id));
+  const receiptRows = await fetchLatestMaturityReceiptsByWorkflowId(workflowIds);
+  const receiptsByWorkflowId = groupMaturityReceiptsByWorkflowId(receiptRows);
+
   const registryBySlug = new Map<string, Awaited<ReturnType<typeof validateRegisteredWorkflowSlug>>>();
   for (const skill of skills) {
     if (!skill.gatewaySlug) continue;
@@ -113,6 +125,15 @@ export async function GET(req: NextRequest) {
 
   const mapped = skills.map((s) => {
     const registry = s.gatewaySlug ? registryBySlug.get(s.gatewaySlug) : null;
+    const workflowVersion = s.workflow?.versions[0] ?? null;
+    const maturity = computeSkillMaturity(computeMaturityEvidenceFromReceipts(
+      s.workflow ? receiptsByWorkflowId.get(s.workflow.id) ?? [] : [],
+      {
+        evaluationPassed: s.evaluationPassed,
+        evaluationScore: s.evaluationScore,
+        version: workflowVersion?.version ?? null,
+      },
+    ));
     return {
       ...s,
       callCount: s._count.sessions,
@@ -122,7 +143,8 @@ export async function GET(req: NextRequest) {
       workflowRunCount: s.workflow?.runCount ?? s._count.sessions,
       workflowForkCount: s.workflow?.forkCount ?? 0,
       royaltyBps: s.workflow?.royaltyBps ?? null,
-      workflowVersion: s.workflow?.versions[0] ?? null,
+      workflowVersion,
+      maturity,
       registryStatus: registry
         ? {
             ok: registry.ok,

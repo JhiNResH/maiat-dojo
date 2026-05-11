@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { fetchLatestMaturityReceiptsByWorkflowId } from '@/lib/maturity-receipts';
 import { publicWorkflowWhere } from '@/lib/public-workflow-filter';
 import { validateRegisteredWorkflowSlug } from '@/lib/swap-router';
 import { buildWorkflowSpiritProfile } from '@/lib/workflow-spirit';
+import {
+  computeMaturityEvidenceFromReceipts,
+  computeSkillMaturity,
+  groupMaturityReceiptsByWorkflowId,
+} from '@/lib/skill-maturity';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,6 +45,8 @@ export async function GET() {
         category: true,
         tags: true,
         icon: true,
+        evaluationScore: true,
+        evaluationPassed: true,
         estLatencyMs: true,
         inputShape: true,
         outputShape: true,
@@ -70,6 +78,12 @@ export async function GET() {
     return NextResponse.json({ error: 'Failed to load skills' }, { status: 500 });
   }
 
+  const workflowIds = skills
+    .map((skill) => skill.workflow?.id)
+    .filter((id): id is string => Boolean(id));
+  const receiptRows = await fetchLatestMaturityReceiptsByWorkflowId(workflowIds);
+  const receiptsByWorkflowId = groupMaturityReceiptsByWorkflowId(receiptRows);
+
   const registryBySlug = new Map<string, Awaited<ReturnType<typeof validateRegisteredWorkflowSlug>>>();
   for (const skill of skills) {
     if (!skill.gatewaySlug) continue;
@@ -79,6 +93,15 @@ export async function GET() {
 
   const result = skills.map((s) => {
     const registry = s.gatewaySlug ? registryBySlug.get(s.gatewaySlug) : null;
+    const version = s.workflow?.versions[0] ?? null;
+    const maturity = computeSkillMaturity(computeMaturityEvidenceFromReceipts(
+      s.workflow ? receiptsByWorkflowId.get(s.workflow.id) ?? [] : [],
+      {
+        evaluationPassed: s.evaluationPassed,
+        evaluationScore: s.evaluationScore,
+        version: version?.version ?? null,
+      },
+    ));
     return {
       skill: s.gatewaySlug,
       name: s.name,
@@ -92,6 +115,7 @@ export async function GET() {
       output_shape: s.outputShape,
       example_input: safeJsonParse(s.exampleInput),
       example_output: safeJsonParse(s.exampleOutput),
+      maturity,
       registry_status: registry
         ? {
             ok: registry.ok,
@@ -109,7 +133,8 @@ export async function GET() {
             runs: s.workflow.runCount,
             forks: s.workflow.forkCount,
             royalty_bps: s.workflow.royaltyBps,
-            version: s.workflow.versions[0] ?? null,
+            maturity,
+            version,
             spirit: buildWorkflowSpiritProfile({
               workflowId: s.workflow.id,
               slug: s.workflow.slug,

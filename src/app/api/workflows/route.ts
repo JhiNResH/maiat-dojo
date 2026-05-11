@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { fetchLatestMaturityReceiptsByWorkflowId } from '@/lib/maturity-receipts';
 import { publicWorkflowWhere } from '@/lib/public-workflow-filter';
 import { validateRegisteredWorkflowSlug } from '@/lib/swap-router';
 import { buildWorkflowSpiritProfile } from '@/lib/workflow-spirit';
+import {
+  computeMaturityEvidenceFromReceipts,
+  computeSkillMaturity,
+  groupMaturityReceiptsByWorkflowId,
+} from '@/lib/skill-maturity';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,7 +42,15 @@ export async function GET(req: NextRequest) {
       take: limit,
       include: {
         creator: { select: { id: true, displayName: true, avatarUrl: true } },
-        skill: { select: { id: true, gatewaySlug: true, pricePerCall: true } },
+        skill: {
+          select: {
+            id: true,
+            gatewaySlug: true,
+            pricePerCall: true,
+            evaluationPassed: true,
+            evaluationScore: true,
+          },
+        },
         versions: {
           orderBy: { version: 'desc' },
           take: 1,
@@ -49,6 +63,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to load workflows' }, { status: 500 });
   }
 
+  const workflowIds = workflows.map((workflow) => workflow.id);
+  const receiptRows = await fetchLatestMaturityReceiptsByWorkflowId(workflowIds);
+  const receiptsByWorkflowId = groupMaturityReceiptsByWorkflowId(receiptRows);
+
   const registryBySlug = new Map<string, Awaited<ReturnType<typeof validateRegisteredWorkflowSlug>>>();
   for (const workflow of workflows) {
     const slug = workflow.skill?.gatewaySlug ?? workflow.slug;
@@ -60,6 +78,15 @@ export async function GET(req: NextRequest) {
     workflows: workflows.map((workflow) => {
       const slug = workflow.skill?.gatewaySlug ?? workflow.slug;
       const registry = registryBySlug.get(slug);
+      const version = workflow.versions[0] ?? null;
+      const maturity = computeSkillMaturity(computeMaturityEvidenceFromReceipts(
+        receiptsByWorkflowId.get(workflow.id) ?? [],
+        {
+          evaluationPassed: workflow.skill?.evaluationPassed,
+          evaluationScore: workflow.skill?.evaluationScore,
+          version: version?.version ?? null,
+        },
+      ));
       return {
         id: workflow.id,
         slug: workflow.slug,
@@ -72,6 +99,7 @@ export async function GET(req: NextRequest) {
         runs: workflow.runCount,
         forks: workflow.forkCount,
         trust_score: workflow.trustScore,
+        maturity,
         registry_status: registry
           ? {
               ok: registry.ok,
@@ -96,7 +124,7 @@ export async function GET(req: NextRequest) {
         }),
         creator: workflow.creator,
         executable_skill: workflow.skill,
-        version: workflow.versions[0] ?? null,
+        version,
       };
     }),
   });
