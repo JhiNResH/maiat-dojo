@@ -15,6 +15,29 @@ describe('computeSkillMaturity', () => {
     expect(maturity.evidence.evaluationScore).toBe(86);
   });
 
+  it('derives evaluationPassed from scores at or above 80', () => {
+    const maturity = computeSkillMaturity({ evaluationScore: 80 });
+    expect(maturity.level).toBe('tested');
+    expect(maturity.evidence.evaluationPassed).toBe(true);
+  });
+
+  it('classifies test receipt evidence as tested', () => {
+    const maturity = computeSkillMaturity({ testReceiptCount: 1 });
+    expect(maturity.level).toBe('tested');
+    expect(maturity.evidence.testReceiptCount).toBe(1);
+  });
+
+  it.each([
+    { value: 0, expected: 0 },
+    { value: 1, expected: 100 },
+    { value: 0.01, expected: 1 },
+    { value: 100, expected: 100 },
+  ])('normalizes negative percent boundary input $value', ({ value, expected }) => {
+    const maturity = computeSkillMaturity({ refundRate: value, disputeRate: value });
+    expect(maturity.evidence.refundRate).toBe(expected);
+    expect(maturity.evidence.disputeRate).toBe(expected);
+  });
+
   it('classifies any real cleared run as cleared before reputable thresholds', () => {
     const maturity = computeSkillMaturity({
       clearedRunCount: 1,
@@ -39,8 +62,8 @@ describe('computeSkillMaturity', () => {
     const maturity = computeSkillMaturity({
       clearedRunCount: 12,
       passRate: 0.93,
-      refundRate: 2,
-      disputeRate: 1,
+      refundRate: 0.02,
+      disputeRate: 0.01,
       version: 4,
       evaluatorEvidenceCount: 12,
       versionLineageCount: 12,

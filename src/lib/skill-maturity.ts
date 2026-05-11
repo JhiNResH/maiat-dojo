@@ -74,7 +74,7 @@ function nonNegativeInt(value: number | null | undefined): number {
 
 function negativePercent(value: number | null | undefined): number {
   if (value == null || !Number.isFinite(value)) return 0;
-  const normalized = value > 0 && value < 1 ? value * 100 : value;
+  const normalized = value <= 1 ? value * 100 : value;
   return Math.max(0, Math.min(100, Math.round(normalized)));
 }
 

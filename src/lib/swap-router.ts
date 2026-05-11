@@ -448,30 +448,34 @@ export async function ensureSkillRegisteredOnchain(input: {
  * @param skillId    keccak256 of the skill slug (on-chain identifier)
  * @param success    settlement outcome (result delivery ok?)
  * @param resultHash keccak256 of the execution payload (for BAS attestation)
+ * @param maxPriceUSDC concrete user-facing slippage cap in on-chain micro-USDC units
  */
 export async function anchorExecution(
   skillId: `0x${string}`,
   success: boolean,
   resultHash: `0x${string}`,
+  maxPriceUSDC: bigint,
 ): Promise<AnchorResult> {
-  return withRelayerLock(async () => anchorExecutionUnlocked(skillId, success, resultHash));
+  return withRelayerLock(async () => anchorExecutionUnlocked(skillId, success, resultHash, maxPriceUSDC));
 }
 
 async function anchorExecutionUnlocked(
   skillId: `0x${string}`,
   success: boolean,
   resultHash: `0x${string}`,
+  maxPriceUSDC: bigint,
 ): Promise<AnchorResult> {
   try {
     const { pub, wallet, account } = getClients();
 
-    // 1. swap(skillId, maxPriceUSDC=uint256.max, params="0x")
+    // 1. swap(skillId, maxPriceUSDC, params="0x")
     //    Relayer pays USDC on behalf of the agent for demo purposes.
+    //    W3 requires an explicit quoted-price cap; never default to an unlimited cap.
     const swapTx = await wallet.writeContract({
       address: PHASE2_ADDRESSES.swapRouter,
       abi: SWAP_ROUTER_ABI,
       functionName: 'swap',
-      args: [skillId, 2n ** 256n - 1n, '0x'],
+      args: [skillId, maxPriceUSDC, '0x'],
     });
 
     const swapReceipt = await pub.waitForTransactionReceipt({ hash: swapTx, confirmations: 1 });
@@ -517,10 +521,14 @@ export function anchorExecutionAsync(
   skillId: `0x${string}` | null | undefined,
   success: boolean,
   resultHash: string,
+  maxPriceUsdc: number | null | undefined,
 ): Promise<AnchorResult> {
   if (!skillId) return Promise.resolve({ ok: false, error: 'no onchain skillId' });
+  if (!Number.isFinite(maxPriceUsdc) || (maxPriceUsdc ?? 0) <= 0) {
+    return Promise.resolve({ ok: false, error: 'explicit maxPriceUSDC is required for on-chain swap anchoring' });
+  }
   const hash = (resultHash.startsWith('0x') ? resultHash : `0x${resultHash}`) as `0x${string}`;
-  return anchorExecution(skillId, success, hash).catch((err) => ({
+  return anchorExecution(skillId, success, hash, priceToMicrousd(maxPriceUsdc!)).catch((err) => ({
     ok: false,
     error: err instanceof Error ? err.message : String(err),
   }));

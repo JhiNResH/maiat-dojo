@@ -29,6 +29,11 @@ export default async function SkillPage({ params }: { params: { id: string } }) 
           select: {
             runCount: true,
             trustScore: true,
+            versions: {
+              orderBy: { version: 'desc' },
+              take: 1,
+              select: { version: true },
+            },
           },
         },
         sessions: {
@@ -146,11 +151,13 @@ export default async function SkillPage({ params }: { params: { id: string } }) 
     skill.sessions.length > 0
       ? Math.round((passedSessions / skill.sessions.length) * 100)
       : Math.round(skill.workflow?.trustScore ?? 0);
+  const workflowVersion = skill.workflow?.versions[0]?.version ?? null;
   const maturity = computeSkillMaturity({
     evaluationPassed: skill.evaluationPassed,
     evaluationScore: skill.evaluationScore,
     clearedRunCount: workflowRunCount,
     passRate,
+    version: workflowVersion,
   });
 
   // Trust sparkline: running pass rate over last N sessions (chronological)

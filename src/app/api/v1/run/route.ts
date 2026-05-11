@@ -375,6 +375,7 @@ export async function POST(req: NextRequest) {
       onchainSkillId,
       !failed,
       evalResult.responseHash,
+      provenance?.maxPriceUsdc ?? pricePerCall,
     )
       .then(async (r) => {
         if (receiptForResponse) {

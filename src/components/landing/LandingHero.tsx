@@ -109,7 +109,7 @@ function WorkflowCatalogRow({ skill, featured = false }: { skill: SkillRankItem;
         <strong>{success}%</strong>
       </div>
 
-      <div className="dojo-catalog-cell" data-label="Status">
+      <div className="dojo-catalog-cell" data-label="Maturity">
         <span className="dojo-catalog-status" title={skill.maturity?.summary}>
           {maturityLabel(skill.maturity, runs)}
         </span>
