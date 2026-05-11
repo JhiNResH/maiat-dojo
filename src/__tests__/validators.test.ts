@@ -55,6 +55,21 @@ describe('v1RunInput', () => {
     });
     expect(result.success).toBe(false);
   });
+
+  it('rejects provenance when quoted price exceeds max price cap', () => {
+    const result = v1RunInput.safeParse({
+      skill: 'repo-auditor',
+      provenance: {
+        quotedPriceUsdc: 0.02,
+        maxPriceUsdc: 0.01,
+      },
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe('quotedPriceUsdc must be <= maxPriceUsdc');
+      expect(result.error.issues[0]?.path).toEqual(['provenance', 'quotedPriceUsdc']);
+    }
+  });
 });
 
 describe('v1DepositInput', () => {

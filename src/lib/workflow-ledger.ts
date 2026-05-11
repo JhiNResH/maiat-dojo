@@ -108,6 +108,32 @@ function buildDefaultEvaluatorEvidence(input: RecordWorkflowRunInput): Evaluator
   };
 }
 
+async function resolveWorkflowLineage(
+  tx: Prisma.TransactionClient,
+  workflowId: string,
+): Promise<{ lineageParentWorkflowId: string | null; lineageDepth: number }> {
+  let childWorkflowId: string | null = workflowId;
+  let lineageParentWorkflowId: string | null = null;
+  let lineageDepth = 0;
+  const visited = new Set<string>();
+
+  while (childWorkflowId && !visited.has(childWorkflowId) && lineageDepth < 32) {
+    const currentChildWorkflowId: string = childWorkflowId;
+    visited.add(currentChildWorkflowId);
+    const fork: { parentWorkflowId: string } | null = await tx.workflowFork.findUnique({
+      where: { childWorkflowId: currentChildWorkflowId },
+      select: { parentWorkflowId: true },
+    });
+
+    if (!fork?.parentWorkflowId) break;
+    lineageParentWorkflowId ??= fork.parentWorkflowId;
+    lineageDepth += 1;
+    childWorkflowId = fork.parentWorkflowId;
+  }
+
+  return { lineageParentWorkflowId, lineageDepth };
+}
+
 export async function recordWorkflowRun(
   tx: Prisma.TransactionClient,
   input: RecordWorkflowRunInput,
@@ -118,11 +144,6 @@ export async function recordWorkflowRun(
       versions: {
         orderBy: { version: 'desc' },
         take: 1,
-      },
-      forksAsChild: {
-        orderBy: { createdAt: 'asc' },
-        take: 1,
-        select: { parentWorkflowId: true },
       },
     },
   });
@@ -137,8 +158,7 @@ export async function recordWorkflowRun(
     buildDefaultEvaluatorEvidence(input),
     ...cleanEvaluatorEvidence(provenance.evaluatorEvidence),
   ];
-  const lineageParentWorkflowId = workflow.forksAsChild[0]?.parentWorkflowId ?? null;
-  const lineageDepth = lineageParentWorkflowId ? 1 : 0;
+  const { lineageParentWorkflowId, lineageDepth } = await resolveWorkflowLineage(tx, workflow.id);
   const receipt = await tx.workflowRunReceipt.create({
     data: {
       workflowId: workflow.id,
