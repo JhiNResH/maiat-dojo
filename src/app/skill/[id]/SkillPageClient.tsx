@@ -25,6 +25,7 @@ import SkillSandbox from '@/components/SkillSandbox';
 import SkillExecutor from '@/components/skill/SkillExecutor';
 import ReviewSection from '@/components/ReviewSection';
 import ReviewForm from '@/components/ReviewForm';
+import type { SkillMaturity } from '@/lib/skill-maturity';
 
 const PurchaseCard = dynamic(() => import('@/components/PurchaseCard'), { ssr: false });
 
@@ -116,6 +117,7 @@ interface Props {
   passRate: number;
   passedSessions: number;
   failedSessions: number;
+  maturity: SkillMaturity;
   sparkline: number[];
   medianLatencyMs: number | null;
   heatmap: HeatmapBucket[];
@@ -213,6 +215,7 @@ export default function SkillPageClient({
   passRate,
   passedSessions,
   failedSessions,
+  maturity,
   sparkline,
   medianLatencyMs,
   heatmap,
@@ -306,7 +309,7 @@ export default function SkillPageClient({
                   Quick read
                 </span>
                 <span className="rounded-full bg-[var(--bg-secondary)] px-3 py-1 font-mono text-[11px] text-[var(--text)]">
-                  {skill.pricePerCall ? `$${skill.pricePerCall.toFixed(3)}` : 'Free'}
+                  {maturity.label}
                 </span>
               </div>
               <div className="space-y-4">
@@ -328,8 +331,9 @@ export default function SkillPageClient({
                     {shortList(resultSummary)}
                   </p>
                 </div>
-                <div className="grid grid-cols-3 gap-2 border-t border-[var(--border-light)] pt-4">
+                <div className="grid grid-cols-2 gap-2 border-t border-[var(--border-light)] pt-4 sm:grid-cols-4">
                   {[
+                    ['Maturity', maturity.label],
                     ['Runs', totalCalls.toLocaleString()],
                     ['Success', `${passRate}%`],
                     ['Trust', trustScore.toString()],
@@ -488,10 +492,11 @@ export default function SkillPageClient({
                   Trust & receipts
                 </div>
                 <p className="mb-5 text-[13px] leading-relaxed text-[var(--text-secondary)]">
-                  Paid runs create receipts after delivery is evaluated. This is the proof layer behind workflow reputation.
+                  {maturity.summary} Paid runs create receipts after delivery is evaluated.
                 </p>
                 <div className="space-y-3">
                   {[
+                    { icon: ShieldCheck, label: 'Maturity', value: maturity.label },
                     { icon: Network, label: 'Network', value: 'BNB Smart Chain' },
                     { icon: ShieldCheck, label: 'Settlement', value: 'ERC-8183' },
                     { icon: Wallet, label: 'Payment', value: 'USDC per call' },

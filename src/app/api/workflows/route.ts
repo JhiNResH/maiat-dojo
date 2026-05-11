@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { publicWorkflowWhere } from '@/lib/public-workflow-filter';
 import { validateRegisteredWorkflowSlug } from '@/lib/swap-router';
 import { buildWorkflowSpiritProfile } from '@/lib/workflow-spirit';
+import { computeSkillMaturity } from '@/lib/skill-maturity';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,7 +37,15 @@ export async function GET(req: NextRequest) {
       take: limit,
       include: {
         creator: { select: { id: true, displayName: true, avatarUrl: true } },
-        skill: { select: { id: true, gatewaySlug: true, pricePerCall: true } },
+        skill: {
+          select: {
+            id: true,
+            gatewaySlug: true,
+            pricePerCall: true,
+            evaluationPassed: true,
+            evaluationScore: true,
+          },
+        },
         versions: {
           orderBy: { version: 'desc' },
           take: 1,
@@ -60,6 +69,14 @@ export async function GET(req: NextRequest) {
     workflows: workflows.map((workflow) => {
       const slug = workflow.skill?.gatewaySlug ?? workflow.slug;
       const registry = registryBySlug.get(slug);
+      const version = workflow.versions[0] ?? null;
+      const maturity = computeSkillMaturity({
+        evaluationPassed: workflow.skill?.evaluationPassed,
+        evaluationScore: workflow.skill?.evaluationScore,
+        clearedRunCount: workflow.runCount,
+        passRate: workflow.trustScore,
+        version: version?.version ?? null,
+      });
       return {
         id: workflow.id,
         slug: workflow.slug,
@@ -72,6 +89,7 @@ export async function GET(req: NextRequest) {
         runs: workflow.runCount,
         forks: workflow.forkCount,
         trust_score: workflow.trustScore,
+        maturity,
         registry_status: registry
           ? {
               ok: registry.ok,
@@ -96,7 +114,7 @@ export async function GET(req: NextRequest) {
         }),
         creator: workflow.creator,
         executable_skill: workflow.skill,
-        version: workflow.versions[0] ?? null,
+        version,
       };
     }),
   });

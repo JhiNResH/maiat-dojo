@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { publicWorkflowWhere } from "@/lib/public-workflow-filter";
 import { validateRegisteredWorkflowSlug } from "@/lib/swap-router";
 import { buildWorkflowSpiritProfile } from "@/lib/workflow-spirit";
+import { computeSkillMaturity } from "@/lib/skill-maturity";
 
 export const dynamic = "force-dynamic";
 
@@ -113,6 +114,14 @@ export async function GET(req: NextRequest) {
 
   const mapped = skills.map((s) => {
     const registry = s.gatewaySlug ? registryBySlug.get(s.gatewaySlug) : null;
+    const workflowVersion = s.workflow?.versions[0] ?? null;
+    const maturity = computeSkillMaturity({
+      evaluationPassed: s.evaluationPassed,
+      evaluationScore: s.evaluationScore,
+      clearedRunCount: s.workflow?.runCount ?? 0,
+      passRate: s.workflow?.trustScore ?? s.evaluationScore,
+      version: workflowVersion?.version ?? null,
+    });
     return {
       ...s,
       callCount: s._count.sessions,
@@ -122,7 +131,8 @@ export async function GET(req: NextRequest) {
       workflowRunCount: s.workflow?.runCount ?? s._count.sessions,
       workflowForkCount: s.workflow?.forkCount ?? 0,
       royaltyBps: s.workflow?.royaltyBps ?? null,
-      workflowVersion: s.workflow?.versions[0] ?? null,
+      workflowVersion,
+      maturity,
       registryStatus: registry
         ? {
             ok: registry.ok,
