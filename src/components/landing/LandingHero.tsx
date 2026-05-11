@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   ArrowUpRight,
-  GitFork,
   Play,
   Rocket,
   Search,
@@ -131,14 +130,6 @@ function WorkflowCatalogRow({ skill, featured = false }: { skill: SkillRankItem;
           aria-label={`View details for ${skill.name}`}
         >
           <ArrowUpRight className="h-3.5 w-3.5" />
-        </Link>
-        <Link
-          href={`/workflow/${key}/fork`}
-          className="dojo-icon-link"
-          title="Create your own version of this workflow to customize or monetize it."
-          aria-label={`Fork ${skill.name}`}
-        >
-          <GitFork className="h-3.5 w-3.5" />
         </Link>
       </div>
     </article>
