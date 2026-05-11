@@ -7,6 +7,8 @@ describe('swap-router W3 safety gates', () => {
     const source = readFileSync(join(process.cwd(), 'src/lib/swap-router.ts'), 'utf8');
 
     expect(source).toContain('explicit maxPriceUSDC is required');
+    expect(source).toContain('resultHash must be a 32-byte hex string');
+    expect(source).toContain('quote likely exceeded maxPriceUSDC cap');
     expect(source).toMatch(/args:\s*\[\s*skillId,\s*maxPriceUSDC,\s*'0x'\s*\]/);
     expect(source).not.toContain('2n ** 256n - 1n');
     expect(source).not.toContain('uint256.max');

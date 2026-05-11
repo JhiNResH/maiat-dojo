@@ -67,6 +67,7 @@ const SWAP_ROUTER_ABI = [
 ] as const;
 
 const UINT256_MAX = (1n << 256n) - 1n;
+const BYTES32_HEX_RE = /^0x[0-9a-fA-F]{64}$/;
 
 const SKILL_REGISTRY_ABI = [
   {
@@ -238,6 +239,11 @@ function maxPriceUsdcToMicrousd(maxPriceUsdc: number): bigint | null {
 function validateMaxPriceUSDC(maxPriceUSDC: bigint): string | null {
   if (maxPriceUSDC <= 0n) return 'maxPriceUSDC must be greater than zero';
   if (maxPriceUSDC > UINT256_MAX) return 'maxPriceUSDC exceeds uint256 range';
+  return null;
+}
+
+function validateResultHash(resultHash: `0x${string}`): string | null {
+  if (!BYTES32_HEX_RE.test(resultHash)) return 'resultHash must be a 32-byte hex string';
   return null;
 }
 
@@ -477,6 +483,8 @@ export async function anchorExecution(
 ): Promise<AnchorResult> {
   const validationError = validateMaxPriceUSDC(maxPriceUSDC);
   if (validationError) return { ok: false, error: validationError };
+  const resultHashError = validateResultHash(resultHash);
+  if (resultHashError) return { ok: false, error: resultHashError };
   return withRelayerLock(async () => anchorExecutionUnlocked(skillId, success, resultHash, maxPriceUSDC));
 }
 
@@ -500,6 +508,10 @@ async function anchorExecutionUnlocked(
     });
 
     const swapReceipt = await pub.waitForTransactionReceipt({ hash: swapTx, confirmations: 1 });
+    const swapStatus = swapReceipt.status as string | number | undefined;
+    if (swapStatus !== 'success' && swapStatus !== 1) {
+      throw new Error(`Swap reverted (${swapTx}); quote likely exceeded maxPriceUSDC cap`);
+    }
 
     const requestedLogs = parseEventLogs({
       abi: SWAP_ROUTER_ABI,
