@@ -50,9 +50,9 @@ function listingDescription(description?: string | null) {
   return `${value.slice(0, 129).trim()}...`;
 }
 
-function maturityLabel(maturity: SkillMaturity | null | undefined, runs: number) {
+function maturityLabel(maturity: SkillMaturity | null | undefined) {
   if (maturity) return maturity.label;
-  return runs > 0 ? "Cleared" : "Draft";
+  return "Draft";
 }
 
 function WorkflowCatalogRow({ skill, featured = false }: { skill: SkillRankItem; featured?: boolean }) {
@@ -111,7 +111,7 @@ function WorkflowCatalogRow({ skill, featured = false }: { skill: SkillRankItem;
 
       <div className="dojo-catalog-cell" data-label="Maturity">
         <span className="dojo-catalog-status" title={skill.maturity?.summary}>
-          {maturityLabel(skill.maturity, runs)}
+          {maturityLabel(skill.maturity)}
         </span>
       </div>
 

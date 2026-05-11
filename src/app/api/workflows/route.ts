@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { fetchLatestMaturityReceiptsByWorkflowId } from '@/lib/maturity-receipts';
 import { publicWorkflowWhere } from '@/lib/public-workflow-filter';
 import { validateRegisteredWorkflowSlug } from '@/lib/swap-router';
 import { buildWorkflowSpiritProfile } from '@/lib/workflow-spirit';
@@ -63,23 +64,7 @@ export async function GET(req: NextRequest) {
   }
 
   const workflowIds = workflows.map((workflow) => workflow.id);
-  const receiptRows = workflowIds.length > 0
-    ? await prisma.workflowRunReceipt.findMany({
-        where: { workflowId: { in: workflowIds } },
-        orderBy: { createdAt: 'desc' },
-        take: Math.min(1000, Math.max(100, workflowIds.length * 20)),
-        select: {
-          workflowId: true,
-          settlementStatus: true,
-          score: true,
-          skillVersion: true,
-          contextRefs: true,
-          artifactRefs: true,
-          evaluatorEvidence: true,
-          lineageDepth: true,
-        },
-      })
-    : [];
+  const receiptRows = await fetchLatestMaturityReceiptsByWorkflowId(workflowIds);
   const receiptsByWorkflowId = groupMaturityReceiptsByWorkflowId(receiptRows);
 
   const registryBySlug = new Map<string, Awaited<ReturnType<typeof validateRegisteredWorkflowSlug>>>();

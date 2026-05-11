@@ -66,6 +66,8 @@ const SWAP_ROUTER_ABI = [
   },
 ] as const;
 
+const UINT256_MAX = (1n << 256n) - 1n;
+
 const SKILL_REGISTRY_ABI = [
   {
     type: 'function',
@@ -220,6 +222,23 @@ function priceToMicrousd(pricePerCall: number): bigint {
     throw new Error('pricePerCall must be a positive number');
   }
   return BigInt(Math.max(1_000, Math.round(pricePerCall * 1_000_000)));
+}
+
+function maxPriceUsdcToMicrousd(maxPriceUsdc: number): bigint | null {
+  if (!Number.isFinite(maxPriceUsdc) || maxPriceUsdc <= 0) return null;
+  const microUsdc = maxPriceUsdc * 1_000_000;
+  const rounded = Math.round(microUsdc);
+  const tolerance = Number.EPSILON * Math.max(1, Math.abs(microUsdc));
+  if (!Number.isSafeInteger(rounded) || Math.abs(microUsdc - rounded) > tolerance) {
+    return null;
+  }
+  return BigInt(rounded);
+}
+
+function validateMaxPriceUSDC(maxPriceUSDC: bigint): string | null {
+  if (maxPriceUSDC <= 0n) return 'maxPriceUSDC must be greater than zero';
+  if (maxPriceUSDC > UINT256_MAX) return 'maxPriceUSDC exceeds uint256 range';
+  return null;
 }
 
 function registrationResultFromStatus(
@@ -456,6 +475,8 @@ export async function anchorExecution(
   resultHash: `0x${string}`,
   maxPriceUSDC: bigint,
 ): Promise<AnchorResult> {
+  const validationError = validateMaxPriceUSDC(maxPriceUSDC);
+  if (validationError) return { ok: false, error: validationError };
   return withRelayerLock(async () => anchorExecutionUnlocked(skillId, success, resultHash, maxPriceUSDC));
 }
 
@@ -527,8 +548,12 @@ export function anchorExecutionAsync(
   if (!Number.isFinite(maxPriceUsdc) || (maxPriceUsdc ?? 0) <= 0) {
     return Promise.resolve({ ok: false, error: 'explicit maxPriceUSDC is required for on-chain swap anchoring' });
   }
+  const maxPriceUSDC = maxPriceUsdcToMicrousd(maxPriceUsdc!);
+  if (maxPriceUSDC == null) {
+    return Promise.resolve({ ok: false, error: 'maxPriceUSDC must convert exactly to micro-USDC' });
+  }
   const hash = (resultHash.startsWith('0x') ? resultHash : `0x${resultHash}`) as `0x${string}`;
-  return anchorExecution(skillId, success, hash, priceToMicrousd(maxPriceUsdc!)).catch((err) => ({
+  return anchorExecution(skillId, success, hash, maxPriceUSDC).catch((err) => ({
     ok: false,
     error: err instanceof Error ? err.message : String(err),
   }));
