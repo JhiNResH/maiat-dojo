@@ -294,12 +294,8 @@ export default function SkillPageClient({
               <div className="mt-6 flex flex-wrap gap-3">
                 <a href="#run-workflow" className="dojo-action dojo-action-primary">
                   <Play className="h-4 w-4 fill-current" />
-                  Run workflow
+                  Train skill
                 </a>
-                <Link href={`/workflow/${workflowTarget}/fork`} className="dojo-action">
-                  <GitFork className="h-4 w-4" />
-                  Fork & customize
-                </Link>
               </div>
             </div>
 
@@ -416,7 +412,7 @@ export default function SkillPageClient({
                 <section id="run-workflow" className="glass-card p-8">
                   <div className="mb-5 flex items-center justify-between">
                     <div className="font-mono text-[9px] uppercase tracking-[0.15em] text-[var(--text-muted)]">
-                      Run workflow
+                      Train skill
                     </div>
                     <span className="font-mono text-[11px] text-[var(--text-muted)]">
                       {skill.estLatencyMs ? `${skill.estLatencyMs}ms est.` : 'Live endpoint'}
@@ -540,6 +536,24 @@ export default function SkillPageClient({
                       {truncateAddress(skill.creator.walletAddress)}
                     </div>
                   </div>
+                </div>
+              </div>
+
+              <div className="glass-card p-7">
+                <div className="font-mono text-[9px] uppercase tracking-[0.15em] mb-5 text-[var(--text-muted)]">
+                  Creator tools
+                </div>
+                <p className="mb-5 text-[13px] leading-relaxed text-[var(--text-secondary)]">
+                  Want to customize this workflow? Remix keeps lineage attached and creates your own draft.
+                </p>
+                <div className="grid gap-2">
+                  <Link href={`/workflow/${workflowTarget}/fork`} className="dojo-action w-full justify-center">
+                    <GitFork className="h-4 w-4" />
+                    Remix this skill
+                  </Link>
+                  <Link href="/create" className="dojo-action dojo-action-primary w-full justify-center">
+                    Publish your own
+                  </Link>
                 </div>
               </div>
             </aside>

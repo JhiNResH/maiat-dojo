@@ -192,18 +192,18 @@ function actionCopy(action: WorkflowAction) {
     case "run":
       return {
         icon: Play,
-        label: "Run workflow",
+        label: "Train skill",
         eyebrow: "Cleared asset",
-        title: "Run this workflow and feed its reputation.",
+        title: "Train this skill and feed its reputation.",
         body: "Dojo executes the workflow, evaluates delivery, writes a receipt, and anchors the cleared run on BSC testnet.",
       };
     case "fork":
       return {
         icon: GitFork,
-        label: "Fork workflow",
+        label: "Remix skill",
         eyebrow: "Derivative asset",
-        title: "Create your own tradable variant.",
-        body: "Fork the workflow logic, keep provenance attached, and prepare a draft version with lineage and creator royalty metadata.",
+        title: "Create your own creator variant.",
+        body: "Remix the workflow logic, keep provenance attached, and prepare a draft version with lineage and creator royalty metadata.",
       };
     case "deploy":
       return {
@@ -368,13 +368,13 @@ function RunPanel({ workflow }: { workflow: WorkflowActionData }) {
       <div className="space-y-6">
         <section className="dojo-card p-5">
           <div className="mb-5 flex items-center justify-between">
-            <span className="label-sm">Run input</span>
+            <span className="label-sm">Train input</span>
             <span className="font-mono text-[11px] text-[var(--text-muted)]">
               {workflow.version?.slaMs ?? 1200}ms SLA
             </span>
           </div>
           <p className="mb-5 rounded-[8px] border border-[var(--border-light)] bg-[var(--bg-secondary)] p-3 text-[13px] leading-relaxed text-[var(--text-secondary)]">
-            Provide {inputSummary}. Dojo runs the workflow and returns a structured result.
+            Provide {inputSummary}. Dojo runs the skill, evaluates delivery, and returns a result with a receipt.
           </p>
           <div className="space-y-4">
             {fields.length > 0 ? (
@@ -392,16 +392,9 @@ function RunPanel({ workflow }: { workflow: WorkflowActionData }) {
                 This workflow takes an empty payload.
               </p>
             )}
-            <div className="grid gap-2">
-              <button
-                onClick={runWorkflow}
-                disabled={pending || missingRequired}
-                className="dojo-action w-full disabled:opacity-40"
-              >
-                {pending ? "Previewing..." : "Sandbox preview"}
-              </button>
+            <div className="grid gap-3">
               <label className="block">
-                <span className="label-sm mb-2 block">API key for paid run</span>
+                <span className="label-sm mb-2 block">Dojo API key</span>
                 <input
                   value={apiKey}
                   onChange={(event) => setApiKey(event.target.value)}
@@ -415,8 +408,23 @@ function RunPanel({ workflow }: { workflow: WorkflowActionData }) {
                 disabled={paidPending || missingRequired || !apiKey.trim()}
                 className="dojo-action dojo-action-primary w-full disabled:opacity-40"
               >
-                {paidPending ? "Clearing..." : `Run cleared · $${workflow.pricePerRun.toFixed(3)}`}
+                {paidPending ? "Clearing..." : `Train this skill · $${workflow.pricePerRun.toFixed(3)}`}
               </button>
+              <details className="rounded-[8px] border border-[var(--border-light)] bg-[var(--bg-secondary)] p-3">
+                <summary className="cursor-pointer font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                  Advanced: try sample without receipt
+                </summary>
+                <p className="mt-3 text-[12px] leading-relaxed text-[var(--text-secondary)]">
+                  This checks endpoint shape only. It does not create a receipt or feed reputation.
+                </p>
+                <button
+                  onClick={runWorkflow}
+                  disabled={pending || missingRequired}
+                  className="dojo-action mt-3 w-full disabled:opacity-40"
+                >
+                  {pending ? "Trying sample..." : "Try sample"}
+                </button>
+              </details>
             </div>
           </div>
         </section>
@@ -456,7 +464,7 @@ function RunPanel({ workflow }: { workflow: WorkflowActionData }) {
 
       <section id="receipt" className="dojo-card p-5 lg:sticky lg:top-28">
         <div className="mb-5 flex items-center justify-between">
-          <span className="label-sm">Receipt preview</span>
+          <span className="label-sm">Result & receipt</span>
           {(paidResult || result) && (
             <span className="font-mono text-[11px] text-[var(--text-muted)]">
               {(paidResult?.latency_ms ?? result?.latencyMs ?? 0)}ms
@@ -482,7 +490,7 @@ function RunPanel({ workflow }: { workflow: WorkflowActionData }) {
                   status: "ready",
                   workflow: workflow.slug,
                   clearing: "Paid runs write WorkflowRunReceipt and feed the workflow asset.",
-                  sandbox: "Sandbox preview only checks endpoint shape; it does not affect reputation.",
+                  sample: "Try sample only checks endpoint shape; it does not affect reputation.",
                   receipt: "After a cleared run, open /r/<receiptId> for the proof artifact.",
                 },
           )}
@@ -505,7 +513,7 @@ function PolicyRow({ label, value }: { label: string; value: string }) {
 
 function ForkPanel({ workflow }: { workflow: WorkflowActionData }) {
   const { authenticated, login, getAccessToken } = usePrivy();
-  const [name, setName] = useState(`${workflow.name} Fork`);
+  const [name, setName] = useState(`${workflow.name} Remix`);
   const [goal, setGoal] = useState("Customize evaluator policy and publish as my agent workflow.");
   const [pending, setPending] = useState(false);
   const [draft, setDraft] = useState<ForkResult | null>(null);
@@ -535,9 +543,9 @@ function ForkPanel({ workflow }: { workflow: WorkflowActionData }) {
         }),
       });
       const data = (await response.json()) as ForkResult;
-      setDraft(response.ok ? data : { error: data.error ?? "Fork failed" });
+      setDraft(response.ok ? data : { error: data.error ?? "Remix failed" });
     } catch (error) {
-      setDraft({ error: error instanceof Error ? error.message : "Fork failed" });
+      setDraft({ error: error instanceof Error ? error.message : "Remix failed" });
     } finally {
       setPending(false);
     }
@@ -546,7 +554,7 @@ function ForkPanel({ workflow }: { workflow: WorkflowActionData }) {
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
       <section className="dojo-card p-5">
-        <span className="label-sm">Fork draft</span>
+        <span className="label-sm">Remix draft</span>
         <div className="mt-5 space-y-4">
           <label className="block">
             <span className="label-sm mb-2 block">Variant name</span>
@@ -570,7 +578,7 @@ function ForkPanel({ workflow }: { workflow: WorkflowActionData }) {
             disabled={pending || !name.trim()}
             className="dojo-action dojo-action-primary w-full disabled:opacity-40"
           >
-            {pending ? "Creating..." : "Create fork draft"}
+            {pending ? "Creating..." : "Create remix draft"}
           </button>
         </div>
       </section>
@@ -583,7 +591,7 @@ function ForkPanel({ workflow }: { workflow: WorkflowActionData }) {
               parent_runs: workflow.runs,
               parent_trust_score: workflow.trustScore,
               fork_count: workflow.forks,
-              note: "Fork creates a draft workflow in your account, then Deploy attaches your endpoint.",
+              note: "Remix creates a draft workflow in your account. Creator tools can attach an endpoint later.",
             },
           )}
         </pre>
@@ -592,7 +600,7 @@ function ForkPanel({ workflow }: { workflow: WorkflowActionData }) {
             href={`/workflow/${draft.workflow.id}/deploy`}
             className="dojo-action dojo-action-primary mt-4"
           >
-            Deploy fork
+            Continue to creator deploy
           </Link>
         )}
       </section>
@@ -691,7 +699,7 @@ function DeployPanel({ workflow }: { workflow: WorkflowActionData }) {
       const data = (await response.json()) as DeployResult;
       const fallback =
         response.status === 403
-          ? "Only the workflow creator can deploy this workflow. Fork it first, then deploy your fork."
+          ? "Only the workflow creator can deploy this workflow. Remix it first, then deploy your remix."
           : "Deploy failed";
       setPlan(response.ok ? data : { error: data.error ?? fallback });
     } catch (error) {
@@ -706,8 +714,8 @@ function DeployPanel({ workflow }: { workflow: WorkflowActionData }) {
       <section className="dojo-card p-5">
         <span className="label-sm">Deploy target</span>
         <p className="mt-3 rounded-[8px] border border-[var(--border)] bg-[var(--bg-secondary)] px-4 py-3 text-[12px] leading-relaxed text-[var(--text-muted)]">
-          Deploy updates a workflow you own. To customize another creator&apos;s workflow, create a fork draft first,
-          then attach your endpoint to that fork.
+          Deploy updates a workflow you own. To customize another creator&apos;s workflow, create a remix draft first,
+          then attach your endpoint to that remix.
         </p>
         <div className="mt-5 space-y-4">
           <label className="block">
@@ -889,28 +897,18 @@ export function WorkflowActionClient({
               royaltyBps={workflow.royaltyBps}
               status={workflow.spirit?.lineageRevenue.label ?? `${(workflow.royaltyBps / 100).toFixed(1)}% lineage revenue`}
             />
-            <div className="dojo-mat-tabs mt-3 grid grid-cols-3 overflow-hidden rounded-[8px] border border-[var(--border)]">
-              {(["run", "fork", "deploy"] as const).map((item) => (
-                <Link
-                  key={item}
-                  href={`/workflow/${workflow.id}/${item}`}
-                  className={`inline-flex items-center justify-center gap-2 border-r border-[var(--border)] px-4 py-3 text-[12px] font-semibold capitalize last:border-r-0 ${
-                    action === item
-                      ? "bg-[var(--text)] text-[var(--bg)]"
-                      : "bg-[var(--card-bg)] text-[var(--text-secondary)] hover:text-[var(--text)]"
-                  }`}
-                >
-                  {item === "run" && <Play className="h-3.5 w-3.5 fill-current" />}
-                  {item === "fork" && <GitFork className="h-3.5 w-3.5" />}
-                  {item === "deploy" && <Rocket className="h-3.5 w-3.5" />}
-                  {item === "run" ? `Run · $${workflow.pricePerRun.toFixed(3)}` : item}
-                </Link>
-              ))}
+            <div className="mt-3">
+              <Link
+                href={`/workflow/${workflow.id}/run`}
+                className="dojo-action dojo-action-primary w-full justify-center"
+              >
+                <Play className="h-3.5 w-3.5 fill-current" />
+                Train · ${workflow.pricePerRun.toFixed(3)}
+              </Link>
             </div>
             <div className="mt-3 flex items-center justify-between font-mono text-[10.5px] text-[var(--text-muted)]">
               <span>receipts feed</span>
               <span className="font-semibold text-[var(--text)]">reputation</span>
-              <span>offspring branch</span>
             </div>
           </aside>
         </section>
