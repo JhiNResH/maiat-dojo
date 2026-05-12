@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { DEMO_SKILLS, toV1Skill } from '@/lib/demo-catalog';
 import { prisma } from '@/lib/prisma';
 import { fetchLatestMaturityReceiptsByWorkflowId } from '@/lib/maturity-receipts';
 import { publicWorkflowWhere } from '@/lib/public-workflow-filter';
@@ -19,6 +20,39 @@ function safeJsonParse(value: string | null): unknown {
   } catch {
     return null;
   }
+}
+
+function demoV1Skills(excludeSlugs = new Set<string>()) {
+  return DEMO_SKILLS
+    .filter((skill) => !excludeSlugs.has(skill.gatewaySlug))
+    .map((skill) => {
+      const maturity = computeSkillMaturity({
+        evaluationPassed: skill.trustScore >= 80,
+        evaluationScore: skill.trustScore,
+        version: 1,
+      });
+      const row = toV1Skill(skill);
+      return {
+        ...row,
+        maturity,
+        registry_status: null,
+        workflow: {
+          ...row.workflow,
+          maturity,
+          spirit: buildWorkflowSpiritProfile({
+            workflowId: skill.workflowId,
+            slug: skill.workflowSlug,
+            name: skill.name,
+            category: skill.category,
+            creatorId: 'demo-creator-maiat-dojo',
+            runCount: skill.workflowRunCount,
+            forkCount: skill.workflowForkCount,
+            trustScore: skill.trustScore,
+            royaltyBps: skill.royaltyBps,
+          }),
+        },
+      };
+    });
 }
 
 /**
@@ -75,7 +109,8 @@ export async function GET() {
     });
   } catch (error) {
     console.error('[GET /api/v1/skills] failed:', error);
-    return NextResponse.json({ error: 'Failed to load skills' }, { status: 500 });
+    const result = demoV1Skills();
+    return NextResponse.json({ skills: result, count: result.length, fallback: 'demo_catalog' });
   }
 
   const workflowIds = skills
@@ -151,5 +186,14 @@ export async function GET() {
     };
   });
 
-  return NextResponse.json({ skills: result, count: result.length });
+  const realSlugs = new Set(
+    result.map((skill) => skill.skill).filter((slug): slug is string => Boolean(slug)),
+  );
+  const withDemo = [...result, ...demoV1Skills(realSlugs)];
+
+  return NextResponse.json({
+    skills: withDemo,
+    count: withDemo.length,
+    fallback: result.length === 0 && withDemo.length > 0 ? 'demo_catalog' : undefined,
+  });
 }

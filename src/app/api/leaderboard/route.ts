@@ -1,9 +1,43 @@
 import { NextRequest, NextResponse } from "next/server";
+import { DEMO_WORKFLOWS } from "@/lib/demo-catalog";
 import { prisma } from "@/lib/prisma";
 import { publicWorkflowWhere } from "@/lib/public-workflow-filter";
 import { buildWorkflowSpiritProfile } from "@/lib/workflow-spirit";
 
 export const dynamic = "force-dynamic";
+
+function demoSpiritRows(limit: number, excludeSlugs = new Set<string>()) {
+  return DEMO_WORKFLOWS
+    .filter((workflow) => !excludeSlugs.has(workflow.slug))
+    .slice(0, limit)
+    .map((workflow) => {
+      const spirit = buildWorkflowSpiritProfile({
+        workflowId: workflow.id,
+        slug: workflow.slug,
+        name: workflow.name,
+        category: workflow.category,
+        creatorId: workflow.creator.id,
+        creatorName: workflow.creator.displayName,
+        runCount: workflow.runs,
+        forkCount: workflow.forks,
+        trustScore: workflow.trust_score,
+        royaltyBps: workflow.royalty_bps,
+      });
+      return {
+        id: workflow.id,
+        slug: workflow.slug,
+        name: workflow.name,
+        category: workflow.category,
+        creator: workflow.creator,
+        runs: workflow.runs,
+        forks: workflow.forks,
+        trust_score: workflow.trust_score,
+        price_per_run: workflow.price_per_run,
+        royalty_bps: workflow.royalty_bps,
+        spirit,
+      };
+    });
+}
 
 /**
  * GET /api/leaderboard
@@ -21,34 +55,32 @@ export async function GET(req: NextRequest) {
   const limit = Math.min(parseInt(searchParams.get("limit") ?? "20"), 100);
 
   if (type === "spirits") {
-    const workflows = await prisma.workflow.findMany({
-      where: publicWorkflowWhere(),
-      orderBy: [{ trustScore: "desc" }, { runCount: "desc" }, { forkCount: "desc" }],
-      take: limit,
-      select: {
-        id: true,
-        slug: true,
-        name: true,
-        category: true,
-        runCount: true,
-        forkCount: true,
-        trustScore: true,
-        royaltyBps: true,
-        pricePerRun: true,
-        creator: {
-          select: {
-            id: true,
-            displayName: true,
-            avatarUrl: true,
+    try {
+      const workflows = await prisma.workflow.findMany({
+        where: publicWorkflowWhere(),
+        orderBy: [{ trustScore: "desc" }, { runCount: "desc" }, { forkCount: "desc" }],
+        take: limit,
+        select: {
+          id: true,
+          slug: true,
+          name: true,
+          category: true,
+          runCount: true,
+          forkCount: true,
+          trustScore: true,
+          royaltyBps: true,
+          pricePerRun: true,
+          creator: {
+            select: {
+              id: true,
+              displayName: true,
+              avatarUrl: true,
+            },
           },
         },
-      },
-    });
+      });
 
-    return NextResponse.json({
-      type: "spirits",
-      count: workflows.length,
-      spirits: workflows.map((workflow) => {
+      const mapped = workflows.map((workflow) => {
         const spirit = buildWorkflowSpiritProfile({
           workflowId: workflow.id,
           slug: workflow.slug,
@@ -74,8 +106,29 @@ export async function GET(req: NextRequest) {
           royalty_bps: workflow.royaltyBps,
           spirit,
         };
-      }),
-    });
+      });
+      const realSlugs = new Set(mapped.map((workflow) => workflow.slug));
+      const withDemo = [
+        ...mapped,
+        ...demoSpiritRows(Math.max(0, limit - mapped.length), realSlugs),
+      ].slice(0, limit);
+
+      return NextResponse.json({
+        type: "spirits",
+        count: withDemo.length,
+        spirits: withDemo,
+        fallback: mapped.length === 0 && withDemo.length > 0 ? "demo_catalog" : undefined,
+      });
+    } catch (error) {
+      console.error("[GET /api/leaderboard?type=spirits] failed:", error);
+      const spirits = demoSpiritRows(limit);
+      return NextResponse.json({
+        type: "spirits",
+        count: spirits.length,
+        spirits,
+        fallback: "demo_catalog",
+      });
+    }
   }
 
   // Handle creators leaderboard
