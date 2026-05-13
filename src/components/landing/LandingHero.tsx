@@ -3,18 +3,12 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  ArrowUpRight,
-  BadgeCheck,
-  Boxes,
-  CreditCard,
   GitFork,
   Layers3,
   Play,
   ReceiptText,
   Repeat2,
   Search,
-  ShieldCheck,
-  Sparkles,
   WalletCards,
 } from "lucide-react";
 import { DojoPetAvatar } from "@/components/DojoPetAvatar";
@@ -29,44 +23,13 @@ export interface LandingHeroProps {
   onSubmit?: (text: string) => void;
 }
 
-function compactUsd(value: number) {
-  return new Intl.NumberFormat("en", {
-    style: "currency",
-    currency: "USD",
-    notation: value >= 10_000 ? "compact" : "standard",
-    maximumFractionDigits: value >= 10_000 ? 1 : 0,
-  }).format(value);
-}
-
 function percent(value: number) {
   return `${Math.round(value * 100)}%`;
 }
 
-function pricingLine(agent: AgentServiceCard) {
-  return `$${agent.pricing.monthlyUsd}/mo + $${agent.pricing.perClearedCaseUsd.toFixed(2)}/case`;
-}
-
-const MARKET_ACTIONS = [
-  {
-    label: "Run",
-    title: "One-time use",
-    body: "Execute once for a specific task, like analyzing one PR.",
-  },
-  {
-    label: "Subscribe",
-    title: "Ongoing service",
-    body: "Keep an agent service active for repeated work, like merchant order handling.",
-  },
-  {
-    label: "Fork / License",
-    title: "Make your own version",
-    body: "Create a merchant-specific agent while preserving lineage and royalties.",
-  },
-] as const;
-
 function AgentCard({ agent, featured = false }: { agent: AgentServiceCard; featured?: boolean }) {
   return (
-    <article className={`dojo-agent-card ${featured ? "dojo-agent-card-featured" : ""}`}>
+    <div className={`dojo-agent-card ${featured ? "dojo-agent-card-featured" : ""}`}>
       <div className="dojo-agent-art">
         <div className="dojo-agent-card-id">{agent.lineage.generation === 0 ? "GENESIS" : `GEN ${agent.lineage.generation}`}</div>
         <div className="dojo-agent-pet-frame">
@@ -95,73 +58,16 @@ function AgentCard({ agent, featured = false }: { agent: AgentServiceCard; featu
             <p className="dojo-agent-collection">{agent.archetype}</p>
             <h3>{agent.name}</h3>
           </div>
-          <span className="dojo-agent-credit">CR {agent.reputation.creditScore}</span>
         </div>
 
         <p className="dojo-agent-role">{agent.role}</p>
-        <p className="dojo-agent-summary">{agent.summary}</p>
-
-        <div className="dojo-agent-stat-grid">
-          <div>
-            <span>Receipts</span>
-            <strong>{agent.reputation.receiptsCleared}</strong>
-          </div>
-          <div>
-            <span>Success</span>
-            <strong>{percent(agent.reputation.successRate)}</strong>
-          </div>
-          <div>
-            <span>Saved</span>
-            <strong>{compactUsd(agent.reputation.savedAmountUsd)}</strong>
-          </div>
-          <div>
-            <span>Volume</span>
-            <strong>{compactUsd(agent.reputation.verifiedVolumeUsd)}</strong>
-          </div>
+        <div className="dojo-agent-card-meta" aria-label={`${agent.name} quick stats`}>
+          <span>{agent.category}</span>
+          <span>{agentCardStatusLabel(agent.status)}</span>
         </div>
-
-        <div className="dojo-agent-attributes">
-          {agent.attributes.map((attribute) => (
-            <div key={`${agent.id}-${attribute.label}`}>
-              <span>{attribute.label}</span>
-              <strong>{attribute.value}</strong>
-            </div>
-          ))}
-        </div>
-
-        <div className="dojo-agent-card-section">
-          <span>Abilities</span>
-          <div className="dojo-agent-ability-row">
-            {agent.abilities.slice(0, 4).map((ability) => (
-              <strong key={`${agent.id}-${ability}`}>{ability}</strong>
-            ))}
-          </div>
-        </div>
-
-        <div className="dojo-agent-footer">
-          <div>
-            <span>Service pricing</span>
-            <strong>{pricingLine(agent)}</strong>
-          </div>
-          <div className="dojo-agent-actions">
-            <Link href={agent.runHref} className="dojo-action dojo-action-primary" title="Run once for a specific task">
-              <Play className="h-3.5 w-3.5 fill-current" />
-              Run
-            </Link>
-            <Link href={agent.subscribeHref} className="dojo-action" title="Subscribe to this ongoing agent service">
-              <Repeat2 className="h-3.5 w-3.5" />
-              Subscribe
-            </Link>
-            <Link href={agent.forkHref} className="dojo-icon-link" title="Fork or license this agent service" aria-label={`Fork or license ${agent.name}`}>
-              <GitFork className="h-3.5 w-3.5" />
-            </Link>
-            <Link href={agent.receiptsHref} className="dojo-icon-link" title="View clearing receipts" aria-label={`View receipts for ${agent.name}`}>
-              <ReceiptText className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-        </div>
+        <span className="dojo-agent-open-cta">Open card</span>
       </div>
-    </article>
+    </div>
   );
 }
 
@@ -171,6 +77,46 @@ function AgentRail({ selected }: { selected: AgentServiceCard }) {
       <div className="dojo-agent-inspector-head">
         <span>Agent Card</span>
         <strong>{selected.name}</strong>
+      </div>
+      <p className="dojo-agent-detail-summary">{selected.summary}</p>
+      <div className="dojo-agent-lineage dojo-agent-reputation">
+        <div>
+          <span>Credit</span>
+          <strong>CR {selected.reputation.creditScore}</strong>
+        </div>
+        <div>
+          <span>Receipts</span>
+          <strong>{selected.reputation.receiptsCleared}</strong>
+        </div>
+        <div>
+          <span>Success</span>
+          <strong>{percent(selected.reputation.successRate)}</strong>
+        </div>
+      </div>
+      <div className="dojo-agent-detail-actions">
+        <Link href={selected.runHref} className="dojo-action dojo-action-primary" title="Run once for a specific task">
+          <Play className="h-3.5 w-3.5 fill-current" />
+          Run
+        </Link>
+        <Link href={selected.subscribeHref} className="dojo-action" title="Subscribe to this ongoing agent service">
+          <Repeat2 className="h-3.5 w-3.5" />
+          Subscribe
+        </Link>
+        <Link href={selected.forkHref} className="dojo-action" title="Fork or license this agent service">
+          <GitFork className="h-3.5 w-3.5" />
+          Fork
+        </Link>
+      </div>
+      <div className="dojo-agent-deck">
+        <div className="dojo-agent-section-title">
+          <WalletCards className="h-3.5 w-3.5" />
+          Abilities
+        </div>
+        <div className="dojo-agent-ability-row">
+          {selected.abilities.map((ability) => (
+            <strong key={`${selected.id}-${ability}`}>{ability}</strong>
+          ))}
+        </div>
       </div>
       <div className="dojo-agent-lineage">
         <div>
@@ -185,26 +131,6 @@ function AgentRail({ selected }: { selected: AgentServiceCard }) {
           <span>Forks</span>
           <strong>{selected.lineage.forks?.join(", ") ?? "None"}</strong>
         </div>
-      </div>
-      <div className="dojo-agent-deck">
-        <div className="dojo-agent-section-title">
-          <WalletCards className="h-3.5 w-3.5" />
-          Ways to use
-        </div>
-        <ul>
-          <li>
-            <span>Run once</span>
-            <strong>Task</strong>
-          </li>
-          <li>
-            <span>Subscribe</span>
-            <strong>Service</strong>
-          </li>
-          <li>
-            <span>Fork / License</span>
-            <strong>Lineage</strong>
-          </li>
-        </ul>
       </div>
       <div className="dojo-agent-deck">
         <div className="dojo-agent-section-title">
@@ -260,77 +186,24 @@ export function LandingHero(_props: LandingHeroProps) {
   }, [filter, query]);
 
   const selected = AGENT_SERVICE_CARDS.find((agent) => agent.slug === selectedSlug) ?? filtered[0] ?? AGENT_SERVICE_CARDS[0];
-  const rootAgent = AGENT_SERVICE_CARDS[0];
-  const totalReceipts = AGENT_SERVICE_CARDS.reduce((sum, agent) => sum + agent.reputation.receiptsCleared, 0);
-  const totalVolume = AGENT_SERVICE_CARDS.reduce((sum, agent) => sum + agent.reputation.verifiedVolumeUsd, 0);
 
   return (
     <section className="dojo-marketplace dojo-agent-marketplace">
       <div className="dojo-agent-hero">
         <div className="dojo-agent-hero-copy">
-          <h1>Run, subscribe, or license agent services.</h1>
+          <h1>Choose an agent. Open its deck.</h1>
           <p>
-            Dojo turns each agent into a card with abilities, workflow decks, receipts, and lineage.
-            Run one task, subscribe to the service, or fork it into your own merchant agent.
+            Dojo lists agent cards like a living marketplace. Start with the character,
+            then open the card to see its abilities, workflow decks, receipts, and lineage.
           </p>
-          <div className="dojo-agent-hero-actions">
-            <Link href={rootAgent.runHref} className="dojo-action dojo-action-primary">
-              <Play className="h-3.5 w-3.5 fill-current" />
-              Run once
-            </Link>
-            <Link href={rootAgent.subscribeHref} className="dojo-action">
-              <WalletCards className="h-3.5 w-3.5" />
-              Subscribe Jiagon
-            </Link>
-            <Link href={rootAgent.forkHref} className="dojo-action">
-              <GitFork className="h-3.5 w-3.5" />
-              Fork / License
-            </Link>
-          </div>
-        </div>
-        <div className="dojo-agent-proof-strip" aria-label="Marketplace proof stats">
-          <div>
-            <ReceiptText className="h-4 w-4" />
-            <span>Receipts cleared</span>
-            <strong>{totalReceipts}</strong>
-          </div>
-          <div>
-            <CreditCard className="h-4 w-4" />
-            <span>Verified volume</span>
-            <strong>{compactUsd(totalVolume)}</strong>
-          </div>
-          <div>
-            <Boxes className="h-4 w-4" />
-            <span>Listed agents</span>
-            <strong>{AGENT_SERVICE_CARDS.length}</strong>
-          </div>
-          <div>
-            <ShieldCheck className="h-4 w-4" />
-            <span>Clearing layer</span>
-            <strong>BNB-first</strong>
-          </div>
         </div>
       </div>
 
       <div className="dojo-market-subhead">
         <div>
-          <h3>Agent card collection</h3>
-          <p>{AGENT_SERVICE_CARDS.length} listed service cards</p>
+          <h3>Agent cards</h3>
+          <p>{AGENT_SERVICE_CARDS.length} listed agents</p>
         </div>
-        <div className="dojo-agent-market-note">
-          <Sparkles className="h-3.5 w-3.5" />
-          Tamagotchi-style agent services, receipt-backed reputation
-        </div>
-      </div>
-
-      <div className="dojo-agent-action-map" aria-label="Marketplace action types">
-        {MARKET_ACTIONS.map((action) => (
-          <div key={action.label}>
-            <span>{action.label}</span>
-            <strong>{action.title}</strong>
-            <p>{action.body}</p>
-          </div>
-        ))}
       </div>
 
       <div id="agents" className="dojo-filter-row">
@@ -348,6 +221,7 @@ export function LandingHero(_props: LandingHeroProps) {
           {categories.map((cat) => (
             <button
               key={cat}
+              type="button"
               onClick={() => setFilter(cat)}
               className={`dojo-filter ${filter === cat ? "dojo-filter-active" : ""}`}
             >
@@ -363,27 +237,20 @@ export function LandingHero(_props: LandingHeroProps) {
             <div className="dojo-empty">No agent cards found. Try another merchant, ability, or clearing use case.</div>
           ) : (
             filtered.map((agent, index) => (
-              <div
+              <button
+                type="button"
                 key={agent.id}
                 className={`dojo-agent-card-wrap ${selected.slug === agent.slug ? "dojo-agent-card-wrap-selected" : ""}`}
-                onMouseEnter={() => setSelectedSlug(agent.slug)}
-                onFocusCapture={() => setSelectedSlug(agent.slug)}
+                onClick={() => setSelectedSlug(agent.slug)}
+                aria-pressed={selected.slug === agent.slug}
+                aria-label={`Open ${agent.name} agent card`}
               >
                 <AgentCard agent={agent} featured={index === 0 && filter === "all" && query.trim() === ""} />
-              </div>
+              </button>
             ))
           )}
         </div>
         {selected && <AgentRail selected={selected} />}
-      </div>
-
-      <div className="dojo-agent-loop">
-        <BadgeCheck className="h-4 w-4" />
-        <span>Buyer runs or subscribes</span>
-        <ArrowUpRight className="h-3.5 w-3.5" />
-        <span>Agent clears work</span>
-        <ArrowUpRight className="h-3.5 w-3.5" />
-        <span>Receipt updates reputation, license royalties, and credit</span>
       </div>
     </section>
   );
