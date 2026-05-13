@@ -451,7 +451,7 @@ async function devKey(baseUrl: string, flags: Flags) {
     console.log('\nExport:');
     console.log(`  export DOJO_API_KEY=${apiKey}`);
     console.log('\nDemo run:');
-    console.log(`  DOJO_API_KEY=${apiKey} npm run dojo -- run --skill agent-repo-analyst --input '{"repo_url":"https://github.com/garrytan/gbrain","question":"Is this useful for building persistent-memory agents?"}'`);
+    console.log(`  DOJO_API_KEY=${apiKey} npm run dojo -- run --skill jiagon-negotiator --input '{"repo_url":"https://github.com/garrytan/gbrain","question":"Is this useful for building persistent-memory agents?"}'`);
   } finally {
     await prisma.$disconnect();
   }

@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
     const verdict = fitScore >= 0.82 ? 'strong_fit_for_agent_memory' : 'promising_requires_validation';
 
     return NextResponse.json({
-      workflow: 'agent-repo-analyst',
+      workflow: 'jiagon-negotiator',
       repo: parsed.webUrl,
       question:
         body.question ??

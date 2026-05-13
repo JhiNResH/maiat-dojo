@@ -342,7 +342,7 @@ export default function CreateWorkflowPage() {
               </span>
             </div>
             <h1 className="text-[28px] font-bold leading-tight tracking-[-0.025em] text-[var(--text)] md:text-[34px]">
-              agent-repo-analyst
+              jiagon-negotiator
               <span className="ml-3 align-middle font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
                 draft
               </span>

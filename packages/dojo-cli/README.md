@@ -9,9 +9,9 @@ npx @maiat/dojo init
 npm run dojo -- dev-key
 DOJO_API_KEY=dojo_sk_... npx @maiat/dojo test --file dojo.workflow.yaml
 DOJO_API_KEY=dojo_sk_... npx @maiat/dojo publish --file dojo.workflow.yaml
-DOJO_API_KEY=dojo_sk_... npx @maiat/dojo fork --workflow agent-repo-analyst --name "My Repo Analyst"
+DOJO_API_KEY=dojo_sk_... npx @maiat/dojo fork --workflow jiagon-negotiator --name "My Repo Analyst"
 DOJO_API_KEY=dojo_sk_... npx @maiat/dojo deploy --workflow my-repo-analyst --file dojo.workflow.yaml
-DOJO_API_KEY=dojo_sk_... npx @maiat/dojo run --skill agent-repo-analyst --input '{"repo_url":"https://github.com/garrytan/gbrain"}'
+DOJO_API_KEY=dojo_sk_... npx @maiat/dojo run --skill jiagon-negotiator --input '{"repo_url":"https://github.com/garrytan/gbrain"}'
 ```
 
 Use `DOJO_BASE_URL` or `--url` to point at a non-production Dojo instance:
@@ -26,7 +26,7 @@ For local demos from the repo, generate or reuse a DB-backed key:
 npm run dojo -- dev-key
 export DOJO_API_KEY=dojo_sk_...
 DOJO_API_KEY=dojo_sk_... npm run dojo -- run \
-  --skill agent-repo-analyst \
+  --skill jiagon-negotiator \
   --input '{"repo_url":"https://github.com/garrytan/gbrain"}'
 ```
 

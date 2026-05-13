@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { filterDemoSkills, toPublicSkill } from "@/lib/demo-catalog";
+import { isLegacyWorkflowSlug } from "@/lib/legacy-workflow-slugs";
 import { prisma } from "@/lib/prisma";
 import { fetchLatestMaturityReceiptsByWorkflowId } from "@/lib/maturity-receipts";
 import { publicWorkflowWhere } from "@/lib/public-workflow-filter";
@@ -167,20 +168,24 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ total: demo.total, skills: demo.skills, fallback: "demo_catalog" });
   }
 
-  const workflowIds = skills
+  const visibleSkills = skills.filter(
+    (skill) => !isLegacyWorkflowSlug(skill.gatewaySlug) && !isLegacyWorkflowSlug(skill.workflow?.slug),
+  );
+
+  const workflowIds = visibleSkills
     .map((skill) => skill.workflow?.id)
     .filter((id): id is string => Boolean(id));
   const receiptRows = await fetchLatestMaturityReceiptsByWorkflowId(workflowIds);
   const receiptsByWorkflowId = groupMaturityReceiptsByWorkflowId(receiptRows);
 
   const registryBySlug = new Map<string, Awaited<ReturnType<typeof validateRegisteredWorkflowSlug>>>();
-  for (const skill of skills) {
+  for (const skill of visibleSkills) {
     if (!skill.gatewaySlug) continue;
     const registry = await validateRegisteredWorkflowSlug(skill.gatewaySlug);
     registryBySlug.set(skill.gatewaySlug, registry);
   }
 
-  const mapped = skills.map((s) => {
+  const mapped = visibleSkills.map((s) => {
     const registry = s.gatewaySlug ? registryBySlug.get(s.gatewaySlug) : null;
     const workflowVersion = s.workflow?.versions[0] ?? null;
     const maturity = computeSkillMaturity(computeMaturityEvidenceFromReceipts(
@@ -245,8 +250,8 @@ export async function GET(req: NextRequest) {
   const result = [...mapped, ...demo.skills].slice(0, limit);
 
   return NextResponse.json({
-    total: skills.length + demo.skills.length,
+    total: visibleSkills.length + demo.skills.length,
     skills: result,
-    fallback: skills.length === 0 && demo.skills.length > 0 ? "demo_catalog" : undefined,
+    fallback: visibleSkills.length === 0 && demo.skills.length > 0 ? "demo_catalog" : undefined,
   });
 }

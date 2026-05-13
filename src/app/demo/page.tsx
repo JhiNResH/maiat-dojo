@@ -42,7 +42,7 @@ export default function DemoPage() {
     STEPS.map(() => ({ status: 'idle' as const }))
   );
   const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
-  const [skillSlug] = useState('agent-repo-analyst');
+  const [skillSlug] = useState('jiagon-negotiator');
 
   function updateStep(i: number, r: StepResult) {
     setResults((prev) => {

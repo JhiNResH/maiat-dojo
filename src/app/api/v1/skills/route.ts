@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { DEMO_SKILLS, toV1Skill } from '@/lib/demo-catalog';
 import { prisma } from '@/lib/prisma';
 import { fetchLatestMaturityReceiptsByWorkflowId } from '@/lib/maturity-receipts';
+import { isLegacyWorkflowSlug } from '@/lib/legacy-workflow-slugs';
 import { publicWorkflowWhere } from '@/lib/public-workflow-filter';
 import { validateRegisteredWorkflowSlug } from '@/lib/swap-router';
 import { buildWorkflowSpiritProfile } from '@/lib/workflow-spirit';
@@ -113,20 +114,24 @@ export async function GET() {
     return NextResponse.json({ skills: result, count: result.length, fallback: 'demo_catalog' });
   }
 
-  const workflowIds = skills
+  const visibleSkills = skills.filter(
+    (skill) => !isLegacyWorkflowSlug(skill.gatewaySlug) && !isLegacyWorkflowSlug(skill.workflow?.slug),
+  );
+
+  const workflowIds = visibleSkills
     .map((skill) => skill.workflow?.id)
     .filter((id): id is string => Boolean(id));
   const receiptRows = await fetchLatestMaturityReceiptsByWorkflowId(workflowIds);
   const receiptsByWorkflowId = groupMaturityReceiptsByWorkflowId(receiptRows);
 
   const registryBySlug = new Map<string, Awaited<ReturnType<typeof validateRegisteredWorkflowSlug>>>();
-  for (const skill of skills) {
+  for (const skill of visibleSkills) {
     if (!skill.gatewaySlug) continue;
     const registry = await validateRegisteredWorkflowSlug(skill.gatewaySlug);
     registryBySlug.set(skill.gatewaySlug, registry);
   }
 
-  const result = skills.map((s) => {
+  const result = visibleSkills.map((s) => {
     const registry = s.gatewaySlug ? registryBySlug.get(s.gatewaySlug) : null;
     const version = s.workflow?.versions[0] ?? null;
     const maturity = computeSkillMaturity(computeMaturityEvidenceFromReceipts(

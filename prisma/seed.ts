@@ -59,7 +59,7 @@ async function main() {
       tags: "agent,research,github,gbrain,mcp,workflow",
       skillType: "active",
       endpointUrl: `${appUrl()}/api/skills-internal/repo-analyst`,
-      gatewaySlug: "agent-repo-analyst",
+      gatewaySlug: "jiagon-negotiator",
       pricePerCall: 0.003,
       expectedCallsPerSession: 50,
       executionKind: "sync",
@@ -128,7 +128,7 @@ The workflow is paid per successful run. Dojo evaluates the JSON response, clear
 
   const workflow = await prisma.workflow.create({
     data: {
-      slug: "agent-repo-analyst",
+      slug: "jiagon-negotiator",
       name: "Agent Repo Analyst",
       description: skill.description,
       category: skill.category,
