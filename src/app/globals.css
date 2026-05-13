@@ -1508,6 +1508,45 @@ html.dark body {
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
+.dojo-agent-action-map {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.dojo-agent-action-map div {
+  min-width: 0;
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  background: rgba(255,255,250,0.58);
+  padding: 12px;
+}
+.dojo-agent-action-map span,
+.dojo-agent-action-map strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dojo-agent-action-map span {
+  color: var(--dojo-red);
+  font-family: var(--font-mono), monospace;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.dojo-agent-action-map strong {
+  margin-top: 6px;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 850;
+}
+.dojo-agent-action-map p {
+  margin-top: 6px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.48;
+}
 .dojo-agent-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;
@@ -1745,7 +1784,7 @@ html.dark body {
 }
 .dojo-agent-actions {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1fr) auto auto;
   gap: 8px;
 }
 .dojo-agent-inspector {
@@ -1861,6 +1900,7 @@ html.dark body {
 .dark .dojo-agent-stat-grid div,
 .dark .dojo-agent-attributes div,
 .dark .dojo-agent-lineage div,
+.dark .dojo-agent-action-map div,
 .dark .dojo-agent-market-note,
 .dark .dojo-agent-loop {
   background: rgba(222,232,204,0.055);
@@ -1943,6 +1983,9 @@ html.dark body {
   .dojo-agent-proof-strip {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
+  .dojo-agent-action-map {
+    grid-template-columns: 1fr;
+  }
   .dojo-agent-grid {
     grid-template-columns: 1fr;
   }
@@ -1971,7 +2014,10 @@ html.dark body {
     flex-direction: column;
   }
   .dojo-agent-actions {
-    grid-template-columns: 1fr auto auto;
+    grid-template-columns: 1fr;
+  }
+  .dojo-agent-actions .dojo-icon-link {
+    display: none;
   }
   .dojo-agent-market-note {
     display: none;

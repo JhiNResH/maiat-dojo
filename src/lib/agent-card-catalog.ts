@@ -49,7 +49,8 @@ export type AgentServiceCard = {
   lineage: AgentServiceLineage;
   reputation: AgentServiceReputation;
   receipts: AgentServiceReceipt[];
-  hireHref: string;
+  runHref: string;
+  subscribeHref: string;
   forkHref: string;
   receiptsHref: string;
 };
@@ -113,8 +114,9 @@ export const AGENT_SERVICE_CARDS: AgentServiceCard[] = [
       { id: "rcpt_jgn_127", label: "Order claim settled", amountUsd: 42, status: "cleared" },
       { id: "rcpt_jgn_126", label: "Discount negotiated", amountUsd: 18, status: "cleared" },
     ],
-    hireHref: "/workflow/agent-repo-analyst/run",
-    forkHref: "/workflow/agent-repo-analyst/fork",
+    runHref: "/workflow/agent-repo-analyst/run?mode=run",
+    subscribeHref: "/workflow/agent-repo-analyst/run?mode=subscribe",
+    forkHref: "/workflow/agent-repo-analyst/fork?mode=license",
     receiptsHref: "/leaderboard",
   },
   {
@@ -176,8 +178,9 @@ export const AGENT_SERVICE_CARDS: AgentServiceCard[] = [
       { id: "rcpt_rap_045", label: "Remake approved", amountUsd: 12, status: "cleared" },
       { id: "rcpt_rap_044", label: "Refund avoided", amountUsd: 31, status: "cleared" },
     ],
-    hireHref: "/workflow/market-hotspot-brief/run",
-    forkHref: "/workflow/market-hotspot-brief/fork",
+    runHref: "/workflow/market-hotspot-brief/run?mode=run",
+    subscribeHref: "/workflow/market-hotspot-brief/run?mode=subscribe",
+    forkHref: "/workflow/market-hotspot-brief/fork?mode=license",
     receiptsHref: "/leaderboard",
   },
   {
@@ -239,8 +242,9 @@ export const AGENT_SERVICE_CARDS: AgentServiceCard[] = [
       { id: "rcpt_sld_072", label: "Claim approved", amountUsd: 118, status: "cleared" },
       { id: "rcpt_sld_071", label: "Settlement routed", amountUsd: 360, status: "cleared" },
     ],
-    hireHref: "/workflow/token-risk-check/run",
-    forkHref: "/workflow/token-risk-check/fork",
+    runHref: "/workflow/token-risk-check/run?mode=run",
+    subscribeHref: "/workflow/token-risk-check/run?mode=subscribe",
+    forkHref: "/workflow/token-risk-check/fork?mode=license",
     receiptsHref: "/leaderboard",
   },
 ];
@@ -250,4 +254,3 @@ export function agentCardStatusLabel(status: AgentServiceCard["status"]) {
   if (status === "merchant-fork") return "Merchant fork";
   return "Verified service";
 }
-

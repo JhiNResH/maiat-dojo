@@ -8,9 +8,10 @@ import {
   Boxes,
   CreditCard,
   GitFork,
-  Handshake,
   Layers3,
+  Play,
   ReceiptText,
+  Repeat2,
   Search,
   ShieldCheck,
   Sparkles,
@@ -44,6 +45,24 @@ function percent(value: number) {
 function pricingLine(agent: AgentServiceCard) {
   return `$${agent.pricing.monthlyUsd}/mo + $${agent.pricing.perClearedCaseUsd.toFixed(2)}/case`;
 }
+
+const MARKET_ACTIONS = [
+  {
+    label: "Run",
+    title: "One-time use",
+    body: "Execute once for a specific task, like analyzing one PR.",
+  },
+  {
+    label: "Subscribe",
+    title: "Ongoing service",
+    body: "Keep an agent service active for repeated work, like merchant order handling.",
+  },
+  {
+    label: "Fork / License",
+    title: "Make your own version",
+    body: "Create a merchant-specific agent while preserving lineage and royalties.",
+  },
+] as const;
 
 function AgentCard({ agent, featured = false }: { agent: AgentServiceCard; featured?: boolean }) {
   return (
@@ -122,11 +141,15 @@ function AgentCard({ agent, featured = false }: { agent: AgentServiceCard; featu
             <strong>{pricingLine(agent)}</strong>
           </div>
           <div className="dojo-agent-actions">
-            <Link href={agent.hireHref} className="dojo-action dojo-action-primary" title="Hire this agent service">
-              <Handshake className="h-3.5 w-3.5" />
-              Hire
+            <Link href={agent.runHref} className="dojo-action dojo-action-primary" title="Run once for a specific task">
+              <Play className="h-3.5 w-3.5 fill-current" />
+              Run
             </Link>
-            <Link href={agent.forkHref} className="dojo-icon-link" title="Fork this agent service template" aria-label={`Fork ${agent.name}`}>
+            <Link href={agent.subscribeHref} className="dojo-action" title="Subscribe to this ongoing agent service">
+              <Repeat2 className="h-3.5 w-3.5" />
+              Subscribe
+            </Link>
+            <Link href={agent.forkHref} className="dojo-icon-link" title="Fork or license this agent service" aria-label={`Fork or license ${agent.name}`}>
               <GitFork className="h-3.5 w-3.5" />
             </Link>
             <Link href={agent.receiptsHref} className="dojo-icon-link" title="View clearing receipts" aria-label={`View receipts for ${agent.name}`}>
@@ -159,6 +182,26 @@ function AgentRail({ selected }: { selected: AgentServiceCard }) {
           <span>Royalty</span>
           <strong>{(selected.pricing.royaltyBps / 100).toFixed(1)}%</strong>
         </div>
+      </div>
+      <div className="dojo-agent-deck">
+        <div className="dojo-agent-section-title">
+          <WalletCards className="h-3.5 w-3.5" />
+          Ways to use
+        </div>
+        <ul>
+          <li>
+            <span>Run once</span>
+            <strong>Task</strong>
+          </li>
+          <li>
+            <span>Subscribe</span>
+            <strong>Service</strong>
+          </li>
+          <li>
+            <span>Fork / License</span>
+            <strong>Lineage</strong>
+          </li>
+        </ul>
       </div>
       <div className="dojo-agent-deck">
         <div className="dojo-agent-section-title">
@@ -222,19 +265,23 @@ export function LandingHero(_props: LandingHeroProps) {
     <section className="dojo-marketplace dojo-agent-marketplace">
       <div className="dojo-agent-hero">
         <div className="dojo-agent-hero-copy">
-          <h1>Hire agent cards that clear real commerce work.</h1>
+          <h1>Run, subscribe, or license agent services.</h1>
           <p>
-            Dojo turns agents into service cards: hire Jiagon, fork it into a merchant-specific agent,
-            and let every paid order, refund, negotiation, and receipt build reputation.
+            Dojo turns agents into service cards. Run one task, subscribe to an ongoing agent service,
+            or fork and license a workflow into your own merchant-specific version.
           </p>
           <div className="dojo-agent-hero-actions">
-            <Link href={rootAgent.hireHref} className="dojo-action dojo-action-primary">
+            <Link href={rootAgent.runHref} className="dojo-action dojo-action-primary">
+              <Play className="h-3.5 w-3.5 fill-current" />
+              Run once
+            </Link>
+            <Link href={rootAgent.subscribeHref} className="dojo-action">
               <WalletCards className="h-3.5 w-3.5" />
-              Hire Jiagon
+              Subscribe Jiagon
             </Link>
             <Link href={rootAgent.forkHref} className="dojo-action">
               <GitFork className="h-3.5 w-3.5" />
-              Fork template
+              Fork / License
             </Link>
           </div>
         </div>
@@ -271,6 +318,16 @@ export function LandingHero(_props: LandingHeroProps) {
           <Sparkles className="h-3.5 w-3.5" />
           Tamagotchi-style agent services, receipt-backed reputation
         </div>
+      </div>
+
+      <div className="dojo-agent-action-map" aria-label="Marketplace action types">
+        {MARKET_ACTIONS.map((action) => (
+          <div key={action.label}>
+            <span>{action.label}</span>
+            <strong>{action.title}</strong>
+            <p>{action.body}</p>
+          </div>
+        ))}
       </div>
 
       <div id="agents" className="dojo-filter-row">
@@ -319,11 +376,11 @@ export function LandingHero(_props: LandingHeroProps) {
 
       <div className="dojo-agent-loop">
         <BadgeCheck className="h-4 w-4" />
-        <span>Buyer hires agent</span>
+        <span>Buyer runs or subscribes</span>
         <ArrowUpRight className="h-3.5 w-3.5" />
         <span>Agent clears work</span>
         <ArrowUpRight className="h-3.5 w-3.5" />
-        <span>Receipt updates reputation, royalty, and credit</span>
+        <span>Receipt updates reputation, license royalties, and credit</span>
       </div>
     </section>
   );
