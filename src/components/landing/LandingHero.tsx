@@ -14,7 +14,9 @@ import {
 } from "lucide-react";
 import { DojoPetAvatar } from "@/components/DojoPetAvatar";
 import {
+  AGENT_FAMILIES,
   AGENT_SERVICE_CARDS,
+  agentProofLevelLabel,
   agentCardStatusLabel,
   type AgentServiceCard,
 } from "@/lib/agent-card-catalog";
@@ -32,7 +34,7 @@ function AgentCard({ agent, featured = false }: { agent: AgentServiceCard; featu
   return (
     <div className={`dojo-agent-card ${featured ? "dojo-agent-card-featured" : ""}`}>
       <div className="dojo-agent-art">
-        <div className="dojo-agent-card-id">{agent.lineage.generation === 0 ? "GENESIS" : `GEN ${agent.lineage.generation}`}</div>
+        <div className="dojo-agent-card-id">{agent.nfaId}</div>
         <div className="dojo-agent-pet-frame">
           <DojoPetAvatar
             name={agent.name}
@@ -48,23 +50,24 @@ function AgentCard({ agent, featured = false }: { agent: AgentServiceCard; featu
           />
         </div>
         <div className="dojo-agent-rail">
-          <span>{agent.collection}</span>
-          <span>{agentCardStatusLabel(agent.status)}</span>
+          <span>{agent.familyCode} family</span>
+          <span>{agentProofLevelLabel(agent.proofLevel)} proof</span>
         </div>
       </div>
 
       <div className="dojo-agent-body">
         <div className="dojo-agent-title-row">
           <div className="min-w-0">
-            <p className="dojo-agent-collection">{agent.archetype}</p>
+            <p className="dojo-agent-collection">{agent.collection}</p>
             <h3>{agent.name}</h3>
           </div>
         </div>
 
         <p className="dojo-agent-role">{agent.role}</p>
         <div className="dojo-agent-card-meta" aria-label={`${agent.name} quick stats`}>
-          <span>{agent.category}</span>
-          <span>{agentCardStatusLabel(agent.status)}</span>
+          <span>{agent.familyName}</span>
+          <span>CR {agent.reputation.creditScore}</span>
+          <span>{percent(agent.reputation.successRate)} success</span>
         </div>
         <Link
           href={agent.detailHref}
@@ -97,9 +100,24 @@ function AgentRail({ selected }: { selected: AgentServiceCard }) {
           />
         </div>
         <div className="dojo-agent-dex-copy">
-          <span>{selected.archetype}</span>
+          <span>{selected.familyCode} family · {selected.nfaId}</span>
           <strong>{selected.name}</strong>
           <p>{selected.role}</p>
+        </div>
+      </div>
+
+      <div className="dojo-agent-nfa-strip">
+        <div>
+          <span>AgentID</span>
+          <strong>{selected.agentId}</strong>
+        </div>
+        <div>
+          <span>Owner</span>
+          <strong>{selected.ownerIdentity}</strong>
+        </div>
+        <div>
+          <span>Proof</span>
+          <strong>{agentProofLevelLabel(selected.proofLevel)}</strong>
         </div>
       </div>
 
@@ -136,7 +154,7 @@ function AgentRail({ selected }: { selected: AgentServiceCard }) {
       <div className="dojo-agent-dex-section dojo-agent-dex-section-primary">
         <div className="dojo-agent-section-title">
           <WalletCards className="h-3.5 w-3.5" />
-          Moves
+          Abilities
         </div>
         <div className="dojo-agent-move-list">
           {selected.abilities.map((ability, index) => (
@@ -151,7 +169,7 @@ function AgentRail({ selected }: { selected: AgentServiceCard }) {
       <div className="dojo-agent-dex-section">
         <div className="dojo-agent-section-title">
           <Layers3 className="h-3.5 w-3.5" />
-          Workflow deck
+          Service deck
         </div>
         <ol className="dojo-agent-quest-list">
           {selected.workflowDeck.map((step) => (
@@ -192,7 +210,7 @@ function AgentRail({ selected }: { selected: AgentServiceCard }) {
 
       <div className="dojo-agent-dex-note">
         <ShieldCheck className="h-3.5 w-3.5" />
-        <span>{(selected.pricing.royaltyBps / 100).toFixed(1)}% lineage royalty. Every cleared run feeds this agent reputation.</span>
+        <span>{selected.proofSummary} {(selected.pricing.royaltyBps / 100).toFixed(1)}% lineage royalty.</span>
       </div>
     </aside>
   );
@@ -203,20 +221,22 @@ export function LandingHero(_props: LandingHeroProps) {
   const [filter, setFilter] = useState("all");
   const [selectedSlug, setSelectedSlug] = useState(AGENT_SERVICE_CARDS[0]?.slug ?? "");
 
-  const categories = useMemo(
-    () => ["all", ...Array.from(new Set(AGENT_SERVICE_CARDS.map((agent) => agent.category)))],
-    [],
-  );
+  const families = useMemo(() => ["all", ...AGENT_FAMILIES.map((family) => family.code)], []);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return AGENT_SERVICE_CARDS.filter((agent) => {
-      const matchesFilter = filter === "all" || agent.category === filter;
+      const matchesFilter = filter === "all" || agent.familyCode === filter;
       const matchesQuery =
         !q ||
         agent.name.toLowerCase().includes(q) ||
         agent.role.toLowerCase().includes(q) ||
         agent.summary.toLowerCase().includes(q) ||
+        agent.familyCode.toLowerCase().includes(q) ||
+        agent.familyName.toLowerCase().includes(q) ||
+        agent.ownerIdentity.toLowerCase().includes(q) ||
+        agent.agentId.toLowerCase().includes(q) ||
+        agent.proofSummary.toLowerCase().includes(q) ||
         agent.abilities.some((ability) => ability.toLowerCase().includes(q));
       return matchesFilter && matchesQuery;
     });
@@ -228,18 +248,19 @@ export function LandingHero(_props: LandingHeroProps) {
     <section className="dojo-marketplace dojo-agent-marketplace">
       <div className="dojo-agent-hero">
         <div className="dojo-agent-hero-copy">
-          <h1>Choose an agent. Open its deck.</h1>
+          <h1>Hire non-fungible agents.</h1>
           <p>
-            Dojo lists agent cards like a living marketplace. Start with the character,
-            then open the card to see its abilities, workflow decks, receipts, and lineage.
+            Dojo is an NFA marketplace: each agent card carries identity,
+            abilities, service endpoints, proof history, receipts, and fork lineage.
+            Start with the family, then open the card before you run, subscribe, or license it.
           </p>
         </div>
       </div>
 
       <div className="dojo-market-subhead">
         <div>
-          <h3>Agent cards</h3>
-          <p>{AGENT_SERVICE_CARDS.length} listed agents</p>
+          <h3>NFA marketplace</h3>
+          <p>{AGENT_SERVICE_CARDS.length} listed agents · {AGENT_FAMILIES.length} families</p>
         </div>
       </div>
 
@@ -250,17 +271,22 @@ export function LandingHero(_props: LandingHeroProps) {
             type="text"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search agents, abilities, merchants..."
+            placeholder="Search agents, families, abilities..."
             className="dojo-input pl-9"
           />
         </div>
         <div className="flex flex-1 flex-wrap items-center gap-2">
-          {categories.map((cat) => (
+          {families.map((cat) => (
             <button
               key={cat}
               type="button"
               onClick={() => setFilter(cat)}
               className={`dojo-filter ${filter === cat ? "dojo-filter-active" : ""}`}
+              title={
+                cat === "all"
+                  ? "All NFA families"
+                  : AGENT_FAMILIES.find((family) => family.code === cat)?.role
+              }
             >
               {cat}
             </button>
@@ -271,7 +297,7 @@ export function LandingHero(_props: LandingHeroProps) {
       <div className="dojo-agent-layout">
         <div className="dojo-agent-grid">
           {filtered.length === 0 ? (
-            <div className="dojo-empty">No agent cards found. Try another merchant, ability, or clearing use case.</div>
+            <div className="dojo-empty">No NFA cards found. Try another family, ability, or clearing use case.</div>
           ) : (
             filtered.map((agent, index) => (
               <div

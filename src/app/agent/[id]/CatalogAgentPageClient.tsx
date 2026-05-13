@@ -17,6 +17,7 @@ import { Footer } from "@/components/landing/Footer";
 import { Navbar } from "@/components/landing/Navbar";
 import { DojoPetAvatar } from "@/components/DojoPetAvatar";
 import {
+  agentProofLevelLabel,
   agentCardStatusLabel,
   type AgentServiceCard,
 } from "@/lib/agent-card-catalog";
@@ -47,7 +48,7 @@ export function CatalogAgentPageClient({ agent }: { agent: AgentServiceCard }) {
       <main className="dojo-page-shell">
         <Link href="/#agents" className="dojo-back-link">
           <ArrowLeft className="w-3 h-3" />
-          Back to agent cards
+          Back to NFA marketplace
         </Link>
 
         <section className="dojo-agent-profile">
@@ -68,16 +69,37 @@ export function CatalogAgentPageClient({ agent }: { agent: AgentServiceCard }) {
             </div>
 
             <div className="dojo-agent-profile-copy">
-              <span>{agent.collection}</span>
+              <span>{agent.familyCode} family · {agent.nfaId}</span>
               <h1>{agent.name}</h1>
               <p>{agent.summary}</p>
               <div className="dojo-agent-card-meta">
-                <span>{agent.category}</span>
-                <span>{agentCardStatusLabel(agent.status)}</span>
-                <span>{agent.archetype}</span>
+                <span>{agent.familyName}</span>
+                <span>{agentProofLevelLabel(agent.proofLevel)} proof</span>
+                <span>{agent.ownerIdentity}</span>
               </div>
             </div>
           </div>
+
+          <section className="dojo-agent-profile-panel">
+            <div className="dojo-agent-section-title">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              NFA identity
+            </div>
+            <div className="dojo-agent-nfa-strip dojo-agent-nfa-strip-wide">
+              <div>
+                <span>AgentID</span>
+                <strong>{agent.agentId}</strong>
+              </div>
+              <div>
+                <span>Family role</span>
+                <strong>{agent.familyRole}</strong>
+              </div>
+              <div>
+                <span>Proof summary</span>
+                <strong>{agent.proofSummary}</strong>
+              </div>
+            </div>
+          </section>
 
           <div className="dojo-agent-profile-stats" aria-label={`${agent.name} agent stats`}>
             <div>
@@ -102,7 +124,7 @@ export function CatalogAgentPageClient({ agent }: { agent: AgentServiceCard }) {
             <div>
               <div className="dojo-agent-section-title">
                 <Play className="h-3.5 w-3.5 fill-current" />
-                Train this agent
+                Hire this NFA
               </div>
               <p>{actionCopy(mode)}</p>
             </div>
@@ -141,7 +163,7 @@ export function CatalogAgentPageClient({ agent }: { agent: AgentServiceCard }) {
             <section className="dojo-agent-profile-panel">
               <div className="dojo-agent-section-title">
                 <Layers3 className="h-3.5 w-3.5" />
-                Workflow deck
+                Service deck
               </div>
               <ol className="dojo-agent-quest-list">
                 {agent.workflowDeck.map((step) => (
@@ -153,7 +175,7 @@ export function CatalogAgentPageClient({ agent }: { agent: AgentServiceCard }) {
             <section className="dojo-agent-profile-panel">
               <div className="dojo-agent-section-title">
                 <ReceiptText className="h-3.5 w-3.5" />
-                Receipts
+                Proof receipts
               </div>
               <div className="dojo-agent-receipt-stamps">
                 {agent.receipts.map((receipt) => (
@@ -185,7 +207,7 @@ export function CatalogAgentPageClient({ agent }: { agent: AgentServiceCard }) {
                 </div>
               </div>
               <p className="dojo-agent-profile-note">
-                {(agent.pricing.royaltyBps / 100).toFixed(1)}% lineage royalty. Every cleared run feeds this agent reputation.
+                {agent.archetype}. {agentCardStatusLabel(agent.status)}. {(agent.pricing.royaltyBps / 100).toFixed(1)}% lineage royalty. Every cleared run feeds this NFA reputation.
               </p>
             </section>
           </div>
