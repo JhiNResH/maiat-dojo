@@ -1,31 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { ArrowLeft, GitFork, Sparkles, Trophy, TrendingUp, Users } from 'lucide-react';
-import { Navbar } from '@/components/landing/Navbar';
-import { Footer } from '@/components/landing/Footer';
+import { ArrowLeft, GitFork, ReceiptText, ShieldCheck, Trophy } from 'lucide-react';
 import { BackgroundEffect } from '@/components/landing/BackgroundEffect';
+import { Footer } from '@/components/landing/Footer';
+import { Navbar } from '@/components/landing/Navbar';
 import { DojoSpirit } from '@/components/DojoSpirit';
-import { DojoPetAvatar } from '@/components/DojoPetAvatar';
 import type { WorkflowSpiritProfile } from '@/lib/workflow-spirit';
 
-type Skill = {
-  id: string;
-  name: string;
-  icon: string;
-  category: string;
-  installs: number;
-  rating: number;
-  price: number;
-  creator: {
-    id: string;
-    displayName: string | null;
-  };
-};
-
-type SpiritRank = {
+type AgentRank = {
   id: string;
   slug: string;
   name: string;
@@ -33,7 +18,6 @@ type SpiritRank = {
   runs: number;
   forks: number;
   trust_score: number;
-  price_per_run: number;
   royalty_bps: number;
   creator: {
     id: string;
@@ -43,63 +27,57 @@ type SpiritRank = {
   spirit: WorkflowSpiritProfile;
 };
 
-type Creator = {
-  id: string;
-  displayName: string | null;
-  avatarUrl: string | null;
-  totalSales: number;
-  totalRevenue: number;
-  avgRating: number;
-  skillCount: number;
-};
+function formatPassRate(value: number) {
+  const normalized = value > 1 ? value : value * 100;
+  return `${Math.round(Math.max(0, Math.min(100, normalized)))}%`;
+}
 
 export default function LeaderboardPage() {
-  const [activeTab, setActiveTab] = useState<'spirits' | 'skills' | 'creators'>('spirits');
-  const [spirits, setSpirits] = useState<SpiritRank[]>([]);
-  const [skills, setSkills] = useState<Skill[]>([]);
-  const [creators, setCreators] = useState<Creator[]>([]);
+  const [agents, setAgents] = useState<AgentRank[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
+    let cancelled = false;
+
+    async function fetchRankings() {
       setLoading(true);
+      setError(null);
       try {
-        if (activeTab === 'spirits') {
-          const res = await fetch('/api/leaderboard?type=spirits&limit=50');
-          const data = await res.json();
-          setSpirits(data.spirits || []);
-        } else if (activeTab === 'skills') {
-          const res = await fetch('/api/skills?sort=popular&limit=50');
-          const data = await res.json();
-          setSkills(data.skills || []);
-        } else {
-          const res = await fetch('/api/leaderboard?type=creators&limit=50');
-          const data = await res.json();
-          setCreators(data.creators || []);
+        const res = await fetch('/api/leaderboard?type=spirits&limit=50');
+        if (!res.ok) {
+          throw new Error(`Leaderboard ${res.status}`);
+        }
+        const data = await res.json();
+        if (!cancelled) {
+          setAgents(data.spirits || []);
         }
       } catch (err) {
-        console.error('Failed to fetch leaderboard data:', err);
+        console.error('Failed to fetch agent rankings:', err);
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Failed to load rankings');
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
-      setLoading(false);
+    }
+
+    fetchRankings();
+
+    return () => {
+      cancelled = true;
     };
-    fetchData();
-  }, [activeTab]);
+  }, []);
 
   const glassCard = 'border border-[var(--border)] bg-[var(--card-bg)]';
-
   const glassStyle = {
     backdropFilter: 'blur(40px) saturate(180%)',
     WebkitBackdropFilter: 'blur(40px) saturate(180%)',
   } as const;
-
   const headerCellClass = 'text-[9px] font-bold uppercase tracking-[0.2em] text-[var(--text-muted)]';
-
   const rowDivider = 'border-[var(--border)]';
-
-  const formatPassRate = (value: number) => {
-    const normalized = value > 1 ? value : value * 100;
-    return `${Math.round(Math.max(0, Math.min(100, normalized)))}%`;
-  };
 
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors duration-700">
@@ -108,307 +86,165 @@ export default function LeaderboardPage() {
 
       <main className="dojo-page-shell">
         <div>
-          <Link
-            href="/"
-            className="dojo-back-link"
-          >
-            <ArrowLeft className="w-3 h-3" />
+          <Link href="/" className="dojo-back-link">
+            <ArrowLeft className="h-3 w-3" />
             Back to marketplace
           </Link>
 
-          {/* Header */}
           <header className="dojo-page-header">
             <div className="dojo-page-kicker">
-              <Trophy className="w-3 h-3" />
-              <span>Leaderboard</span>
+              <Trophy className="h-3 w-3" />
+              <span>Agent rankings</span>
             </div>
-            <h1 className="dojo-page-title">
-              Spirits earn rank.
-            </h1>
+            <h1 className="dojo-page-title">The strongest agents in the Dojo.</h1>
             <p className="dojo-page-subtitle">
-              Workflow spirits rank by cleared receipts, evaluator pass rate, fork lineage,
-              and creator revenue share.
+              Ranked by cleared receipts, evaluator pass rate, fork lineage, and revenue share.
+              Open any agent to train it, license it, or trace its work history.
             </p>
           </header>
 
-          {/* Tabs */}
-          <div
-            className={`inline-flex items-center gap-1 p-1 rounded-full border mb-8 ${glassCard}`}
-            style={glassStyle}
-          >
-            <button
-              onClick={() => setActiveTab('spirits')}
-              className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-[10px] font-bold uppercase tracking-[0.15em] transition-all ${
-                activeTab === 'spirits'
-                  ? 'bg-[var(--text)] text-[var(--bg)]'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text)]'
-              }`}
-            >
-              <Sparkles className="w-3 h-3" />
-              Spirits
-            </button>
-            <button
-              onClick={() => setActiveTab('skills')}
-              className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-[10px] font-bold uppercase tracking-[0.15em] transition-all ${
-                activeTab === 'skills'
-                  ? 'bg-[var(--text)] text-[var(--bg)]'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text)]'
-              }`}
-            >
-              <TrendingUp className="w-3 h-3" />
-              Skills
-            </button>
-            <button
-              onClick={() => setActiveTab('creators')}
-              className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-[10px] font-bold uppercase tracking-[0.15em] transition-all ${
-                activeTab === 'creators'
-                  ? 'bg-[var(--text)] text-[var(--bg)]'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text)]'
-              }`}
-            >
-              <Users className="w-3 h-3" />
-              Creators
-            </button>
+          <div className="mb-8 grid gap-3 md:grid-cols-3">
+            <SignalCard icon={ReceiptText} label="Receipts" value="Cleared work" />
+            <SignalCard icon={ShieldCheck} label="Success" value="Evaluator pass" />
+            <SignalCard icon={GitFork} label="Lineage" value="Forks + royalty" />
           </div>
 
-          {/* Table card */}
           <motion.section
-            key={activeTab}
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
-            className={`rounded-[8px] p-2 border overflow-hidden ${glassCard}`}
+            className={`overflow-hidden rounded-[8px] border p-2 ${glassCard}`}
             style={glassStyle}
           >
             {loading ? (
-              <div className="text-center py-16">
-                <p className="font-mono text-xs uppercase tracking-[0.2em] animate-pulse text-[var(--text-muted)]">
-                  Loading rankings…
+              <div className="py-16 text-center">
+                <p className="animate-pulse font-mono text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">
+                  Loading agent rankings...
                 </p>
               </div>
-            ) : activeTab === 'spirits' ? (
-              <div>
-                <div className={`hidden md:grid grid-cols-12 gap-4 px-6 py-4 border-b ${rowDivider}`}>
-                  <div className={`col-span-1 text-right ${headerCellClass}`}>Rank</div>
-                  <div className={`col-span-4 ${headerCellClass}`}>Dojo Spirit</div>
-                  <div className={`col-span-2 ${headerCellClass}`}>Category</div>
-                  <div className={`col-span-2 text-right ${headerCellClass}`}>Receipts</div>
-                  <div className={`col-span-1 text-right ${headerCellClass}`}>Pass</div>
-                  <div className={`col-span-2 text-right ${headerCellClass}`}>Lineage</div>
-                </div>
-
-                {spirits.length === 0 ? (
-                  <p className="text-center py-12 text-sm italic text-[var(--text-muted)]">
-                    No workflow spirits found.
-                  </p>
-                ) : (
-                  spirits.map((workflow, index) => (
-                    <Link
-                      key={workflow.id}
-                      href={`/workflow/${workflow.slug}/run`}
-                      className={`grid grid-cols-1 md:grid-cols-12 gap-4 px-4 md:px-6 py-4 border-b last:border-b-0 transition-colors items-center group ${rowDivider} hover:bg-[var(--bg-secondary)]`}
-                    >
-                      <div className="md:col-span-1 md:text-right">
-                        <span
-                          className={`font-mono text-base font-bold tabular-nums ${
-                            index < 3 ? 'text-[var(--signal-deep)]' : 'text-[var(--text-muted)]'
-                          }`}
-                        >
-                          {String(index + 1).padStart(2, '0')}
-                        </span>
-                      </div>
-                      <div className="md:col-span-4 min-w-0">
-                        <DojoSpirit
-                          profile={workflow.spirit}
-                          name={workflow.name}
-                          compact
-                          status={workflow.spirit.lineageRevenue.label}
-                        />
-                        <div className="mt-2 font-mono text-[10px] truncate text-[var(--text-muted)]">
-                          by {workflow.creator?.displayName || 'Anonymous'} · {workflow.spirit.profileId}
-                        </div>
-                      </div>
-                      <div className="md:col-span-2">
-                        <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--text-muted)]">
-                          {workflow.category || 'workflow'}
-                        </span>
-                      </div>
-                      <div className="md:col-span-2 md:text-right">
-                        <span className="font-mono text-sm font-bold tabular-nums text-[var(--text)]">
-                          {workflow.runs.toLocaleString()}
-                        </span>
-                        <div className="font-mono text-[10px] text-[var(--text-muted)]">
-                          feeding events
-                        </div>
-                      </div>
-                      <div className="md:col-span-1 md:text-right">
-                        <span className="font-mono text-sm tabular-nums text-[var(--text-secondary)]">
-                          {formatPassRate(workflow.trust_score)}
-                        </span>
-                      </div>
-                      <div className="md:col-span-2 md:text-right">
-                        <span className="inline-flex items-center gap-1 font-mono text-sm font-bold tabular-nums text-[var(--text)]">
-                          <GitFork className="h-3 w-3" />
-                          {workflow.forks}
-                        </span>
-                        <div className="font-mono text-[10px] text-[var(--text-muted)]">
-                          {(workflow.royalty_bps / 100).toFixed(1)}% revenue
-                        </div>
-                      </div>
-                    </Link>
-                  ))
-                )}
+            ) : error ? (
+              <div className="py-16 text-center">
+                <p className="text-sm text-[var(--text-muted)]">{error}</p>
               </div>
-            ) : activeTab === 'skills' ? (
-              <div>
-                <div className={`grid grid-cols-12 gap-4 px-6 py-4 border-b ${rowDivider}`}>
-                  <div className={`col-span-1 text-right ${headerCellClass}`}>Rank</div>
-                  <div className={`col-span-4 ${headerCellClass}`}>Skill</div>
-                  <div className={`col-span-2 ${headerCellClass}`}>Category</div>
-                  <div className={`col-span-2 text-right ${headerCellClass}`}>Installs</div>
-                  <div className={`col-span-1 text-right ${headerCellClass}`}>Rating</div>
-                  <div className={`col-span-2 text-right ${headerCellClass}`}>Price</div>
-                </div>
-
-                {skills.length === 0 ? (
-                  <p className="text-center py-12 text-sm italic text-[var(--text-muted)]">
-                    No skills found.
-                  </p>
-                ) : (
-                  skills.map((skill, index) => (
-                    <Link
-                      key={skill.id}
-                      href={`/skill/${skill.id}`}
-                      className={`grid grid-cols-12 gap-4 px-6 py-4 border-b last:border-b-0 transition-colors items-center group ${rowDivider} hover:bg-[var(--bg-secondary)]`}
-                    >
-                      <div className="col-span-1 text-right">
-                        <span
-                          className={`font-mono text-base font-bold tabular-nums ${
-                            index < 3 ? 'text-[var(--text)]' : 'text-[var(--text-muted)]'
-                          }`}
-                        >
-                          {String(index + 1).padStart(2, '0')}
-                        </span>
-                      </div>
-                      <div className="col-span-4 flex items-center gap-3 min-w-0">
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-visible rounded-[7px] border border-[var(--card-border)] bg-[var(--bg-secondary)]">
-                          <DojoPetAvatar
-                            name={skill.name}
-                            workflowId={skill.id}
-                            slug={skill.id}
-                            category={skill.category}
-                            creatorId={skill.creator?.id ?? skill.creator?.displayName ?? null}
-                            receipts={skill.installs}
-                            passRate={skill.rating / 5}
-                            size="sm"
-                          />
-                        </span>
-                        <div className="min-w-0">
-                          <div className="font-sans font-semibold text-sm truncate text-[var(--text)]">
-                            {skill.name}
-                          </div>
-                          <div className="font-mono text-[10px] truncate text-[var(--text-muted)]">
-                            by {skill.creator?.displayName || 'Unknown'}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="col-span-2">
-                        <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--text-muted)]">
-                          {skill.category}
-                        </span>
-                      </div>
-                      <div className="col-span-2 text-right">
-                        <span className="font-mono text-sm font-bold tabular-nums text-[var(--text)]">
-                          {skill.installs.toLocaleString()}
-                        </span>
-                      </div>
-                      <div className="col-span-1 text-right">
-                        <span className="font-mono text-sm tabular-nums text-[var(--text-secondary)]">
-                          {skill.rating.toFixed(1)}
-                        </span>
-                      </div>
-                      <div className="col-span-2 text-right">
-                        <span className="font-mono text-sm font-bold tabular-nums text-[var(--text)]">
-                          {skill.price === 0 ? 'FREE' : `$${skill.price.toFixed(2)}`}
-                        </span>
-                      </div>
-                    </Link>
-                  ))
-                )}
+            ) : agents.length === 0 ? (
+              <div className="py-16 text-center">
+                <p className="text-sm italic text-[var(--text-muted)]">
+                  No ranked agents yet.
+                </p>
               </div>
             ) : (
               <div>
-                <div className={`grid grid-cols-12 gap-4 px-6 py-4 border-b ${rowDivider}`}>
+                <div className={`hidden grid-cols-12 gap-4 border-b px-6 py-4 md:grid ${rowDivider}`}>
                   <div className={`col-span-1 text-right ${headerCellClass}`}>Rank</div>
-                  <div className={`col-span-4 ${headerCellClass}`}>Creator</div>
-                  <div className={`col-span-2 text-right ${headerCellClass}`}>Sales</div>
-                  <div className={`col-span-2 text-right ${headerCellClass}`}>Revenue</div>
-                  <div className={`col-span-1 text-right ${headerCellClass}`}>Rating</div>
-                  <div className={`col-span-2 text-right ${headerCellClass}`}>Skills</div>
+                  <div className={`col-span-5 ${headerCellClass}`}>Agent</div>
+                  <div className={`col-span-2 text-right ${headerCellClass}`}>Receipts</div>
+                  <div className={`col-span-2 text-right ${headerCellClass}`}>Success</div>
+                  <div className={`col-span-2 text-right ${headerCellClass}`}>Lineage</div>
                 </div>
 
-                {creators.length === 0 ? (
-                  <p className="text-center py-12 text-sm italic text-[var(--text-muted)]">
-                    No creators found.
-                  </p>
-                ) : (
-                  creators.map((creator, index) => (
-                    <Link
-                      key={creator.id}
-                      href={`/creator/${creator.id}`}
-                      className={`grid grid-cols-12 gap-4 px-6 py-4 border-b last:border-b-0 transition-colors items-center group ${rowDivider} hover:bg-[var(--bg-secondary)]`}
-                    >
-                      <div className="col-span-1 text-right">
-                        <span
-                          className={`font-mono text-base font-bold tabular-nums ${
-                            index < 3 ? 'text-[var(--text)]' : 'text-[var(--text-muted)]'
-                          }`}
-                        >
-                          {String(index + 1).padStart(2, '0')}
-                        </span>
+                {agents.map((agent, index) => (
+                  <Link
+                    key={agent.id}
+                    href={`/workflow/${agent.slug}/run`}
+                    className={`grid grid-cols-1 items-center gap-4 border-b px-4 py-4 transition-colors last:border-b-0 md:grid-cols-12 md:px-6 ${rowDivider} hover:bg-[var(--bg-secondary)]`}
+                  >
+                    <div className="md:col-span-1 md:text-right">
+                      <span
+                        className={`font-mono text-base font-bold tabular-nums ${
+                          index < 3 ? 'text-[var(--signal-deep)]' : 'text-[var(--text-muted)]'
+                        }`}
+                      >
+                        {String(index + 1).padStart(2, '0')}
+                      </span>
+                    </div>
+
+                    <div className="min-w-0 md:col-span-5">
+                      <DojoSpirit
+                        profile={agent.spirit}
+                        name={agent.name}
+                        compact
+                        status={agent.spirit.lineageRevenue.label}
+                      />
+                      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 font-mono text-[10px] text-[var(--text-muted)]">
+                        <span>by {agent.creator?.displayName || 'Anonymous'}</span>
+                        <span>{agent.category || 'agent service'}</span>
+                        <span>{agent.spirit.profileId}</span>
                       </div>
-                      <div className="col-span-4 flex items-center gap-3 min-w-0">
-                        <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0 bg-[var(--bg-secondary)] text-[var(--text)]">
-                          {(creator.displayName || '?')[0].toUpperCase()}
-                        </div>
-                        <div className="font-sans font-semibold text-sm truncate text-[var(--text)]">
-                          {creator.displayName || 'Anonymous'}
-                        </div>
+                    </div>
+
+                    <MetricCell label="Receipts" value={agent.runs.toLocaleString()} sublabel="cleared work" />
+                    <MetricCell label="Success" value={formatPassRate(agent.trust_score)} sublabel="pass rate" />
+
+                    <div className="md:col-span-2 md:text-right">
+                      <span className="inline-flex items-center gap-1 font-mono text-sm font-bold tabular-nums text-[var(--text)]">
+                        <GitFork className="h-3 w-3" />
+                        {agent.forks}
+                      </span>
+                      <div className="font-mono text-[10px] text-[var(--text-muted)]">
+                        {(agent.royalty_bps / 100).toFixed(1)}% royalty
                       </div>
-                      <div className="col-span-2 text-right">
-                        <span className="font-mono text-sm font-bold tabular-nums text-[var(--text)]">
-                          {creator.totalSales.toLocaleString()}
-                        </span>
-                      </div>
-                      <div className="col-span-2 text-right">
-                        <span className="font-mono text-sm font-bold tabular-nums text-[var(--text)]">
-                          ${creator.totalRevenue.toFixed(2)}
-                        </span>
-                      </div>
-                      <div className="col-span-1 text-right">
-                        <span className="font-mono text-sm tabular-nums text-[var(--text-secondary)]">
-                          {creator.avgRating.toFixed(1)}
-                        </span>
-                      </div>
-                      <div className="col-span-2 text-right">
-                        <span className="font-mono text-sm tabular-nums text-[var(--text-muted)]">
-                          {creator.skillCount}
-                        </span>
-                      </div>
-                    </Link>
-                  ))
-                )}
+                    </div>
+                  </Link>
+                ))}
               </div>
             )}
           </motion.section>
 
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-center mt-6 text-[var(--text-muted)]">
-            Rankings updated in real time · No pay-to-play
+          <p className="mt-6 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-muted)]">
+            Rankings update from receipts, not paid placement
           </p>
         </div>
       </main>
 
       <Footer />
+    </div>
+  );
+}
+
+function SignalCard({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-[8px] border border-[var(--border)] bg-[var(--card-bg)] p-4">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <Icon className="h-4 w-4 text-[var(--text-muted)]" />
+        <span className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-[var(--text-muted)]">
+          {label}
+        </span>
+      </div>
+      <div className="font-mono text-sm font-bold uppercase tracking-[0.12em] text-[var(--text)]">
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function MetricCell({
+  label,
+  value,
+  sublabel,
+}: {
+  label: string;
+  value: string;
+  sublabel: string;
+}) {
+  return (
+    <div className="md:col-span-2 md:text-right">
+      <div className="md:hidden font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-[var(--text-muted)]">
+        {label}
+      </div>
+      <span className="font-mono text-sm font-bold tabular-nums text-[var(--text)]">
+        {value}
+      </span>
+      <div className="font-mono text-[10px] text-[var(--text-muted)]">
+        {sublabel}
+      </div>
     </div>
   );
 }
