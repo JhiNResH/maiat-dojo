@@ -1762,7 +1762,17 @@ html.dark body {
   flex-wrap: wrap;
   gap: 6px;
 }
-.dojo-agent-ability-row span {
+.dojo-agent-card-section > span {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--text-muted);
+  font-family: var(--font-mono), monospace;
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.dojo-agent-ability-row strong {
   border: 1px solid var(--card-border);
   border-radius: 5px;
   background: var(--signal-soft);
@@ -1905,7 +1915,7 @@ html.dark body {
 .dark .dojo-agent-loop {
   background: rgba(222,232,204,0.055);
 }
-.dark .dojo-agent-ability-row span {
+.dark .dojo-agent-ability-row strong {
   color: var(--signal);
 }
 .dojo-mini-panel {

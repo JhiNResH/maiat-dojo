@@ -9,6 +9,7 @@ export type AgentServicePricing = {
 export type AgentServiceLineage = {
   root: string;
   parent?: string;
+  forks?: string[];
   generation: number;
   royaltyTo?: string;
 };
@@ -44,6 +45,7 @@ export type AgentServiceCard = {
   integrations: string[];
   abilities: string[];
   workflowDeck: string[];
+  receiptKinds: string[];
   attributes: Array<{ label: string; value: string }>;
   pricing: AgentServicePricing;
   lineage: AgentServiceLineage;
@@ -62,7 +64,7 @@ export const AGENT_SERVICE_CARDS: AgentServiceCard[] = [
     name: "Jiagon Negotiator",
     collection: "Jiagon Commerce Agents",
     role: "Negotiator for merchant orders, refunds, and receipt-backed credit.",
-    archetype: "Root service template",
+    archetype: "Agent Card",
     summary:
       "Handles paid commerce cases for merchants: verify the order, negotiate refund or discount, clear the settlement, and turn every receipt into reputation.",
     status: "root-template",
@@ -71,18 +73,21 @@ export const AGENT_SERVICE_CARDS: AgentServiceCard[] = [
     paymentRails: ["BNB", "MoonPay", "USDC"],
     integrations: ["MoonPay Commerce", "Telegram", "Merchant receipts"],
     abilities: [
-      "Verify receipt",
-      "Negotiate refund",
-      "Apply merchant policy",
-      "Issue clearing receipt",
+      "Quote order",
+      "Negotiate issue/refund",
+      "Issue receipt",
       "Build credit signal",
     ],
     workflowDeck: [
-      "Payment proof intake",
-      "Merchant policy check",
-      "Offer negotiation",
-      "Settlement approval",
-      "Receipt + reputation update",
+      "Raposa order handling",
+      "SOLYD shipping quote",
+      "Receipt claim",
+      "Refund negotiation",
+    ],
+    receiptKinds: [
+      "Cleared orders",
+      "Fulfilled claims",
+      "Refunds resolved",
     ],
     attributes: [
       { label: "Class", value: "Negotiator" },
@@ -98,7 +103,8 @@ export const AGENT_SERVICE_CARDS: AgentServiceCard[] = [
       royaltyBps: 750,
     },
     lineage: {
-      root: "Jiagon Negotiator",
+      root: "Jiagon",
+      forks: ["Raposa Agent", "SOLYD Agent"],
       generation: 0,
     },
     reputation: {
@@ -125,7 +131,7 @@ export const AGENT_SERVICE_CARDS: AgentServiceCard[] = [
     name: "Raposa Coffee Agent",
     collection: "Cafe Commerce Forks",
     role: "Coffee-shop order issue agent forked from Jiagon.",
-    archetype: "Merchant fork",
+    archetype: "Fork: Raposa Agent",
     summary:
       "A cafe-specific fork that handles paid pickup issues, refund requests, loyalty make-goods, and claim receipts for Raposa-style merchants.",
     status: "merchant-fork",
@@ -134,17 +140,20 @@ export const AGENT_SERVICE_CARDS: AgentServiceCard[] = [
     paymentRails: ["BNB", "MoonPay"],
     integrations: ["MoonPay Commerce", "POS receipt", "Telegram"],
     abilities: [
-      "Check cafe order",
-      "Offer remake/credit",
-      "Escalate refund",
-      "Record loyalty receipt",
+      "Quote order",
+      "Negotiate issue/refund",
+      "Issue receipt",
+      "Build credit signal",
     ],
     workflowDeck: [
-      "Order lookup",
-      "Cafe policy match",
-      "Customer message",
-      "Merchant approval",
-      "Lineage royalty split",
+      "Raposa order handling",
+      "Receipt claim",
+      "Refund negotiation",
+    ],
+    receiptKinds: [
+      "Cleared orders",
+      "Fulfilled claims",
+      "Refunds resolved",
     ],
     attributes: [
       { label: "Class", value: "Cafe fork" },
@@ -160,8 +169,9 @@ export const AGENT_SERVICE_CARDS: AgentServiceCard[] = [
       royaltyBps: 300,
     },
     lineage: {
-      root: "Jiagon Negotiator",
+      root: "Jiagon",
       parent: "Jiagon Negotiator",
+      forks: ["Raposa Agent"],
       generation: 1,
       royaltyTo: "Jiagon",
     },
@@ -189,7 +199,7 @@ export const AGENT_SERVICE_CARDS: AgentServiceCard[] = [
     name: "SOLYD Commerce Agent",
     collection: "Onchain Merchant Agents",
     role: "Onchain settlement assistant for commerce payments and claims.",
-    archetype: "Verified service",
+    archetype: "Fork: SOLYD Agent",
     summary:
       "A payment-native fork for merchants that need order proofs, customer claims, and chain-backed settlement records before issuing credit.",
     status: "verified-service",
@@ -198,17 +208,20 @@ export const AGENT_SERVICE_CARDS: AgentServiceCard[] = [
     paymentRails: ["BNB", "USDC", "Solana evidence"],
     integrations: ["MoonPay Commerce", "Wallet proof", "Receipt API"],
     abilities: [
-      "Verify payment rail",
-      "Match claim evidence",
-      "Route evaluator",
-      "Anchor clearing proof",
+      "Quote order",
+      "Negotiate issue/refund",
+      "Issue receipt",
+      "Build credit signal",
     ],
     workflowDeck: [
-      "Payment evidence",
-      "Claim verification",
-      "Evaluator score",
-      "Settlement route",
-      "Credit profile update",
+      "SOLYD shipping quote",
+      "Receipt claim",
+      "Refund negotiation",
+    ],
+    receiptKinds: [
+      "Cleared orders",
+      "Fulfilled claims",
+      "Refunds resolved",
     ],
     attributes: [
       { label: "Class", value: "Verifier" },
@@ -224,8 +237,9 @@ export const AGENT_SERVICE_CARDS: AgentServiceCard[] = [
       royaltyBps: 400,
     },
     lineage: {
-      root: "Jiagon Negotiator",
+      root: "Jiagon",
       parent: "Jiagon Negotiator",
+      forks: ["SOLYD Agent"],
       generation: 1,
       royaltyTo: "Jiagon",
     },

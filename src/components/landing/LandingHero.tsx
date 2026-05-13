@@ -129,10 +129,13 @@ function AgentCard({ agent, featured = false }: { agent: AgentServiceCard; featu
           ))}
         </div>
 
-        <div className="dojo-agent-ability-row">
-          {agent.abilities.slice(0, 4).map((ability) => (
-            <span key={`${agent.id}-${ability}`}>{ability}</span>
-          ))}
+        <div className="dojo-agent-card-section">
+          <span>Abilities</span>
+          <div className="dojo-agent-ability-row">
+            {agent.abilities.slice(0, 4).map((ability) => (
+              <strong key={`${agent.id}-${ability}`}>{ability}</strong>
+            ))}
+          </div>
         </div>
 
         <div className="dojo-agent-footer">
@@ -166,7 +169,7 @@ function AgentRail({ selected }: { selected: AgentServiceCard }) {
   return (
     <aside className="dojo-agent-inspector">
       <div className="dojo-agent-inspector-head">
-        <span>Selected card</span>
+        <span>Agent Card</span>
         <strong>{selected.name}</strong>
       </div>
       <div className="dojo-agent-lineage">
@@ -175,12 +178,12 @@ function AgentRail({ selected }: { selected: AgentServiceCard }) {
           <strong>{selected.lineage.root}</strong>
         </div>
         <div>
-          <span>Parent</span>
+          <span>Fork</span>
           <strong>{selected.lineage.parent ?? "Genesis"}</strong>
         </div>
         <div>
-          <span>Royalty</span>
-          <strong>{(selected.pricing.royaltyBps / 100).toFixed(1)}%</strong>
+          <span>Forks</span>
+          <strong>{selected.lineage.forks?.join(", ") ?? "None"}</strong>
         </div>
       </div>
       <div className="dojo-agent-deck">
@@ -206,7 +209,7 @@ function AgentRail({ selected }: { selected: AgentServiceCard }) {
       <div className="dojo-agent-deck">
         <div className="dojo-agent-section-title">
           <Layers3 className="h-3.5 w-3.5" />
-          Workflow deck
+          Workflow Decks
         </div>
         <ol>
           {selected.workflowDeck.map((step) => (
@@ -217,13 +220,13 @@ function AgentRail({ selected }: { selected: AgentServiceCard }) {
       <div className="dojo-agent-deck">
         <div className="dojo-agent-section-title">
           <ReceiptText className="h-3.5 w-3.5" />
-          Recent receipts
+          Receipts
         </div>
         <ul>
-          {selected.receipts.map((receipt) => (
-            <li key={receipt.id}>
-              <span>{receipt.label}</span>
-              <strong>{compactUsd(receipt.amountUsd)}</strong>
+          {selected.receiptKinds.map((receiptKind) => (
+            <li key={`${selected.id}-${receiptKind}`}>
+              <span>{receiptKind}</span>
+              <strong>Tracked</strong>
             </li>
           ))}
         </ul>
@@ -267,8 +270,8 @@ export function LandingHero(_props: LandingHeroProps) {
         <div className="dojo-agent-hero-copy">
           <h1>Run, subscribe, or license agent services.</h1>
           <p>
-            Dojo turns agents into service cards. Run one task, subscribe to an ongoing agent service,
-            or fork and license a workflow into your own merchant-specific version.
+            Dojo turns each agent into a card with abilities, workflow decks, receipts, and lineage.
+            Run one task, subscribe to the service, or fork it into your own merchant agent.
           </p>
           <div className="dojo-agent-hero-actions">
             <Link href={rootAgent.runHref} className="dojo-action dojo-action-primary">
