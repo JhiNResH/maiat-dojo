@@ -13,7 +13,7 @@ Current API skills are treated as one-step workflows. The product direction is w
 ```
 Agent calls workflow via REST API
         ↓
-POST /api/v1/run { skill: "agent-repo-analyst", input: { repo_url: "https://github.com/garrytan/gbrain" } }
+POST /api/v1/run { skill: "jiagon-negotiator", input: { repo_url: "https://github.com/garrytan/gbrain" } }
         ↓
 Dojo routes to workflow/provider endpoint → evaluates (delivered? format? latency?)
         ↓
@@ -32,7 +32,7 @@ All endpoints at `/api/v1/`. Agent developers need one API key.
 # One-call lifecycle: find workflow → create session → execute → evaluate → return
 POST /api/v1/run
   -H "Authorization: Bearer <api_key>"
-  -d '{"skill": "agent-repo-analyst", "input": {"repo_url": "https://github.com/garrytan/gbrain"}}'
+  -d '{"skill": "jiagon-negotiator", "input": {"repo_url": "https://github.com/garrytan/gbrain"}}'
 # → { "result": {...}, "cost": 0.003, "balance": 9.997, "score": 1.0 }
 
 # Check credits
@@ -75,7 +75,7 @@ The standalone CLI package lives in `packages/dojo-cli` and is intended to be pu
 npx @maiat/dojo init
 DOJO_API_KEY=dojo_sk_... npx @maiat/dojo test --file dojo.workflow.yaml
 DOJO_API_KEY=dojo_sk_... npx @maiat/dojo publish --file dojo.workflow.yaml
-DOJO_API_KEY=dojo_sk_... npx @maiat/dojo fork --workflow agent-repo-analyst --name "My Repo Analyst"
+DOJO_API_KEY=dojo_sk_... npx @maiat/dojo fork --workflow jiagon-negotiator --name "My Repo Analyst"
 DOJO_API_KEY=dojo_sk_... npx @maiat/dojo deploy --workflow my-repo-analyst --file dojo.workflow.yaml
 ```
 
@@ -94,7 +94,7 @@ Inside this repo, developers can run the same CLI without publishing the npm pac
 ```bash
 npm run dojo -- help
 npm run dojo -- dev-key
-DOJO_API_KEY=dojo_sk_... npm run dojo -- run --skill agent-repo-analyst --input '{"repo_url":"https://github.com/garrytan/gbrain"}'
+DOJO_API_KEY=dojo_sk_... npm run dojo -- run --skill jiagon-negotiator --input '{"repo_url":"https://github.com/garrytan/gbrain"}'
 ```
 
 `dev-key` is a local demo helper for the BNB/Codex/MCP flow. It reuses or creates

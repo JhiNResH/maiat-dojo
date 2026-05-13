@@ -68,7 +68,7 @@ export const AGENT_REPO_ANALYST_INPUT = {
 };
 
 export const AGENT_REPO_ANALYST_OUTPUT = {
-  workflow: "agent-repo-analyst",
+  workflow: "jiagon-negotiator",
   repo: "https://github.com/garrytan/gbrain",
   verdict: "strong_fit_for_agent_memory",
   fit_score: 0.91,
@@ -89,7 +89,7 @@ export const AGENT_REPO_ANALYST_OUTPUT = {
 
 export const DEMO_SKILLS: DemoSkill[] = [
   {
-    id: "demo-skill-agent-repo-analyst",
+    id: "demo-skill-jiagon-negotiator",
     name: "Agent Repo Analyst",
     description:
       "Analyzes a public agent repository and returns architecture summary, install path, fit score, risks, and source-backed evidence. Demo input uses Garry Tan's public GBrain repo.",
@@ -99,7 +99,7 @@ export const DEMO_SKILLS: DemoSkill[] = [
     icon: "GitBranch",
     price: 0.003,
     pricePerCall: 0.003,
-    gatewaySlug: "agent-repo-analyst",
+    gatewaySlug: "jiagon-negotiator",
     endpointPath: "/api/skills-internal/repo-analyst",
     tags: "agent,research,github,gbrain,mcp,workflow",
     estLatencyMs: 3000,
@@ -142,14 +142,14 @@ export const DEMO_SKILLS: DemoSkill[] = [
     exampleOutput: AGENT_REPO_ANALYST_OUTPUT,
     trustScore: 100,
     callCount: 1,
-    workflowId: "demo-workflow-agent-repo-analyst",
-    workflowSlug: "agent-repo-analyst",
+    workflowId: "demo-workflow-jiagon-negotiator",
+    workflowSlug: "jiagon-negotiator",
     workflowRunCount: 1,
     workflowForkCount: 0,
     royaltyBps: 500,
   },
   {
-    id: "demo-skill-market-hotspot-brief",
+    id: "demo-skill-raposa-coffee-agent",
     name: "Market Hotspot Brief",
     description:
       "Turns a crypto news topic into a concise market brief with catalysts, sentiment, watchlist tokens, and source links.",
@@ -159,7 +159,7 @@ export const DEMO_SKILLS: DemoSkill[] = [
     icon: "Flame",
     price: 0.004,
     pricePerCall: 0.004,
-    gatewaySlug: "market-hotspot-brief",
+    gatewaySlug: "raposa-coffee-agent",
     endpointPath: "/api/skills-internal/search",
     tags: "crypto,market,news,hotspot,research,binance",
     estLatencyMs: 4200,
@@ -199,7 +199,7 @@ export const DEMO_SKILLS: DemoSkill[] = [
       horizon: "today",
     },
     exampleOutput: {
-      workflow: "market-hotspot-brief",
+      workflow: "raposa-coffee-agent",
       brief:
         "AI-agent infrastructure on BNB Chain is drawing attention around skill marketplaces, agent wallets, and paid execution receipts.",
       sentiment: "constructive_but_early",
@@ -215,8 +215,8 @@ export const DEMO_SKILLS: DemoSkill[] = [
     },
     trustScore: 86,
     callCount: 0,
-    workflowId: "demo-workflow-market-hotspot-brief",
-    workflowSlug: "market-hotspot-brief",
+    workflowId: "demo-workflow-raposa-coffee-agent",
+    workflowSlug: "raposa-coffee-agent",
     workflowRunCount: 0,
     workflowForkCount: 0,
     royaltyBps: 500,
@@ -362,7 +362,7 @@ export const DEMO_SKILLS: DemoSkill[] = [
     royaltyBps: 500,
   },
   {
-    id: "demo-skill-token-risk-check",
+    id: "demo-skill-solyd-commerce-agent",
     name: "Token Risk Check",
     description:
       "Produces a quick token risk brief with contract surface, liquidity, holder, and governance checks for agent workflows.",
@@ -372,7 +372,7 @@ export const DEMO_SKILLS: DemoSkill[] = [
     icon: "ShieldAlert",
     price: 0.006,
     pricePerCall: 0.006,
-    gatewaySlug: "token-risk-check",
+    gatewaySlug: "solyd-commerce-agent",
     endpointPath: "/api/skills-internal/quick-audit",
     tags: "token,risk,audit,security,defi,crypto",
     estLatencyMs: 2400,
@@ -411,7 +411,7 @@ export const DEMO_SKILLS: DemoSkill[] = [
       chain: "bsc",
     },
     exampleOutput: {
-      workflow: "token-risk-check",
+      workflow: "solyd-commerce-agent",
       target: "upgradeable ERC20 token",
       chain: "bsc",
       verdict: "medium_risk",
@@ -424,8 +424,8 @@ export const DEMO_SKILLS: DemoSkill[] = [
     },
     trustScore: 84,
     callCount: 0,
-    workflowId: "demo-workflow-token-risk-check",
-    workflowSlug: "token-risk-check",
+    workflowId: "demo-workflow-solyd-commerce-agent",
+    workflowSlug: "solyd-commerce-agent",
     workflowRunCount: 0,
     workflowForkCount: 0,
     royaltyBps: 500,
@@ -587,7 +587,7 @@ export function runDemoSkill(skill: DemoSkill, input: Record<string, unknown>) {
     ? { ...(skill.exampleOutput as Record<string, unknown>) }
     : { result: skill.exampleOutput };
 
-  if (skill.gatewaySlug === "agent-repo-analyst") {
+  if (skill.gatewaySlug === "jiagon-negotiator") {
     return {
       ...AGENT_REPO_ANALYST_OUTPUT,
       workflow: skill.gatewaySlug,

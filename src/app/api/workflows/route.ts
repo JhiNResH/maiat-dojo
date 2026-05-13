@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { filterDemoWorkflows } from '@/lib/demo-catalog';
+import { isLegacyWorkflowSlug } from '@/lib/legacy-workflow-slugs';
 import { prisma } from '@/lib/prisma';
 import { fetchLatestMaturityReceiptsByWorkflowId } from '@/lib/maturity-receipts';
 import { publicWorkflowWhere } from '@/lib/public-workflow-filter';
@@ -106,18 +107,22 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  const workflowIds = workflows.map((workflow) => workflow.id);
+  const visibleWorkflows = workflows.filter(
+    (workflow) => !isLegacyWorkflowSlug(workflow.slug) && !isLegacyWorkflowSlug(workflow.skill?.gatewaySlug),
+  );
+
+  const workflowIds = visibleWorkflows.map((workflow) => workflow.id);
   const receiptRows = await fetchLatestMaturityReceiptsByWorkflowId(workflowIds);
   const receiptsByWorkflowId = groupMaturityReceiptsByWorkflowId(receiptRows);
 
   const registryBySlug = new Map<string, Awaited<ReturnType<typeof validateRegisteredWorkflowSlug>>>();
-  for (const workflow of workflows) {
+  for (const workflow of visibleWorkflows) {
     const slug = workflow.skill?.gatewaySlug ?? workflow.slug;
     const registry = await validateRegisteredWorkflowSlug(slug);
     registryBySlug.set(slug, registry);
   }
 
-  const mapped = workflows.map((workflow) => {
+  const mapped = visibleWorkflows.map((workflow) => {
       const slug = workflow.skill?.gatewaySlug ?? workflow.slug;
       const registry = registryBySlug.get(slug);
       const version = workflow.versions[0] ?? null;
