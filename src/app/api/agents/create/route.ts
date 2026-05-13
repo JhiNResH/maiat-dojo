@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { AgentFamilyCode } from "@prisma/client";
+import { defaultAgentFamilyName, normalizeAgentFamilyCode } from "@/lib/agent-family";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +19,15 @@ export const dynamic = "force-dynamic";
  *     name: string;
  *     description: string;
  *     avatar?: string;      // emoji or image URL
+ *     familyCode?: string;  // R8 | SLR | BYR | NEG | VFY (SLL-R aliases to SLR)
+ *     familyName?: string;
+ *     nfaId?: string;
+ *     agentIdentity?: string;
+ *     proofLevel?: string;
+ *     serviceEndpoint?: string;
+ *     royaltyBps?: number;
+ *     lineageRoot?: string;
+ *     lineageParent?: string;
  *     skillIds?: string[];  // pre-selected skills to equip
  *   }
  * }
@@ -51,12 +62,29 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    let familyCode: AgentFamilyCode;
+    try {
+      familyCode = normalizeAgentFamilyCode(agent.familyCode);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Invalid agent family code";
+      return NextResponse.json({ error: message }, { status: 400 });
+    }
+
     // Create the agent
     const newAgent = await prisma.agent.create({
       data: {
         name: agent.name,
         description: agent.description,
         avatar: agent.avatar ?? "🤖",
+        familyCode,
+        familyName: agent.familyName ?? defaultAgentFamilyName(familyCode),
+        nfaId: agent.nfaId ?? null,
+        agentIdentity: agent.agentIdentity ?? null,
+        proofLevel: agent.proofLevel ?? "identity",
+        serviceEndpoint: agent.serviceEndpoint ?? null,
+        royaltyBps: typeof agent.royaltyBps === "number" ? agent.royaltyBps : 0,
+        lineageRoot: agent.lineageRoot ?? null,
+        lineageParent: agent.lineageParent ?? null,
         ownerId: user.id,
       },
     });
