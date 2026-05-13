@@ -1,238 +1,219 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  ArrowUpRight,
+  GitFork,
+  Layers3,
   Play,
-  Rocket,
+  ReceiptText,
+  Repeat2,
   Search,
+  WalletCards,
 } from "lucide-react";
 import { DojoPetAvatar } from "@/components/DojoPetAvatar";
-import { type SkillRankItem } from "./SkillRankList";
-import type { SkillMaturity } from "@/lib/skill-maturity";
+import {
+  AGENT_SERVICE_CARDS,
+  agentCardStatusLabel,
+  type AgentServiceCard,
+} from "@/lib/agent-card-catalog";
 
 export interface LandingHeroProps {
   pending?: boolean;
   onSubmit?: (text: string) => void;
 }
 
-function compactNumber(value: number) {
-  return new Intl.NumberFormat("en", {
-    notation: value >= 10_000 ? "compact" : "standard",
-    maximumFractionDigits: 1,
-  }).format(value);
+function percent(value: number) {
+  return `${Math.round(value * 100)}%`;
 }
 
-function priceLabel(value?: number | null) {
-  if (value == null || value <= 0) return "Free";
-  return `$${value.toFixed(3)}`;
-}
-
-function workflowKey(skill: SkillRankItem) {
-  return skill.workflowId ?? skill.workflowSlug ?? skill.id;
-}
-
-function trustValue(skill: SkillRankItem) {
-  const raw = skill.trustScore ?? 0;
-  if (raw > 1) return Math.min(raw / 100, 1);
-  return Math.min(raw, 1);
-}
-
-function listingDescription(description?: string | null) {
-  const value = description?.trim();
-  if (!value) return "Ready-to-run AI workflow with receipt-backed execution history.";
-
-  const sentenceEnd = value.search(/[.!?]\s/);
-  if (sentenceEnd > 32) return value.slice(0, sentenceEnd + 1);
-  if (value.length <= 132) return value;
-  return `${value.slice(0, 129).trim()}...`;
-}
-
-function maturityLabel(maturity: SkillMaturity | null | undefined) {
-  if (maturity) return maturity.label;
-  return "Draft";
-}
-
-function WorkflowCatalogRow({ skill, featured = false }: { skill: SkillRankItem; featured?: boolean }) {
-  const key = workflowKey(skill);
-  const runs = skill.workflowRunCount ?? skill.callCount ?? 0;
-  const trust = trustValue(skill);
-  const success = Math.round(trust * 100);
-  const category = skill.category ?? "AI workflow";
-  const creatorId = skill.creator?.id ?? skill.creator?.displayName ?? null;
-
+function AgentCard({ agent, featured = false }: { agent: AgentServiceCard; featured?: boolean }) {
   return (
-    <article className={`dojo-catalog-row group ${featured ? "dojo-catalog-row-featured" : ""}`}>
-      <div className="dojo-catalog-workflow">
-        <Link href={`/workflow/${key}/run`} className="dojo-catalog-mark" aria-label={`Open ${skill.name}`}>
+    <div className={`dojo-agent-card ${featured ? "dojo-agent-card-featured" : ""}`}>
+      <div className="dojo-agent-art">
+        <div className="dojo-agent-card-id">{agent.lineage.generation === 0 ? "GENESIS" : `GEN ${agent.lineage.generation}`}</div>
+        <div className="dojo-agent-pet-frame">
           <DojoPetAvatar
-            name={skill.name}
-            workflowId={key}
-            slug={skill.workflowSlug ?? key}
-            category={category}
-            creatorId={creatorId}
-            receipts={runs}
-            passRate={trust}
-            size="sm"
+            name={agent.name}
+            workflowId={agent.avatarSeed}
+            slug={agent.slug}
+            category={agent.category}
+            creatorId={agent.lineage.parent ?? agent.lineage.root}
+            receipts={agent.reputation.receiptsCleared}
+            passRate={agent.reputation.successRate}
+            forks={agent.lineage.generation}
+            royaltyBps={agent.pricing.royaltyBps}
+            size="lg"
           />
-        </Link>
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <Link href={`/workflow/${key}/run`}>
-              <h3 className="text-[14px] font-bold leading-tight text-[var(--text)] transition-colors hover:text-[var(--text-secondary)]">
-                {skill.name}
-              </h3>
-            </Link>
-            {featured && <span className="dojo-catalog-badge">Featured</span>}
+        </div>
+        <div className="dojo-agent-rail">
+          <span>{agent.collection}</span>
+          <span>{agentCardStatusLabel(agent.status)}</span>
+        </div>
+      </div>
+
+      <div className="dojo-agent-body">
+        <div className="dojo-agent-title-row">
+          <div className="min-w-0">
+            <p className="dojo-agent-collection">{agent.archetype}</p>
+            <h3>{agent.name}</h3>
           </div>
-          <p className="mt-1 line-clamp-2 text-[12px] leading-relaxed text-[var(--text-secondary)]">
-            {listingDescription(skill.description)}
-          </p>
         </div>
-      </div>
 
-      <div className="dojo-catalog-cell" data-label="Category">
-        <span className="dojo-catalog-pill">{category}</span>
-      </div>
-
-      <div className="dojo-catalog-cell" data-label="Price">
-        <strong>{priceLabel(skill.pricePerCall)}</strong>
-      </div>
-
-      <div className="dojo-catalog-cell" data-label="Runs">
-        <strong>{compactNumber(runs)}</strong>
-      </div>
-
-      <div className="dojo-catalog-cell" data-label="Success">
-        <strong>{success}%</strong>
-      </div>
-
-      <div className="dojo-catalog-cell" data-label="Maturity">
-        <span className="dojo-catalog-status" title={skill.maturity?.summary}>
-          {maturityLabel(skill.maturity)}
-        </span>
-      </div>
-
-      <div className="dojo-catalog-actions">
-        <Link
-          href={`/workflow/${key}/run`}
-          className="dojo-action dojo-action-primary"
-          title="Train this workflow once, get the output, and receive an execution receipt."
-        >
-          <Play className="h-3.5 w-3.5 fill-current" />
-          Train
-        </Link>
-        <Link
-          href={`/skill/${skill.id}`}
-          className="dojo-icon-link"
-          title="View details"
-          aria-label={`View details for ${skill.name}`}
-        >
-          <ArrowUpRight className="h-3.5 w-3.5" />
-        </Link>
-      </div>
-    </article>
-  );
-}
-
-function WorkflowSkeletonRow() {
-  return (
-    <div className="dojo-catalog-row dojo-skeleton-card" aria-hidden="true">
-      <div className="dojo-catalog-workflow">
-        <div className="dojo-skeleton-mark" />
-        <div className="min-w-0 flex-1">
-          <div className="dojo-skeleton-line w-1/2" />
-          <div className="mt-3 dojo-skeleton-line w-full" />
+        <p className="dojo-agent-role">{agent.role}</p>
+        <div className="dojo-agent-card-meta" aria-label={`${agent.name} quick stats`}>
+          <span>{agent.category}</span>
+          <span>{agentCardStatusLabel(agent.status)}</span>
         </div>
+        <span className="dojo-agent-open-cta">Open card</span>
       </div>
-      <div className="dojo-skeleton-line" />
-      <div className="dojo-skeleton-line" />
-      <div className="dojo-skeleton-line" />
-      <div className="dojo-skeleton-line" />
-      <div className="dojo-skeleton-line" />
-      <div className="dojo-skeleton-button" />
     </div>
   );
 }
 
-export function LandingHero(_props: LandingHeroProps) {
-  const [skills, setSkills] = useState<SkillRankItem[] | null>(null);
-  const [filter, setFilter] = useState("all");
-  const [query, setQuery] = useState("");
+function AgentRail({ selected }: { selected: AgentServiceCard }) {
+  return (
+    <aside className="dojo-agent-inspector">
+      <div className="dojo-agent-inspector-head">
+        <span>Agent Card</span>
+        <strong>{selected.name}</strong>
+      </div>
+      <p className="dojo-agent-detail-summary">{selected.summary}</p>
+      <div className="dojo-agent-lineage dojo-agent-reputation">
+        <div>
+          <span>Credit</span>
+          <strong>CR {selected.reputation.creditScore}</strong>
+        </div>
+        <div>
+          <span>Receipts</span>
+          <strong>{selected.reputation.receiptsCleared}</strong>
+        </div>
+        <div>
+          <span>Success</span>
+          <strong>{percent(selected.reputation.successRate)}</strong>
+        </div>
+      </div>
+      <div className="dojo-agent-detail-actions">
+        <Link href={selected.runHref} className="dojo-action dojo-action-primary" title="Run once for a specific task">
+          <Play className="h-3.5 w-3.5 fill-current" />
+          Run
+        </Link>
+        <Link href={selected.subscribeHref} className="dojo-action" title="Subscribe to this ongoing agent service">
+          <Repeat2 className="h-3.5 w-3.5" />
+          Subscribe
+        </Link>
+        <Link href={selected.forkHref} className="dojo-action" title="Fork or license this agent service">
+          <GitFork className="h-3.5 w-3.5" />
+          Fork
+        </Link>
+      </div>
+      <div className="dojo-agent-deck">
+        <div className="dojo-agent-section-title">
+          <WalletCards className="h-3.5 w-3.5" />
+          Abilities
+        </div>
+        <div className="dojo-agent-ability-row">
+          {selected.abilities.map((ability) => (
+            <strong key={`${selected.id}-${ability}`}>{ability}</strong>
+          ))}
+        </div>
+      </div>
+      <div className="dojo-agent-lineage">
+        <div>
+          <span>Root</span>
+          <strong>{selected.lineage.root}</strong>
+        </div>
+        <div>
+          <span>Fork</span>
+          <strong>{selected.lineage.parent ?? "Genesis"}</strong>
+        </div>
+        <div>
+          <span>Forks</span>
+          <strong>{selected.lineage.forks?.join(", ") ?? "None"}</strong>
+        </div>
+      </div>
+      <div className="dojo-agent-deck">
+        <div className="dojo-agent-section-title">
+          <Layers3 className="h-3.5 w-3.5" />
+          Workflow Decks
+        </div>
+        <ol>
+          {selected.workflowDeck.map((step) => (
+            <li key={`${selected.id}-${step}`}>{step}</li>
+          ))}
+        </ol>
+      </div>
+      <div className="dojo-agent-deck">
+        <div className="dojo-agent-section-title">
+          <ReceiptText className="h-3.5 w-3.5" />
+          Receipts
+        </div>
+        <ul>
+          {selected.receiptKinds.map((receiptKind) => (
+            <li key={`${selected.id}-${receiptKind}`}>
+              <span>{receiptKind}</span>
+              <strong>Tracked</strong>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </aside>
+  );
+}
 
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/skills?sort=trust&limit=50")
-      .then((r) => r.json())
-      .then((data) => {
-        if (!cancelled) setSkills(data.skills ?? []);
-      })
-      .catch(() => {
-        if (!cancelled) setSkills([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+export function LandingHero(_props: LandingHeroProps) {
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState("all");
+  const [selectedSlug, setSelectedSlug] = useState(AGENT_SERVICE_CARDS[0]?.slug ?? "");
 
   const categories = useMemo(
-    () => (skills ? ["all", ...Array.from(new Set(skills.map((s) => s.category ?? "misc")))] : ["all"]),
-    [skills],
+    () => ["all", ...Array.from(new Set(AGENT_SERVICE_CARDS.map((agent) => agent.category)))],
+    [],
   );
 
   const filtered = useMemo(() => {
-    if (skills === null) return null;
     const q = query.trim().toLowerCase();
-    return skills.filter((skill) => {
-      const matchCat = filter === "all" || (skill.category ?? "misc") === filter;
-      const matchQ =
+    return AGENT_SERVICE_CARDS.filter((agent) => {
+      const matchesFilter = filter === "all" || agent.category === filter;
+      const matchesQuery =
         !q ||
-        skill.name.toLowerCase().includes(q) ||
-        (skill.description ?? "").toLowerCase().includes(q);
-      return matchCat && matchQ;
+        agent.name.toLowerCase().includes(q) ||
+        agent.role.toLowerCase().includes(q) ||
+        agent.summary.toLowerCase().includes(q) ||
+        agent.abilities.some((ability) => ability.toLowerCase().includes(q));
+      return matchesFilter && matchesQuery;
     });
-  }, [filter, query, skills]);
+  }, [filter, query]);
 
-  const skillCount = skills?.length ?? 0;
+  const selected = AGENT_SERVICE_CARDS.find((agent) => agent.slug === selectedSlug) ?? filtered[0] ?? AGENT_SERVICE_CARDS[0];
 
   return (
-    <section className="dojo-marketplace">
-      <div className="dojo-market-header">
-        <div className="min-w-0">
-          <div className="label-sm">Marketplace</div>
-          <h2 className="mt-2 font-serif text-[30px] font-black leading-none text-[var(--text)] md:text-[40px]">
-            AI workflows
-          </h2>
-          <p className="mt-2 max-w-xl text-[13.5px] leading-relaxed text-[var(--text-secondary)]">
-            Browse useful AI workflows. Run one instantly, get the output, and keep a receipt-backed record.
+    <section className="dojo-marketplace dojo-agent-marketplace">
+      <div className="dojo-agent-hero">
+        <div className="dojo-agent-hero-copy">
+          <h1>Choose an agent. Open its deck.</h1>
+          <p>
+            Dojo lists agent cards like a living marketplace. Start with the character,
+            then open the card to see its abilities, workflow decks, receipts, and lineage.
           </p>
         </div>
-        <Link
-          href="/create"
-          className="dojo-action dojo-action-primary"
-          title="Publish your AI workflow and earn when other users run it."
-        >
-          <Rocket className="h-3.5 w-3.5" />
-          Publish
-        </Link>
       </div>
 
       <div className="dojo-market-subhead">
         <div>
-          <h3>Featured workflows</h3>
-          <p>{skillCount || "—"} listed</p>
+          <h3>Agent cards</h3>
+          <p>{AGENT_SERVICE_CARDS.length} listed agents</p>
         </div>
       </div>
 
-      <div id="workflows" className="dojo-filter-row">
+      <div id="agents" className="dojo-filter-row">
         <div className="relative min-w-0 flex-1 md:max-w-sm">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-muted)]" />
           <input
             type="text"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search AI workflows..."
+            placeholder="Search agents, abilities, merchants..."
             className="dojo-input pl-9"
           />
         </div>
@@ -240,6 +221,7 @@ export function LandingHero(_props: LandingHeroProps) {
           {categories.map((cat) => (
             <button
               key={cat}
+              type="button"
               onClick={() => setFilter(cat)}
               className={`dojo-filter ${filter === cat ? "dojo-filter-active" : ""}`}
             >
@@ -249,41 +231,27 @@ export function LandingHero(_props: LandingHeroProps) {
         </div>
       </div>
 
-      {filtered === null ? (
-        <div className="dojo-catalog-table">
-          <div className="dojo-catalog-head">
-            <span>Workflow</span>
-            <span>Category</span>
-            <span>Price</span>
-            <span>Runs</span>
-            <span>Success</span>
-            <span>Maturity</span>
-            <span>Action</span>
-          </div>
-          {[0, 1, 2, 3].map((item) => (
-            <WorkflowSkeletonRow key={item} />
-          ))}
+      <div className="dojo-agent-layout">
+        <div className="dojo-agent-grid">
+          {filtered.length === 0 ? (
+            <div className="dojo-empty">No agent cards found. Try another merchant, ability, or clearing use case.</div>
+          ) : (
+            filtered.map((agent, index) => (
+              <button
+                type="button"
+                key={agent.id}
+                className={`dojo-agent-card-wrap ${selected.slug === agent.slug ? "dojo-agent-card-wrap-selected" : ""}`}
+                onClick={() => setSelectedSlug(agent.slug)}
+                aria-pressed={selected.slug === agent.slug}
+                aria-label={`Open ${agent.name} agent card`}
+              >
+                <AgentCard agent={agent} featured={index === 0 && filter === "all" && query.trim() === ""} />
+              </button>
+            ))
+          )}
         </div>
-      ) : filtered.length === 0 ? (
-        <div className="dojo-empty">
-          No workflows found. Try another keyword or publish your own.
-        </div>
-      ) : (
-        <div className="dojo-catalog-table">
-          <div className="dojo-catalog-head">
-            <span>Workflow</span>
-            <span>Category</span>
-            <span>Price</span>
-            <span>Runs</span>
-            <span>Success</span>
-            <span>Maturity</span>
-            <span>Action</span>
-          </div>
-          {filtered.map((skill, index) => (
-            <WorkflowCatalogRow key={skill.id} skill={skill} featured={index === 0} />
-          ))}
-        </div>
-      )}
+        {selected && <AgentRail selected={selected} />}
+      </div>
     </section>
   );
 }
