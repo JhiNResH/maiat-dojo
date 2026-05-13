@@ -66,7 +66,13 @@ function AgentCard({ agent, featured = false }: { agent: AgentServiceCard; featu
           <span>{agent.category}</span>
           <span>{agentCardStatusLabel(agent.status)}</span>
         </div>
-        <span className="dojo-agent-open-cta">Open card</span>
+        <Link
+          href={agent.detailHref}
+          className="dojo-agent-open-cta"
+          onClick={(event) => event.stopPropagation()}
+        >
+          Open card
+        </Link>
       </div>
     </div>
   );
@@ -268,16 +274,23 @@ export function LandingHero(_props: LandingHeroProps) {
             <div className="dojo-empty">No agent cards found. Try another merchant, ability, or clearing use case.</div>
           ) : (
             filtered.map((agent, index) => (
-              <button
-                type="button"
+              <div
                 key={agent.id}
+                role="button"
+                tabIndex={0}
                 className={`dojo-agent-card-wrap ${selected.slug === agent.slug ? "dojo-agent-card-wrap-selected" : ""}`}
                 onClick={() => setSelectedSlug(agent.slug)}
-                aria-pressed={selected.slug === agent.slug}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    setSelectedSlug(agent.slug);
+                  }
+                }}
+                aria-current={selected.slug === agent.slug}
                 aria-label={`Open ${agent.name} agent card`}
               >
                 <AgentCard agent={agent} featured={index === 0 && filter === "all" && query.trim() === ""} />
-              </button>
+              </div>
             ))
           )}
         </div>

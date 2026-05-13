@@ -1,10 +1,20 @@
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
+import { AGENT_SERVICE_CARDS } from '@/lib/agent-card-catalog';
+import { CatalogAgentPageClient } from './CatalogAgentPageClient';
 import AgentPageClient from './AgentPageClient';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AgentPage({ params }: { params: { id: string } }) {
+  const catalogAgent = AGENT_SERVICE_CARDS.find(
+    (agent) => agent.id === params.id || agent.slug === params.id,
+  );
+
+  if (catalogAgent) {
+    return <CatalogAgentPageClient agent={catalogAgent} />;
+  }
+
   const agent = await prisma.agent.findUnique({
     where: { id: params.id },
     include: {
