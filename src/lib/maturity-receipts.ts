@@ -14,6 +14,7 @@ const MATURITY_RECEIPT_SELECT = {
 
 const MAX_MATURITY_RECEIPTS_PER_WORKFLOW = 100;
 const MATURITY_RECEIPT_QUERY_BATCH_SIZE = 8;
+let hasLoggedMaturityReceiptQueryFailure = false;
 
 function clampPerWorkflowTake(perWorkflowTake: number) {
   if (!Number.isFinite(perWorkflowTake)) return MAX_MATURITY_RECEIPTS_PER_WORKFLOW;
@@ -29,17 +30,30 @@ export async function fetchLatestMaturityReceiptsByWorkflowId(
 
   const take = clampPerWorkflowTake(perWorkflowTake);
   const rows: WorkflowMaturityReceiptEvidence[][] = [];
-  for (let offset = 0; offset < uniqueWorkflowIds.length; offset += MATURITY_RECEIPT_QUERY_BATCH_SIZE) {
-    const batch = uniqueWorkflowIds.slice(offset, offset + MATURITY_RECEIPT_QUERY_BATCH_SIZE);
-    const batchRows = await Promise.all(
-      batch.map((workflowId) => prisma.workflowRunReceipt.findMany({
-        where: { workflowId },
-        orderBy: { createdAt: 'desc' },
-        take,
-        select: MATURITY_RECEIPT_SELECT,
-      })),
-    );
-    rows.push(...batchRows);
+  try {
+    for (let offset = 0; offset < uniqueWorkflowIds.length; offset += MATURITY_RECEIPT_QUERY_BATCH_SIZE) {
+      const batch = uniqueWorkflowIds.slice(offset, offset + MATURITY_RECEIPT_QUERY_BATCH_SIZE);
+      const batchRows = await Promise.all(
+        batch.map((workflowId) => prisma.workflowRunReceipt.findMany({
+          where: { workflowId },
+          orderBy: { createdAt: 'desc' },
+          take,
+          select: MATURITY_RECEIPT_SELECT,
+        })),
+      );
+      rows.push(...batchRows);
+    }
+  } catch (error) {
+    if (!hasLoggedMaturityReceiptQueryFailure) {
+      hasLoggedMaturityReceiptQueryFailure = true;
+      const prismaError = error as { code?: string; meta?: { column?: string }; message?: string };
+      console.warn('[maturity-receipts] receipt evidence unavailable; continuing without it', {
+        code: prismaError.code,
+        column: prismaError.meta?.column,
+        message: prismaError.message?.split('\n').find(Boolean),
+      });
+    }
+    return [];
   }
 
   return rows.flat();

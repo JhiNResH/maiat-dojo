@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { filterDemoWorkflows } from '@/lib/demo-catalog';
 import { prisma } from '@/lib/prisma';
 import { fetchLatestMaturityReceiptsByWorkflowId } from '@/lib/maturity-receipts';
 import { publicWorkflowWhere } from '@/lib/public-workflow-filter';
@@ -11,6 +12,45 @@ import {
 } from '@/lib/skill-maturity';
 
 export const dynamic = 'force-dynamic';
+
+function demoWorkflowCatalogItems({
+  q,
+  category,
+  limit,
+  excludeSlugs = new Set<string>(),
+}: {
+  q?: string;
+  category?: string;
+  limit: number;
+  excludeSlugs?: Set<string>;
+}) {
+  return filterDemoWorkflows({ q, category, limit })
+    .filter((workflow) => !excludeSlugs.has(workflow.slug))
+    .map((workflow) => {
+      const maturity = computeSkillMaturity({
+        evaluationPassed: workflow.trust_score >= 80,
+        evaluationScore: workflow.trust_score,
+        version: workflow.version.version,
+      });
+      return {
+        ...workflow,
+        maturity,
+        registry_status: null,
+        spirit: buildWorkflowSpiritProfile({
+          workflowId: workflow.id,
+          slug: workflow.slug,
+          name: workflow.name,
+          category: workflow.category,
+          creatorId: workflow.creator.id,
+          creatorName: workflow.creator.displayName,
+          runCount: workflow.runs,
+          forkCount: workflow.forks,
+          trustScore: workflow.trust_score,
+          royaltyBps: workflow.royalty_bps,
+        }),
+      };
+    });
+}
 
 /**
  * GET /api/workflows
@@ -60,7 +100,10 @@ export async function GET(req: NextRequest) {
     });
   } catch (error) {
     console.error('[GET /api/workflows] failed:', error);
-    return NextResponse.json({ error: 'Failed to load workflows' }, { status: 500 });
+    return NextResponse.json({
+      workflows: demoWorkflowCatalogItems({ q, category, limit }),
+      fallback: 'demo_catalog',
+    });
   }
 
   const workflowIds = workflows.map((workflow) => workflow.id);
@@ -74,8 +117,7 @@ export async function GET(req: NextRequest) {
     registryBySlug.set(slug, registry);
   }
 
-  return NextResponse.json({
-    workflows: workflows.map((workflow) => {
+  const mapped = workflows.map((workflow) => {
       const slug = workflow.skill?.gatewaySlug ?? workflow.slug;
       const registry = registryBySlug.get(slug);
       const version = workflow.versions[0] ?? null;
@@ -126,6 +168,20 @@ export async function GET(req: NextRequest) {
         executable_skill: workflow.skill,
         version,
       };
+    });
+  const realSlugs = new Set(mapped.map((workflow) => workflow.slug));
+  const withDemo = [
+    ...mapped,
+    ...demoWorkflowCatalogItems({
+      q,
+      category,
+      limit: Math.max(0, limit - mapped.length),
+      excludeSlugs: realSlugs,
     }),
+  ].slice(0, limit);
+
+  return NextResponse.json({
+    workflows: withDemo,
+    fallback: mapped.length === 0 && withDemo.length > 0 ? 'demo_catalog' : undefined,
   });
 }

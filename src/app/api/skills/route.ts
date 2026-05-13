@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { filterDemoSkills, toPublicSkill } from "@/lib/demo-catalog";
 import { prisma } from "@/lib/prisma";
 import { fetchLatestMaturityReceiptsByWorkflowId } from "@/lib/maturity-receipts";
 import { publicWorkflowWhere } from "@/lib/public-workflow-filter";
@@ -11,6 +12,61 @@ import {
 } from "@/lib/skill-maturity";
 
 export const dynamic = "force-dynamic";
+
+function demoSkillCatalogItems({
+  q,
+  category,
+  freeOnly,
+  limit,
+  offset = 0,
+  excludeGatewaySlugs = new Set<string>(),
+}: {
+  q?: string;
+  category?: string;
+  freeOnly?: boolean;
+  limit: number;
+  offset?: number;
+  excludeGatewaySlugs?: Set<string>;
+}) {
+  const demo = filterDemoSkills({ q, category, freeOnly, limit, offset });
+  const skills = demo.skills
+    .filter((skill) => !excludeGatewaySlugs.has(skill.gatewaySlug))
+    .map((skill) => {
+      const publicSkill = toPublicSkill(skill);
+      const maturity = computeSkillMaturity({
+        evaluationPassed: publicSkill.evaluationPassed,
+        evaluationScore: publicSkill.evaluationScore,
+        version: publicSkill.workflowVersion.version,
+      });
+
+      return {
+        ...publicSkill,
+        callCount: skill.callCount,
+        trustScore: skill.trustScore,
+        workflowId: skill.workflowId,
+        workflowSlug: skill.workflowSlug,
+        workflowRunCount: skill.workflowRunCount,
+        workflowForkCount: skill.workflowForkCount,
+        royaltyBps: skill.royaltyBps,
+        maturity,
+        registryStatus: null,
+        spirit: buildWorkflowSpiritProfile({
+          workflowId: skill.workflowId,
+          slug: skill.workflowSlug,
+          name: skill.name,
+          category: skill.category,
+          creatorId: publicSkill.creator.id,
+          creatorName: publicSkill.creator.displayName,
+          runCount: skill.workflowRunCount,
+          forkCount: skill.workflowForkCount,
+          trustScore: skill.trustScore,
+          royaltyBps: skill.royaltyBps,
+        }),
+      };
+    });
+
+  return { total: demo.total, skills };
+}
 
 /**
  * GET /api/skills
@@ -107,7 +163,8 @@ export async function GET(req: NextRequest) {
     });
   } catch (error) {
     console.error("[GET /api/skills] failed:", error);
-    return NextResponse.json({ error: "Failed to load skills" }, { status: 500 });
+    const demo = demoSkillCatalogItems({ q, category, freeOnly, limit, offset });
+    return NextResponse.json({ total: demo.total, skills: demo.skills, fallback: "demo_catalog" });
   }
 
   const workflowIds = skills
@@ -172,5 +229,24 @@ export async function GET(req: NextRequest) {
     };
   });
 
-  return NextResponse.json({ total: skills.length, skills: mapped });
+  const realGatewaySlugs = new Set(
+    mapped.map((skill) => skill.gatewaySlug).filter((slug): slug is string => Boolean(slug)),
+  );
+  const demo =
+    mapped.length < limit
+      ? demoSkillCatalogItems({
+          q,
+          category,
+          freeOnly,
+          limit: limit - mapped.length,
+          excludeGatewaySlugs: realGatewaySlugs,
+        })
+      : { total: 0, skills: [] };
+  const result = [...mapped, ...demo.skills].slice(0, limit);
+
+  return NextResponse.json({
+    total: skills.length + demo.skills.length,
+    skills: result,
+    fallback: skills.length === 0 && demo.skills.length > 0 ? "demo_catalog" : undefined,
+  });
 }
