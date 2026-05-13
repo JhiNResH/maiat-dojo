@@ -1,5 +1,5 @@
 /**
- * Dojo home — collection-first AI workflow marketplace.
+ * Dojo home — NFA-first agent marketplace.
  */
 
 import { LandingHero } from "@/components/landing/LandingHero";

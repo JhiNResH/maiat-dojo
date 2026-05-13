@@ -1444,6 +1444,7 @@ html.dark body {
 .dojo-agent-rail,
 .dojo-agent-dex-copy span,
 .dojo-agent-dex-stats span,
+.dojo-agent-nfa-strip span,
 .dojo-agent-dex-lineage span,
 .dojo-agent-dex-note,
 .dojo-agent-move span,
@@ -1842,7 +1843,16 @@ html.dark body {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
+.dojo-agent-nfa-strip {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 7px;
+}
+.dojo-agent-nfa-strip-wide {
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1fr) minmax(0, 1.35fr);
+}
 .dojo-agent-dex-stats div,
+.dojo-agent-nfa-strip div,
 .dojo-agent-dex-lineage div {
   min-width: 0;
   border: 1px solid var(--card-border);
@@ -1851,6 +1861,7 @@ html.dark body {
   padding: 9px;
 }
 .dojo-agent-dex-stats span,
+.dojo-agent-nfa-strip span,
 .dojo-agent-dex-lineage span {
   display: block;
   overflow: hidden;
@@ -1863,15 +1874,21 @@ html.dark body {
   text-transform: uppercase;
 }
 .dojo-agent-dex-stats strong,
+.dojo-agent-nfa-strip strong,
 .dojo-agent-dex-lineage strong {
   display: block;
   margin-top: 4px;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
   color: var(--text);
   font-size: 13px;
   font-weight: 900;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.dojo-agent-dex-stats strong,
+.dojo-agent-dex-lineage strong {
+  white-space: nowrap;
 }
 .dojo-agent-dex-section {
   border-top: 1px solid var(--border-light);
@@ -2232,6 +2249,7 @@ html.dark body {
 .dark .dojo-agent-rail span,
 .dark .dojo-agent-card-meta span,
 .dark .dojo-agent-dex-stats div,
+.dark .dojo-agent-nfa-strip div,
 .dark .dojo-agent-dex-lineage div,
 .dark .dojo-agent-receipt-stamps div,
 .dark .dojo-agent-profile-stats div,
@@ -2324,6 +2342,9 @@ html.dark body {
     grid-template-columns: 1fr;
   }
   .dojo-agent-profile-actions {
+    grid-template-columns: 1fr;
+  }
+  .dojo-agent-nfa-strip-wide {
     grid-template-columns: 1fr;
   }
 }

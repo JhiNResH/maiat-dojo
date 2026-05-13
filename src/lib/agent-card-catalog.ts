@@ -30,10 +30,28 @@ export type AgentServiceReceipt = {
   status: "cleared" | "refunded" | "disputed";
 };
 
+export type AgentFamilyCode = "NEG" | "R8" | "SLR" | "BYR" | "VFY";
+
+export type AgentProofLevel = "identity" | "execution" | "clearing" | "settlement";
+
+export type AgentFamily = {
+  code: AgentFamilyCode;
+  name: string;
+  role: string;
+};
+
 export type AgentServiceCard = {
   id: string;
   slug: string;
   name: string;
+  nfaId: string;
+  agentId: string;
+  familyCode: AgentFamilyCode;
+  familyName: string;
+  familyRole: string;
+  proofLevel: AgentProofLevel;
+  proofSummary: string;
+  ownerIdentity: string;
   collection: string;
   role: string;
   archetype: string;
@@ -58,14 +76,51 @@ export type AgentServiceCard = {
   receiptsHref: string;
 };
 
+export const AGENT_FAMILIES: AgentFamily[] = [
+  {
+    code: "NEG",
+    name: "Negotiator",
+    role: "Resolve orders, refunds, claims, and merchant settlement outcomes.",
+  },
+  {
+    code: "R8",
+    name: "Review",
+    role: "Rate, review, and turn verified consumption into taste reputation.",
+  },
+  {
+    code: "SLR",
+    name: "Seller",
+    role: "Represent merchant inventory, pricing, offers, and fulfillment.",
+  },
+  {
+    code: "BYR",
+    name: "Buyer",
+    role: "Shop, compare, negotiate, and purchase on behalf of a user.",
+  },
+  {
+    code: "VFY",
+    name: "Verifier",
+    role: "Evaluate work, stake judgment, and clear receipts into reputation.",
+  },
+];
+
 export const AGENT_SERVICE_CARDS: AgentServiceCard[] = [
   {
     id: "agent-jiagon-negotiator",
     slug: "jiagon-negotiator",
     name: "Jiagon Negotiator",
-    collection: "Jiagon Commerce Agents",
+    nfaId: "NFA-NEG-0001",
+    agentId: "erc8004:neg:jiagon",
+    familyCode: "NEG",
+    familyName: "Negotiator Agents",
+    familyRole: "Resolve merchant orders, refunds, claims, and settlement outcomes.",
+    proofLevel: "clearing",
+    proofSummary:
+      "Identity, endpoint, evaluator outcomes, receipt history, and fork lineage are tracked as one portable agent record.",
+    ownerIdentity: "Jiagon / Maiat Dojo",
+    collection: "NEG Agent Family",
     role: "Negotiator for merchant orders, refunds, and receipt-backed credit.",
-    archetype: "Agent Card",
+    archetype: "NEG root NFA",
     summary:
       "Handles paid commerce cases for merchants: verify the order, negotiate refund or discount, clear the settlement, and turn every receipt into reputation.",
     status: "root-template",
@@ -131,9 +186,18 @@ export const AGENT_SERVICE_CARDS: AgentServiceCard[] = [
     id: "agent-raposa-coffee",
     slug: "raposa-coffee-agent",
     name: "Raposa Coffee Agent",
-    collection: "Cafe Commerce Forks",
+    nfaId: "NFA-NEG-0001-F01",
+    agentId: "erc8004:neg:raposa",
+    familyCode: "NEG",
+    familyName: "Negotiator Agents",
+    familyRole: "Resolve merchant orders, refunds, claims, and settlement outcomes.",
+    proofLevel: "execution",
+    proofSummary:
+      "Forked agent identity with merchant-specific workflow deck, cleared pickup receipts, and royalty lineage to Jiagon.",
+    ownerIdentity: "Raposa Coffee fork",
+    collection: "NEG Agent Family",
     role: "Coffee-shop order issue agent forked from Jiagon.",
-    archetype: "Fork: Raposa Agent",
+    archetype: "Merchant NEG fork",
     summary:
       "A cafe-specific fork that handles paid pickup issues, refund requests, loyalty make-goods, and claim receipts for Raposa-style merchants.",
     status: "merchant-fork",
@@ -200,9 +264,18 @@ export const AGENT_SERVICE_CARDS: AgentServiceCard[] = [
     id: "agent-solyd-commerce",
     slug: "solyd-commerce-agent",
     name: "SOLYD Commerce Agent",
-    collection: "Onchain Merchant Agents",
+    nfaId: "NFA-NEG-0001-F02",
+    agentId: "erc8004:neg:solyd",
+    familyCode: "NEG",
+    familyName: "Negotiator Agents",
+    familyRole: "Resolve merchant orders, refunds, claims, and settlement outcomes.",
+    proofLevel: "settlement",
+    proofSummary:
+      "Payment-native fork with wallet evidence, receipt API, settlement routing, and verified commerce volume.",
+    ownerIdentity: "SOLYD merchant fork",
+    collection: "NEG Agent Family",
     role: "Onchain settlement assistant for commerce payments and claims.",
-    archetype: "Fork: SOLYD Agent",
+    archetype: "Settlement NEG fork",
     summary:
       "A payment-native fork for merchants that need order proofs, customer claims, and chain-backed settlement records before issuing credit.",
     status: "verified-service",
@@ -271,4 +344,11 @@ export function agentCardStatusLabel(status: AgentServiceCard["status"]) {
   if (status === "root-template") return "Root template";
   if (status === "merchant-fork") return "Merchant fork";
   return "Verified service";
+}
+
+export function agentProofLevelLabel(level: AgentProofLevel) {
+  if (level === "identity") return "Identity";
+  if (level === "execution") return "Execution";
+  if (level === "clearing") return "Clearing";
+  return "Settlement";
 }
