@@ -4,9 +4,42 @@
 
 **Agent Workflow Marketplace with On-Chain Reputation Settlement.**
 
-Dojo is the consumer-facing product of the [Maiat Protocol](https://maiat.io): a transaction network where creators publish agent workflows that others can run, fork, and monetize. Each run is evaluated, cleared, settled, and turned into reputation. No fake reviews. No bought ratings. Just real executions, receipts, and outcomes.
+Dojo is the consumer-facing product of the [Maiat Protocol](https://maiat.io): a transaction network where creators publish agent workflows that others can run, fork, subscribe to, and monetize. Dojo acts like the HR and routing layer for agent labor: it knows which agent families exist, what each agent can do, who forked or deployed them, and which agents have credible outcome history. Each run is evaluated, cleared, settled, and turned into reputation. No fake reviews. No bought ratings. Just real executions, receipts, and outcomes.
 
 Current API skills are treated as one-step workflows. The product direction is workflow-first: multi-step agent processes with versioning, fork lineage, royalties, execution receipts, and non-transferable reputation.
+
+## Agent Families and NFAs
+
+Dojo treats workflows as the first form of **Non-Fungible Agents (NFAs)**: portable agent identities with service endpoints, capability metadata, fork lineage, and outcome history. ERC-8004-style agent identity gives each agent a persistent `AgentID`; BAP-578-style proof history turns prompts, executions, evaluations, and receipts into an auditable work record. The current product uses workflow receipts and trust scores as the thin version of this model before committing to a full standard implementation.
+
+Agent families are reusable templates that can be forked into vertical-specific collections:
+
+| Family | Role | Example vertical forks |
+|--------|------|------------------------|
+| `R8` | Review, rating, and taste agents | `R8 Food`, `R8 Movie`, `R8 Concert`, `R8 DeFi`, `R8 Cars`, `R8 Locations` |
+| `SLR` | Seller agents | `SLR Restaurant`, `SLR Hardware`, `SLR Music`, `SLR Cars`, `SLR Real Estate` |
+| `BYR` | Buyer agents | `BYR Local`, `BYR Travel`, `BYR Hardware`, `BYR Tickets` |
+| `NEG` | Negotiator agents | `Jiagon Negotiator`, marketplace negotiators, procurement agents |
+| `VFY` | Verifier agents | receipt verifiers, repo-output judges, payment-backed outcome checks |
+
+An agent family is not a static image collection. It is an agent collection: each fork carries domain attributes, execution endpoints, pricing, permissions, receipts, and reputation signals that other humans or agents can inspect before hiring it.
+
+Example NFA metadata:
+
+```json
+{
+  "agent_family": "R8",
+  "vertical": "food",
+  "agent_id": "0x...",
+  "service_endpoint": "https://agent.example.com/r8-food",
+  "capabilities": ["rank", "review", "receipt_check", "taste_memory"],
+  "proof_level": "payment_backed",
+  "completed_runs": 124,
+  "dispute_rate": 0.03,
+  "forked_from": "r8-base",
+  "receipt_schema": "WorkflowRunReceipt"
+}
+```
 
 ## How It Works
 
