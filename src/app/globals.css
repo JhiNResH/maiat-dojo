@@ -1442,6 +1442,11 @@ html.dark body {
 .dojo-agent-collection,
 .dojo-agent-card-id,
 .dojo-agent-rail,
+.dojo-agent-dex-copy span,
+.dojo-agent-dex-stats span,
+.dojo-agent-dex-lineage span,
+.dojo-agent-dex-note,
+.dojo-agent-move span,
 .dojo-agent-stat-grid span,
 .dojo-agent-attributes span,
 .dojo-agent-footer span,
@@ -1753,15 +1758,19 @@ html.dark body {
 }
 .dojo-agent-detail-actions {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   gap: 8px;
+}
+.dojo-agent-detail-actions .dojo-action:not(.dojo-action-primary) {
+  justify-content: center;
+  padding-inline: 10px;
 }
 .dojo-agent-inspector {
   position: sticky;
   top: 96px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   border: 1px solid var(--card-border);
   border-radius: 8px;
   background:
@@ -1769,6 +1778,221 @@ html.dark body {
     var(--card-bg);
   padding: 14px;
   box-shadow: 0 12px 40px rgba(11, 12, 14, 0.055), var(--glass-highlight);
+}
+.dojo-agent-dex-hero {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 28% 35%, color-mix(in srgb, var(--dojo-bamboo) 18%, transparent), transparent 32%),
+    linear-gradient(90deg, rgba(30,121,84,0.065) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(169,39,39,0.05) 1px, transparent 1px),
+    rgba(255,255,250,0.56);
+  background-size: auto, 18px 18px, 18px 18px, auto;
+  padding: 10px;
+}
+.dojo-agent-dex-avatar {
+  display: flex;
+  height: 86px;
+  width: 86px;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+  border: 1px solid var(--paper-border-strong);
+  border-radius: 10px;
+  background: #faf8f0;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.82), 0 14px 32px rgba(11,12,14,0.12);
+}
+.dojo-agent-dex-copy {
+  min-width: 0;
+}
+.dojo-agent-dex-copy span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--dojo-red);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.dojo-agent-dex-copy strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--text);
+  font-family: var(--font-serif), Georgia, serif;
+  font-size: 24px;
+  font-weight: 950;
+  line-height: 0.96;
+}
+.dojo-agent-dex-copy p {
+  margin-top: 7px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 720;
+  line-height: 1.35;
+}
+.dojo-agent-dex-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.dojo-agent-dex-stats div,
+.dojo-agent-dex-lineage div {
+  min-width: 0;
+  border: 1px solid var(--card-border);
+  border-radius: 7px;
+  background: rgba(255,255,250,0.58);
+  padding: 9px;
+}
+.dojo-agent-dex-stats span,
+.dojo-agent-dex-lineage span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.dojo-agent-dex-stats strong,
+.dojo-agent-dex-lineage strong {
+  display: block;
+  margin-top: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 900;
+}
+.dojo-agent-dex-section {
+  border-top: 1px solid var(--border-light);
+  padding-top: 11px;
+}
+.dojo-agent-dex-section-primary {
+  border-top: 0;
+  padding-top: 0;
+}
+.dojo-agent-move-list {
+  display: grid;
+  gap: 7px;
+}
+.dojo-agent-move {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  border: 1px solid var(--card-border);
+  border-radius: 7px;
+  background: var(--signal-soft);
+  padding: 8px;
+}
+.dojo-agent-move span {
+  display: inline-flex;
+  height: 22px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--signal-deep) 22%, transparent);
+  border-radius: 6px;
+  color: var(--signal-deep);
+  font-size: 9px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+}
+.dojo-agent-move strong {
+  color: var(--signal-deep);
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  line-height: 1.25;
+  white-space: normal;
+}
+.dojo-agent-quest-list {
+  counter-reset: deck;
+  display: grid;
+  gap: 7px;
+}
+.dojo-agent-quest-list li {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 740;
+  line-height: 1.35;
+}
+.dojo-agent-quest-list li::before {
+  counter-increment: deck;
+  content: counter(deck, decimal-leading-zero);
+  color: var(--dojo-red);
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  font-weight: 950;
+}
+.dojo-agent-receipt-stamps {
+  display: grid;
+  gap: 7px;
+}
+.dojo-agent-receipt-stamps div {
+  min-width: 0;
+  border: 1px solid var(--card-border);
+  border-radius: 7px;
+  background: rgba(255,255,250,0.58);
+  padding: 8px;
+}
+.dojo-agent-receipt-stamps span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--dojo-red);
+  font-family: var(--font-mono), monospace;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.dojo-agent-receipt-stamps strong {
+  display: block;
+  margin-top: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 820;
+}
+.dojo-agent-dex-lineage {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.dojo-agent-dex-note {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border-top: 1px solid var(--border-light);
+  padding-top: 10px;
+  color: var(--text-muted);
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+.dojo-agent-dex-note svg {
+  flex: 0 0 auto;
+  color: var(--dojo-red);
 }
 .dojo-agent-inspector-head strong {
   font-family: var(--font-serif), Georgia, serif;
@@ -1854,7 +2078,8 @@ html.dark body {
   color: var(--dojo-red);
 }
 .dark .dojo-agent-card,
-.dark .dojo-agent-inspector {
+.dark .dojo-agent-inspector,
+.dark .dojo-agent-dex-hero {
   background:
     linear-gradient(180deg, rgba(24,31,22,0.92), rgba(9,12,8,0.86)),
     var(--card-bg);
@@ -1869,12 +2094,17 @@ html.dark body {
 }
 .dark .dojo-agent-rail span,
 .dark .dojo-agent-card-meta span,
+.dark .dojo-agent-dex-stats div,
+.dark .dojo-agent-dex-lineage div,
+.dark .dojo-agent-receipt-stamps div,
 .dark .dojo-agent-stat-grid div,
 .dark .dojo-agent-attributes div,
 .dark .dojo-agent-lineage div {
   background: rgba(222,232,204,0.055);
 }
-.dark .dojo-agent-ability-row strong {
+.dark .dojo-agent-ability-row strong,
+.dark .dojo-agent-move strong,
+.dark .dojo-agent-move span {
   color: var(--signal);
 }
 .dojo-mini-panel {
@@ -1938,6 +2168,7 @@ html.dark body {
     grid-template-columns: 1fr;
   }
   .dojo-agent-inspector {
+    order: -1;
     position: relative;
     top: 0;
   }
@@ -1970,6 +2201,9 @@ html.dark body {
     flex-direction: column;
   }
   .dojo-agent-actions {
+    grid-template-columns: 1fr;
+  }
+  .dojo-agent-detail-actions {
     grid-template-columns: 1fr;
   }
   .dojo-agent-actions .dojo-icon-link {
