@@ -9,6 +9,7 @@ import {
   ReceiptText,
   Repeat2,
   Search,
+  ShieldCheck,
   WalletCards,
 } from "lucide-react";
 import { DojoPetAvatar } from "@/components/DojoPetAvatar";
@@ -74,25 +75,43 @@ function AgentCard({ agent, featured = false }: { agent: AgentServiceCard; featu
 function AgentRail({ selected }: { selected: AgentServiceCard }) {
   return (
     <aside className="dojo-agent-inspector">
-      <div className="dojo-agent-inspector-head">
-        <span>Agent Card</span>
-        <strong>{selected.name}</strong>
+      <div className="dojo-agent-dex-hero">
+        <div className="dojo-agent-dex-avatar">
+          <DojoPetAvatar
+            name={selected.name}
+            workflowId={selected.avatarSeed}
+            slug={selected.slug}
+            category={selected.category}
+            creatorId={selected.lineage.parent ?? selected.lineage.root}
+            receipts={selected.reputation.receiptsCleared}
+            passRate={selected.reputation.successRate}
+            forks={selected.lineage.generation}
+            royaltyBps={selected.pricing.royaltyBps}
+            size="lg"
+          />
+        </div>
+        <div className="dojo-agent-dex-copy">
+          <span>{selected.archetype}</span>
+          <strong>{selected.name}</strong>
+          <p>{selected.role}</p>
+        </div>
       </div>
-      <p className="dojo-agent-detail-summary">{selected.summary}</p>
-      <div className="dojo-agent-lineage dojo-agent-reputation">
+
+      <div className="dojo-agent-dex-stats" aria-label={`${selected.name} reputation stats`}>
         <div>
           <span>Credit</span>
           <strong>CR {selected.reputation.creditScore}</strong>
         </div>
         <div>
-          <span>Receipts</span>
-          <strong>{selected.reputation.receiptsCleared}</strong>
-        </div>
-        <div>
           <span>Success</span>
           <strong>{percent(selected.reputation.successRate)}</strong>
         </div>
+        <div>
+          <span>Receipts</span>
+          <strong>{selected.reputation.receiptsCleared}</strong>
+        </div>
       </div>
+
       <div className="dojo-agent-detail-actions">
         <Link href={selected.runHref} className="dojo-action dojo-action-primary" title="Run once for a specific task">
           <Play className="h-3.5 w-3.5 fill-current" />
@@ -107,55 +126,67 @@ function AgentRail({ selected }: { selected: AgentServiceCard }) {
           Fork
         </Link>
       </div>
-      <div className="dojo-agent-deck">
+
+      <div className="dojo-agent-dex-section dojo-agent-dex-section-primary">
         <div className="dojo-agent-section-title">
           <WalletCards className="h-3.5 w-3.5" />
-          Abilities
+          Moves
         </div>
-        <div className="dojo-agent-ability-row">
-          {selected.abilities.map((ability) => (
-            <strong key={`${selected.id}-${ability}`}>{ability}</strong>
+        <div className="dojo-agent-move-list">
+          {selected.abilities.map((ability, index) => (
+            <div key={`${selected.id}-${ability}`} className="dojo-agent-move">
+              <span>{String(index + 1).padStart(2, "0")}</span>
+              <strong>{ability}</strong>
+            </div>
           ))}
         </div>
       </div>
-      <div className="dojo-agent-lineage">
-        <div>
-          <span>Root</span>
-          <strong>{selected.lineage.root}</strong>
-        </div>
-        <div>
-          <span>Fork</span>
-          <strong>{selected.lineage.parent ?? "Genesis"}</strong>
-        </div>
-        <div>
-          <span>Forks</span>
-          <strong>{selected.lineage.forks?.join(", ") ?? "None"}</strong>
-        </div>
-      </div>
-      <div className="dojo-agent-deck">
+
+      <div className="dojo-agent-dex-section">
         <div className="dojo-agent-section-title">
           <Layers3 className="h-3.5 w-3.5" />
-          Workflow Decks
+          Workflow deck
         </div>
-        <ol>
+        <ol className="dojo-agent-quest-list">
           {selected.workflowDeck.map((step) => (
             <li key={`${selected.id}-${step}`}>{step}</li>
           ))}
         </ol>
       </div>
-      <div className="dojo-agent-deck">
+
+      <div className="dojo-agent-dex-section">
         <div className="dojo-agent-section-title">
           <ReceiptText className="h-3.5 w-3.5" />
           Receipts
         </div>
-        <ul>
-          {selected.receiptKinds.map((receiptKind) => (
-            <li key={`${selected.id}-${receiptKind}`}>
-              <span>{receiptKind}</span>
-              <strong>Tracked</strong>
-            </li>
+        <div className="dojo-agent-receipt-stamps">
+          {selected.receipts.slice(0, 3).map((receipt) => (
+            <div key={receipt.id}>
+              <span>{receipt.status}</span>
+              <strong>{receipt.label}</strong>
+            </div>
           ))}
-        </ul>
+        </div>
+      </div>
+
+      <div className="dojo-agent-dex-lineage">
+        <div>
+          <span>Root</span>
+          <strong>{selected.lineage.root}</strong>
+        </div>
+        <div>
+          <span>Parent</span>
+          <strong>{selected.lineage.parent ?? "Genesis"}</strong>
+        </div>
+        <div>
+          <span>Children</span>
+          <strong>{selected.lineage.forks?.join(", ") ?? "None"}</strong>
+        </div>
+      </div>
+
+      <div className="dojo-agent-dex-note">
+        <ShieldCheck className="h-3.5 w-3.5" />
+        <span>{(selected.pricing.royaltyBps / 100).toFixed(1)}% lineage royalty. Every cleared run feeds this agent reputation.</span>
       </div>
     </aside>
   );
