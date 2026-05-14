@@ -16,6 +16,8 @@ import { DojoPetAvatar } from "@/components/DojoPetAvatar";
 import {
   AGENT_FAMILIES,
   AGENT_SERVICE_CARDS,
+  agentFamilyDisplayCode,
+  agentGenerationLabel,
   agentProofLevelLabel,
   agentCardStatusLabel,
   type AgentServiceCard,
@@ -50,8 +52,8 @@ function AgentCard({ agent, featured = false }: { agent: AgentServiceCard; featu
           />
         </div>
         <div className="dojo-agent-rail">
-          <span>{agent.familyCode} family</span>
-          <span>{agentProofLevelLabel(agent.proofLevel)} proof</span>
+          <span>{agentFamilyDisplayCode(agent.familyCode)}</span>
+          <span>{agentGenerationLabel(agent.lineage.generation)}</span>
         </div>
       </div>
 
@@ -65,7 +67,7 @@ function AgentCard({ agent, featured = false }: { agent: AgentServiceCard; featu
 
         <p className="dojo-agent-role">{agent.role}</p>
         <div className="dojo-agent-card-meta" aria-label={`${agent.name} quick stats`}>
-          <span>{agent.familyName}</span>
+          <span>{agentGenerationLabel(agent.lineage.generation)}</span>
           <span>CR {agent.reputation.creditScore}</span>
           <span>{percent(agent.reputation.successRate)} success</span>
         </div>
@@ -100,7 +102,7 @@ function AgentRail({ selected }: { selected: AgentServiceCard }) {
           />
         </div>
         <div className="dojo-agent-dex-copy">
-          <span>{selected.familyCode} family · {selected.nfaId}</span>
+          <span>{agentFamilyDisplayCode(selected.familyCode)} · {agentGenerationLabel(selected.lineage.generation)} · {selected.nfaId}</span>
           <strong>{selected.name}</strong>
           <p>{selected.role}</p>
         </div>
@@ -116,8 +118,8 @@ function AgentRail({ selected }: { selected: AgentServiceCard }) {
           <strong>{selected.ownerIdentity}</strong>
         </div>
         <div>
-          <span>Proof</span>
-          <strong>{agentProofLevelLabel(selected.proofLevel)}</strong>
+          <span>Generation</span>
+          <strong>{agentGenerationLabel(selected.lineage.generation)}</strong>
         </div>
       </div>
 
@@ -221,7 +223,10 @@ export function LandingHero(_props: LandingHeroProps) {
   const [filter, setFilter] = useState("all");
   const [selectedSlug, setSelectedSlug] = useState(AGENT_SERVICE_CARDS[0]?.slug ?? "");
 
-  const families = useMemo(() => ["all", ...AGENT_FAMILIES.map((family) => family.code)], []);
+  const families = useMemo(
+    () => ["all", ...Array.from(new Set(AGENT_SERVICE_CARDS.map((agent) => agent.familyCode)))],
+    [],
+  );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -233,6 +238,7 @@ export function LandingHero(_props: LandingHeroProps) {
         agent.role.toLowerCase().includes(q) ||
         agent.summary.toLowerCase().includes(q) ||
         agent.familyCode.toLowerCase().includes(q) ||
+        agentFamilyDisplayCode(agent.familyCode).toLowerCase().includes(q) ||
         agent.familyName.toLowerCase().includes(q) ||
         agent.ownerIdentity.toLowerCase().includes(q) ||
         agent.agentId.toLowerCase().includes(q) ||
@@ -288,7 +294,7 @@ export function LandingHero(_props: LandingHeroProps) {
                   : AGENT_FAMILIES.find((family) => family.code === cat)?.role
               }
             >
-              {cat}
+              {cat === "all" ? "All" : agentFamilyDisplayCode(cat as AgentServiceCard["familyCode"])}
             </button>
           ))}
         </div>

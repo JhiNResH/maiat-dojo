@@ -17,6 +17,8 @@ import { Footer } from "@/components/landing/Footer";
 import { Navbar } from "@/components/landing/Navbar";
 import { DojoPetAvatar } from "@/components/DojoPetAvatar";
 import {
+  agentFamilyDisplayCode,
+  agentGenerationLabel,
   agentProofLevelLabel,
   agentCardStatusLabel,
   type AgentServiceCard,
@@ -69,11 +71,12 @@ export function CatalogAgentPageClient({ agent }: { agent: AgentServiceCard }) {
             </div>
 
             <div className="dojo-agent-profile-copy">
-              <span>{agent.familyCode} family · {agent.nfaId}</span>
+              <span>{agentFamilyDisplayCode(agent.familyCode)} · {agentGenerationLabel(agent.lineage.generation)} · {agent.nfaId}</span>
               <h1>{agent.name}</h1>
               <p>{agent.summary}</p>
               <div className="dojo-agent-card-meta">
                 <span>{agent.familyName}</span>
+                <span>{agentGenerationLabel(agent.lineage.generation)}</span>
                 <span>{agentProofLevelLabel(agent.proofLevel)} proof</span>
                 <span>{agent.ownerIdentity}</span>
               </div>
@@ -89,6 +92,10 @@ export function CatalogAgentPageClient({ agent }: { agent: AgentServiceCard }) {
               <div>
                 <span>AgentID</span>
                 <strong>{agent.agentId}</strong>
+              </div>
+              <div>
+                <span>Family</span>
+                <strong>{agentFamilyDisplayCode(agent.familyCode)}</strong>
               </div>
               <div>
                 <span>Family role</span>

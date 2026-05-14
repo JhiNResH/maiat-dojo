@@ -168,14 +168,14 @@ The workflow is paid per successful run. Dojo evaluates the JSON response, clear
 
   const ronin = await prisma.agent.create({
     data: {
-      name: "Ronin",
+      name: "R8",
       description:
-        "Demo R8 review agent. Hires public-repo workflows online and turns cleared results into review-backed reputation.",
+        "Genesis R8 review agent. Hires workflows online and turns cleared results into review-backed reputation.",
       avatar: "🥷",
       familyCode: "R8",
-      familyName: "Review Agents",
+      familyName: "R8 Agent Family",
       nfaId: "NFA-R8-0001",
-      agentIdentity: "erc8004:r8:ronin",
+      agentIdentity: "erc8004:r8:genesis",
       proofLevel: "execution",
       royaltyBps: 0,
       lineageRoot: "R8",
@@ -192,19 +192,74 @@ The workflow is paid per successful run. Dojo evaluates the JSON response, clear
 
   await prisma.agent.create({
     data: {
-      name: "Raposa Seller",
+      name: "SLL-R",
       description:
-        "Demo SLR seller agent. Represents merchant offers, order status, and fulfillment promises that other agents can hire or verify.",
+        "Genesis SLL-R merchant-service agent. Represents order handling, fulfillment promises, receipts, and credit signals that other agents can hire or verify.",
+      avatar: "🥋",
+      familyCode: "SLR",
+      familyName: "SLL-R Agent Family",
+      nfaId: "NFA-SLL-R-0001",
+      agentIdentity: "erc8004:sll-r:genesis",
+      proofLevel: "clearing",
+      serviceEndpoint: `${appUrl()}/api/skills-internal/repo-analyst`,
+      royaltyBps: 750,
+      lineageRoot: "SLL-R",
+      rank: "Tatsujin 達人",
+      xp: 180,
+      jobsCompleted: 1,
+      successRate: 92,
+      totalEarnings: 0,
+      earningsCurrency: "USDC",
+      ownerId: platform.id,
+    },
+  });
+
+  await prisma.agent.create({
+    data: {
+      name: "SLL-R Raposa",
+      description:
+        "Gen1 SLL-R coffee-shop agent fork. Handles order issues, pickup claims, and receipt-backed service recovery for Raposa-style merchants.",
       avatar: "☕",
       familyCode: "SLR",
-      familyName: "Seller Agents",
-      nfaId: "NFA-SLR-0001",
-      agentIdentity: "erc8004:slr:raposa",
-      proofLevel: "identity",
+      familyName: "SLL-R Agent Family",
+      nfaId: "NFA-SLL-R-0001-G01",
+      agentIdentity: "erc8004:sll-r:raposa",
+      proofLevel: "execution",
       serviceEndpoint: `${appUrl()}/api/skills-internal/repo-analyst`,
       royaltyBps: 300,
-      lineageRoot: "SLR",
+      lineageRoot: "SLL-R",
+      lineageParent: "SLL-R",
       rank: "Kozo 小僧",
+      xp: 64,
+      jobsCompleted: 1,
+      successRate: 89,
+      totalEarnings: 0,
+      earningsCurrency: "USDC",
+      ownerId: platform.id,
+    },
+  });
+
+  await prisma.agent.create({
+    data: {
+      name: "SLL-R SOLYD",
+      description:
+        "Gen1 SLL-R settlement agent fork. Handles commerce payment evidence, customer claims, and receipt-backed settlement records for SOLYD-style merchants.",
+      avatar: "💳",
+      familyCode: "SLR",
+      familyName: "SLL-R Agent Family",
+      nfaId: "NFA-SLL-R-0001-G02",
+      agentIdentity: "erc8004:sll-r:solyd",
+      proofLevel: "settlement",
+      serviceEndpoint: `${appUrl()}/api/skills-internal/repo-analyst`,
+      royaltyBps: 400,
+      lineageRoot: "SLL-R",
+      lineageParent: "SLL-R",
+      rank: "Senpai 先輩",
+      xp: 96,
+      jobsCompleted: 1,
+      successRate: 94,
+      totalEarnings: 0,
+      earningsCurrency: "USDC",
       ownerId: platform.id,
     },
   });
@@ -228,7 +283,7 @@ The workflow is paid per successful run. Dojo evaluates the JSON response, clear
 
   console.log("✅ Seed complete — one real demo workflow");
   console.log("   - Agent Repo Analyst (active, $0.003/run → /api/skills-internal/repo-analyst)");
-  console.log("   - NFA families seeded: R8 Ronin, SLR Raposa Seller");
+  console.log("   - NFA families seeded: R8, SLL-R genesis, SLL-R Raposa Gen1, SLL-R SOLYD Gen1");
   console.log("   - Demo input: https://github.com/garrytan/gbrain");
   console.log("   - Buyer agent funded with 10 credits");
 }
