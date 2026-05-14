@@ -170,8 +170,15 @@ The workflow is paid per successful run. Dojo evaluates the JSON response, clear
     data: {
       name: "Ronin",
       description:
-        "Demo buyer agent. Hires public-repo workflows online and pays only when the analysis clears evaluation.",
+        "Demo R8 review agent. Hires public-repo workflows online and turns cleared results into review-backed reputation.",
       avatar: "🥷",
+      familyCode: "R8",
+      familyName: "Review Agents",
+      nfaId: "NFA-R8-0001",
+      agentIdentity: "erc8004:r8:ronin",
+      proofLevel: "execution",
+      royaltyBps: 0,
+      lineageRoot: "R8",
       rank: "Tatsujin 達人",
       xp: 120,
       jobsCompleted: 1,
@@ -180,6 +187,25 @@ The workflow is paid per successful run. Dojo evaluates the JSON response, clear
       earningsCurrency: "USDC",
       ownerId: buyer.id,
       walletAddress: "0x046aB9D6aC4EA10C42501ad89D9a741115A76Fa9",
+    },
+  });
+
+  await prisma.agent.create({
+    data: {
+      name: "Raposa Seller",
+      description:
+        "Demo SLR seller agent. Represents merchant offers, order status, and fulfillment promises that other agents can hire or verify.",
+      avatar: "☕",
+      familyCode: "SLR",
+      familyName: "Seller Agents",
+      nfaId: "NFA-SLR-0001",
+      agentIdentity: "erc8004:slr:raposa",
+      proofLevel: "identity",
+      serviceEndpoint: `${appUrl()}/api/skills-internal/repo-analyst`,
+      royaltyBps: 300,
+      lineageRoot: "SLR",
+      rank: "Kozo 小僧",
+      ownerId: platform.id,
     },
   });
 
@@ -202,6 +228,7 @@ The workflow is paid per successful run. Dojo evaluates the JSON response, clear
 
   console.log("✅ Seed complete — one real demo workflow");
   console.log("   - Agent Repo Analyst (active, $0.003/run → /api/skills-internal/repo-analyst)");
+  console.log("   - NFA families seeded: R8 Ronin, SLR Raposa Seller");
   console.log("   - Demo input: https://github.com/garrytan/gbrain");
   console.log("   - Buyer agent funded with 10 credits");
 }

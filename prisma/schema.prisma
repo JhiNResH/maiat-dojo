@@ -7,6 +7,14 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum AgentFamilyCode {
+  R8
+  SLR
+  BYR
+  NEG
+  VFY
+}
+
 // --- Users ---
 model User {
   id            String    @id @default(cuid())
@@ -108,6 +116,15 @@ model Agent {
   name           String
   description    String
   avatar         String   @default("🤖")
+  familyCode     AgentFamilyCode @default(R8)
+  familyName     String?
+  nfaId          String?  @unique
+  agentIdentity  String?  @unique // portable AgentID / ERC-8004-style identity string
+  proofLevel     String   @default("identity")
+  serviceEndpoint String?
+  royaltyBps     Int      @default(0)
+  lineageRoot    String?
+  lineageParent  String?
   rank           String   @default("Kozo 小僧")
   xp             Int      @default(0)
   jobsCompleted  Int      @default(0)
@@ -130,6 +147,9 @@ model Agent {
   jobs           Job[]
   sessions       Session[]
   workflowRunReceipts WorkflowRunReceipt[] @relation("ReceiptBuyerAgent")
+
+  @@index([familyCode])
+  @@index([familyCode, proofLevel])
 }
 
 // --- Agent <-> Skill (equipped) ---

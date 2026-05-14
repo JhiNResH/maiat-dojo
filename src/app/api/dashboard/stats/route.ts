@@ -69,6 +69,7 @@ export async function GET(req: NextRequest) {
     where: { ownerId: user.id },
     select: {
       id: true, name: true, walletAddress: true, trustScore: true,
+      familyCode: true, familyName: true, nfaId: true, agentIdentity: true, proofLevel: true,
       sessions: {
         select: {
           id: true, status: true, budgetTotal: true, budgetRemaining: true,
@@ -127,6 +128,11 @@ export async function GET(req: NextRequest) {
       agents: ownedAgents.map((a) => ({
         id: a.id,
         name: a.name,
+        familyCode: a.familyCode,
+        familyName: a.familyName,
+        nfaId: a.nfaId,
+        agentIdentity: a.agentIdentity,
+        proofLevel: a.proofLevel,
         walletAddress: a.walletAddress,
         trustScore: a.trustScore,
         sessionCount: a.sessions.length,
