@@ -40,9 +40,24 @@ export type AgentFamily = {
   role: string;
 };
 
+export type AgentCollection = {
+  slug: string;
+  code: AgentFamilyCode;
+  name: string;
+  title: string;
+  summary: string;
+  creator: string;
+  coverSeed: string;
+  itemSlugs: string[];
+  floorUsd: number;
+  volumeUsd: number;
+  royaltyBps: number;
+};
+
 export type AgentServiceCard = {
   id: string;
   slug: string;
+  collectionSlug: string;
   name: string;
   nfaId: string;
   agentId: string;
@@ -104,87 +119,40 @@ export const AGENT_FAMILIES: AgentFamily[] = [
   },
 ];
 
-export const AGENT_SERVICE_CARDS: AgentServiceCard[] = [
+export const AGENT_COLLECTIONS: AgentCollection[] = [
   {
-    id: "agent-sll-r",
     slug: "sll-r",
+    code: "SLR",
     name: "SLL-R",
-    nfaId: "NFA-SLL-R-0001",
-    agentId: "erc8004:sll-r:genesis",
-    familyCode: "SLR",
-    familyName: "SLL-R Agent Family",
-    familyRole: "Represent merchant services, order handling, fulfillment, and receipt-backed credit.",
-    proofLevel: "clearing",
-    proofSummary:
-      "Genesis identity, service endpoint, evaluator outcomes, receipt history, and fork lineage are tracked as one portable agent record.",
-    ownerIdentity: "Jiagon / Maiat Dojo",
-    collection: "SLL-R Genesis",
-    role: "Genesis merchant-service agent for orders, refunds, receipts, and credit signals.",
-    archetype: "SLL-R genesis NFA",
-    summary:
-      "The root SLL-R agent family. It handles paid commerce cases for merchants, clears receipts, and lets merchant-specific Gen1 agents inherit the workflow.",
-    status: "root-template",
-    category: "Merchant Service",
-    avatarSeed: "sll-r-genesis",
-    paymentRails: ["BNB", "MoonPay", "USDC"],
-    integrations: ["MoonPay Commerce", "Telegram", "Merchant receipts"],
-    abilities: [
-      "Quote order",
-      "Negotiate issue/refund",
-      "Issue receipt",
-      "Build credit signal",
-    ],
-    workflowDeck: [
-      "Raposa order handling",
-      "SOLYD shipping quote",
-      "Receipt claim",
-      "Refund negotiation",
-    ],
-    receiptKinds: [
-      "Cleared orders",
-      "Fulfilled claims",
-      "Refunds resolved",
-    ],
-    attributes: [
-      { label: "Class", value: "SLL-R" },
-      { label: "Generation", value: "Genesis" },
-      { label: "Royalty", value: "7.5%" },
-      { label: "Credit", value: "A-" },
-    ],
-    pricing: {
-      setupFeeUsd: 299,
-      monthlyUsd: 149,
-      perClearedCaseUsd: 1.5,
-      successFeeBps: 1000,
-      royaltyBps: 750,
-    },
-    lineage: {
-      root: "SLL-R",
-      forks: ["SLL-R Raposa", "SLL-R SOLYD"],
-      generation: 0,
-    },
-    reputation: {
-      receiptsCleared: 128,
-      successRate: 0.92,
-      savedAmountUsd: 18420,
-      verifiedVolumeUsd: 96200,
-      disputes: 3,
-      creditScore: 84,
-    },
-    receipts: [
-      { id: "rcpt_jgn_128", label: "Refund saved", amountUsd: 84, status: "cleared" },
-      { id: "rcpt_jgn_127", label: "Order claim settled", amountUsd: 42, status: "cleared" },
-      { id: "rcpt_jgn_126", label: "Discount negotiated", amountUsd: 18, status: "cleared" },
-    ],
-    detailHref: "/agent/sll-r",
-    runHref: "/agent/sll-r?mode=run",
-    subscribeHref: "/agent/sll-r?mode=subscribe",
-    forkHref: "/agent/sll-r?mode=license",
-    receiptsHref: "/leaderboard",
+    title: "Seller and service agent collection",
+    summary: "Merchant-service NFAs for order handling, settlement, refunds, and receipt-backed credit.",
+    creator: "Jiagon / Maiat Dojo",
+    coverSeed: "sll-r-collection",
+    itemSlugs: ["sll-r-raposa", "sll-r-solyd"],
+    floorUsd: 79,
+    volumeUsd: 92800,
+    royaltyBps: 750,
   },
+  {
+    slug: "r8",
+    code: "R8",
+    name: "R8",
+    title: "Review and reputation collection",
+    summary: "Review NFAs that score receipts and turn verified consumption into portable reputation.",
+    creator: "Maiat Dojo",
+    coverSeed: "r8-collection",
+    itemSlugs: ["r8"],
+    floorUsd: 0.5,
+    volumeUsd: 21200,
+    royaltyBps: 0,
+  },
+];
+
+export const AGENT_SERVICE_CARDS: AgentServiceCard[] = [
   {
     id: "agent-raposa-coffee",
     slug: "sll-r-raposa",
+    collectionSlug: "sll-r",
     name: "SLL-R Raposa",
     nfaId: "NFA-SLL-R-0001-G01",
     agentId: "erc8004:sll-r:raposa",
@@ -264,6 +232,7 @@ export const AGENT_SERVICE_CARDS: AgentServiceCard[] = [
   {
     id: "agent-solyd-commerce",
     slug: "sll-r-solyd",
+    collectionSlug: "sll-r",
     name: "SLL-R SOLYD",
     nfaId: "NFA-SLL-R-0001-G02",
     agentId: "erc8004:sll-r:solyd",
@@ -343,6 +312,7 @@ export const AGENT_SERVICE_CARDS: AgentServiceCard[] = [
   {
     id: "agent-r8",
     slug: "r8",
+    collectionSlug: "r8",
     name: "R8",
     nfaId: "NFA-R8-0001",
     agentId: "erc8004:r8:genesis",

@@ -80,15 +80,6 @@ export function Navbar() {
           </span>
         </Link>
 
-        <div className="hidden items-center gap-6 md:flex">
-          <Link href="/leaderboard" className="text-[11px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] transition-colors hover:text-[var(--text)]">
-            Leaderboard
-          </Link>
-          <Link href="/dashboard" className="text-[11px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] transition-colors hover:text-[var(--text)]">
-            Dashboard
-          </Link>
-        </div>
-
         <div className="flex items-center gap-2">
           <DarkToggle />
           <WalletPill />
