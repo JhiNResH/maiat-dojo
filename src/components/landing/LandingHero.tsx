@@ -14,10 +14,11 @@ import {
 } from "lucide-react";
 import { DojoPetAvatar } from "@/components/DojoPetAvatar";
 import {
-  AGENT_FAMILIES,
+  AGENT_COLLECTIONS,
   AGENT_SERVICE_CARDS,
-  agentProofLevelLabel,
-  agentCardStatusLabel,
+  agentFamilyDisplayCode,
+  agentGenerationLabel,
+  type AgentCollection,
   type AgentServiceCard,
 } from "@/lib/agent-card-catalog";
 
@@ -28,6 +29,56 @@ export interface LandingHeroProps {
 
 function percent(value: number) {
   return `${Math.round(value * 100)}%`;
+}
+
+function moneyCompact(value: number) {
+  return `$${Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(value)}`;
+}
+
+function CollectionCard({
+  collection,
+  selected,
+  itemCount,
+  onSelect,
+}: {
+  collection: AgentCollection;
+  selected: boolean;
+  itemCount: number;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className={`dojo-collection-card ${selected ? "dojo-collection-card-selected" : ""}`}
+      onClick={onSelect}
+      aria-pressed={selected}
+    >
+      <div className="dojo-collection-cover">
+        <DojoPetAvatar
+          name={collection.name}
+          workflowId={collection.coverSeed}
+          slug={collection.slug}
+          category={collection.title}
+          creatorId={collection.creator}
+          receipts={itemCount}
+          passRate={0.9}
+          forks={itemCount}
+          royaltyBps={collection.royaltyBps}
+          size="lg"
+        />
+      </div>
+      <div className="dojo-collection-copy">
+        <span>{agentFamilyDisplayCode(collection.code)} Collection</span>
+        <strong>{collection.name}</strong>
+        <p>{collection.summary}</p>
+      </div>
+      <div className="dojo-collection-stats">
+        <span>{itemCount} NFAs</span>
+        <span>Floor {moneyCompact(collection.floorUsd)}</span>
+        <span>Vol {moneyCompact(collection.volumeUsd)}</span>
+      </div>
+    </button>
+  );
 }
 
 function AgentCard({ agent, featured = false }: { agent: AgentServiceCard; featured?: boolean }) {
@@ -50,8 +101,8 @@ function AgentCard({ agent, featured = false }: { agent: AgentServiceCard; featu
           />
         </div>
         <div className="dojo-agent-rail">
-          <span>{agent.familyCode} family</span>
-          <span>{agentProofLevelLabel(agent.proofLevel)} proof</span>
+          <span>{agentFamilyDisplayCode(agent.familyCode)}</span>
+          <span>{agentGenerationLabel(agent.lineage.generation)}</span>
         </div>
       </div>
 
@@ -65,7 +116,7 @@ function AgentCard({ agent, featured = false }: { agent: AgentServiceCard; featu
 
         <p className="dojo-agent-role">{agent.role}</p>
         <div className="dojo-agent-card-meta" aria-label={`${agent.name} quick stats`}>
-          <span>{agent.familyName}</span>
+          <span>{agentGenerationLabel(agent.lineage.generation)}</span>
           <span>CR {agent.reputation.creditScore}</span>
           <span>{percent(agent.reputation.successRate)} success</span>
         </div>
@@ -100,7 +151,7 @@ function AgentRail({ selected }: { selected: AgentServiceCard }) {
           />
         </div>
         <div className="dojo-agent-dex-copy">
-          <span>{selected.familyCode} family · {selected.nfaId}</span>
+          <span>{agentFamilyDisplayCode(selected.familyCode)} · {agentGenerationLabel(selected.lineage.generation)} · {selected.nfaId}</span>
           <strong>{selected.name}</strong>
           <p>{selected.role}</p>
         </div>
@@ -116,8 +167,8 @@ function AgentRail({ selected }: { selected: AgentServiceCard }) {
           <strong>{selected.ownerIdentity}</strong>
         </div>
         <div>
-          <span>Proof</span>
-          <strong>{agentProofLevelLabel(selected.proofLevel)}</strong>
+          <span>Generation</span>
+          <strong>{agentGenerationLabel(selected.lineage.generation)}</strong>
         </div>
       </div>
 
@@ -218,49 +269,69 @@ function AgentRail({ selected }: { selected: AgentServiceCard }) {
 
 export function LandingHero(_props: LandingHeroProps) {
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState("all");
+  const [selectedCollectionSlug, setSelectedCollectionSlug] = useState(AGENT_COLLECTIONS[0]?.slug ?? "");
   const [selectedSlug, setSelectedSlug] = useState(AGENT_SERVICE_CARDS[0]?.slug ?? "");
 
-  const families = useMemo(() => ["all", ...AGENT_FAMILIES.map((family) => family.code)], []);
+  const selectedCollection =
+    AGENT_COLLECTIONS.find((collection) => collection.slug === selectedCollectionSlug) ?? AGENT_COLLECTIONS[0];
 
-  const filtered = useMemo(() => {
+  const filteredCollections = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return AGENT_COLLECTIONS.filter((collection) => {
+      return (
+        !q ||
+        collection.name.toLowerCase().includes(q) ||
+        collection.title.toLowerCase().includes(q) ||
+        collection.summary.toLowerCase().includes(q) ||
+        agentFamilyDisplayCode(collection.code).toLowerCase().includes(q)
+      );
+    });
+  }, [query]);
+
+  const collectionItems = useMemo(() => {
     const q = query.trim().toLowerCase();
     return AGENT_SERVICE_CARDS.filter((agent) => {
-      const matchesFilter = filter === "all" || agent.familyCode === filter;
+      const inCollection = agent.collectionSlug === selectedCollection.slug;
       const matchesQuery =
         !q ||
         agent.name.toLowerCase().includes(q) ||
         agent.role.toLowerCase().includes(q) ||
         agent.summary.toLowerCase().includes(q) ||
-        agent.familyCode.toLowerCase().includes(q) ||
-        agent.familyName.toLowerCase().includes(q) ||
         agent.ownerIdentity.toLowerCase().includes(q) ||
         agent.agentId.toLowerCase().includes(q) ||
-        agent.proofSummary.toLowerCase().includes(q) ||
         agent.abilities.some((ability) => ability.toLowerCase().includes(q));
-      return matchesFilter && matchesQuery;
+      return inCollection && matchesQuery;
     });
-  }, [filter, query]);
+  }, [query, selectedCollection.slug]);
 
-  const selected = AGENT_SERVICE_CARDS.find((agent) => agent.slug === selectedSlug) ?? filtered[0] ?? AGENT_SERVICE_CARDS[0];
+  const selected =
+    collectionItems.find((agent) => agent.slug === selectedSlug) ??
+    collectionItems[0] ??
+    AGENT_SERVICE_CARDS.find((agent) => agent.collectionSlug === selectedCollection.slug) ??
+    AGENT_SERVICE_CARDS[0];
+
+  function selectCollection(slug: string) {
+    setSelectedCollectionSlug(slug);
+    const firstItem = AGENT_SERVICE_CARDS.find((agent) => agent.collectionSlug === slug);
+    if (firstItem) setSelectedSlug(firstItem.slug);
+  }
 
   return (
     <section className="dojo-marketplace dojo-agent-marketplace">
       <div className="dojo-agent-hero">
         <div className="dojo-agent-hero-copy">
-          <h1>Hire non-fungible agents.</h1>
+          <h1>Collect and hire agent NFAs.</h1>
           <p>
-            Dojo is an NFA marketplace: each agent card carries identity,
-            abilities, service endpoints, proof history, receipts, and fork lineage.
-            Start with the family, then open the card before you run, subscribe, or license it.
+            Browse agent collections like an NFT market. Open an NFA inside a
+            collection to inspect abilities, receipts, lineage, and service access.
           </p>
         </div>
       </div>
 
       <div className="dojo-market-subhead">
         <div>
-          <h3>NFA marketplace</h3>
-          <p>{AGENT_SERVICE_CARDS.length} listed agents · {AGENT_FAMILIES.length} families</p>
+          <h3>Agent collections</h3>
+          <p>{AGENT_COLLECTIONS.length} collections · {AGENT_SERVICE_CARDS.length} NFAs</p>
         </div>
       </div>
 
@@ -271,35 +342,37 @@ export function LandingHero(_props: LandingHeroProps) {
             type="text"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search agents, families, abilities..."
+            placeholder="Search collections, NFAs, abilities..."
             className="dojo-input pl-9"
           />
         </div>
-        <div className="flex flex-1 flex-wrap items-center gap-2">
-          {families.map((cat) => (
-            <button
-              key={cat}
-              type="button"
-              onClick={() => setFilter(cat)}
-              className={`dojo-filter ${filter === cat ? "dojo-filter-active" : ""}`}
-              title={
-                cat === "all"
-                  ? "All NFA families"
-                  : AGENT_FAMILIES.find((family) => family.code === cat)?.role
-              }
-            >
-              {cat}
-            </button>
-          ))}
+      </div>
+
+      <div className="dojo-collection-grid">
+        {filteredCollections.map((collection) => (
+          <CollectionCard
+            key={collection.slug}
+            collection={collection}
+            selected={selectedCollection.slug === collection.slug}
+            itemCount={AGENT_SERVICE_CARDS.filter((agent) => agent.collectionSlug === collection.slug).length}
+            onSelect={() => selectCollection(collection.slug)}
+          />
+        ))}
+      </div>
+
+      <div className="dojo-market-subhead dojo-collection-subhead">
+        <div>
+          <h3>{selectedCollection.name}</h3>
+          <p>{selectedCollection.title}</p>
         </div>
       </div>
 
       <div className="dojo-agent-layout">
         <div className="dojo-agent-grid">
-          {filtered.length === 0 ? (
-            <div className="dojo-empty">No NFA cards found. Try another family, ability, or clearing use case.</div>
+          {collectionItems.length === 0 ? (
+            <div className="dojo-empty">No NFA cards found in this collection. Try another search.</div>
           ) : (
-            filtered.map((agent, index) => (
+            collectionItems.map((agent, index) => (
               <div
                 key={agent.id}
                 role="button"
@@ -315,7 +388,7 @@ export function LandingHero(_props: LandingHeroProps) {
                 aria-current={selected.slug === agent.slug}
                 aria-label={`Open ${agent.name} agent card`}
               >
-                <AgentCard agent={agent} featured={index === 0 && filter === "all" && query.trim() === ""} />
+                <AgentCard agent={agent} featured={index === 0 && query.trim() === ""} />
               </div>
             ))
           )}

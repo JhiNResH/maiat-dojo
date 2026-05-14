@@ -40,9 +40,24 @@ export type AgentFamily = {
   role: string;
 };
 
+export type AgentCollection = {
+  slug: string;
+  code: AgentFamilyCode;
+  name: string;
+  title: string;
+  summary: string;
+  creator: string;
+  coverSeed: string;
+  itemSlugs: string[];
+  floorUsd: number;
+  volumeUsd: number;
+  royaltyBps: number;
+};
+
 export type AgentServiceCard = {
   id: string;
   slug: string;
+  collectionSlug: string;
   name: string;
   nfaId: string;
   agentId: string;
@@ -89,8 +104,8 @@ export const AGENT_FAMILIES: AgentFamily[] = [
   },
   {
     code: "SLR",
-    name: "Seller",
-    role: "Represent merchant inventory, pricing, offers, and fulfillment.",
+    name: "SLL-R",
+    role: "Represent merchant services, order handling, fulfillment, and receipt-backed credit.",
   },
   {
     code: "BYR",
@@ -104,100 +119,53 @@ export const AGENT_FAMILIES: AgentFamily[] = [
   },
 ];
 
-export const AGENT_SERVICE_CARDS: AgentServiceCard[] = [
+export const AGENT_COLLECTIONS: AgentCollection[] = [
   {
-    id: "agent-jiagon-negotiator",
-    slug: "jiagon-negotiator",
-    name: "Jiagon Negotiator",
-    nfaId: "NFA-NEG-0001",
-    agentId: "erc8004:neg:jiagon",
-    familyCode: "NEG",
-    familyName: "Negotiator Agents",
-    familyRole: "Resolve merchant orders, refunds, claims, and settlement outcomes.",
-    proofLevel: "clearing",
-    proofSummary:
-      "Identity, endpoint, evaluator outcomes, receipt history, and fork lineage are tracked as one portable agent record.",
-    ownerIdentity: "Jiagon / Maiat Dojo",
-    collection: "NEG Agent Family",
-    role: "Negotiator for merchant orders, refunds, and receipt-backed credit.",
-    archetype: "NEG root NFA",
-    summary:
-      "Handles paid commerce cases for merchants: verify the order, negotiate refund or discount, clear the settlement, and turn every receipt into reputation.",
-    status: "root-template",
-    category: "Commerce Negotiation",
-    avatarSeed: "jiagon-root-negotiator",
-    paymentRails: ["BNB", "MoonPay", "USDC"],
-    integrations: ["MoonPay Commerce", "Telegram", "Merchant receipts"],
-    abilities: [
-      "Quote order",
-      "Negotiate issue/refund",
-      "Issue receipt",
-      "Build credit signal",
-    ],
-    workflowDeck: [
-      "Raposa order handling",
-      "SOLYD shipping quote",
-      "Receipt claim",
-      "Refund negotiation",
-    ],
-    receiptKinds: [
-      "Cleared orders",
-      "Fulfilled claims",
-      "Refunds resolved",
-    ],
-    attributes: [
-      { label: "Class", value: "Negotiator" },
-      { label: "Lineage", value: "Genesis" },
-      { label: "Royalty", value: "7.5%" },
-      { label: "Credit", value: "A-" },
-    ],
-    pricing: {
-      setupFeeUsd: 299,
-      monthlyUsd: 149,
-      perClearedCaseUsd: 1.5,
-      successFeeBps: 1000,
-      royaltyBps: 750,
-    },
-    lineage: {
-      root: "Jiagon",
-      forks: ["Raposa Agent", "SOLYD Agent"],
-      generation: 0,
-    },
-    reputation: {
-      receiptsCleared: 128,
-      successRate: 0.92,
-      savedAmountUsd: 18420,
-      verifiedVolumeUsd: 96200,
-      disputes: 3,
-      creditScore: 84,
-    },
-    receipts: [
-      { id: "rcpt_jgn_128", label: "Refund saved", amountUsd: 84, status: "cleared" },
-      { id: "rcpt_jgn_127", label: "Order claim settled", amountUsd: 42, status: "cleared" },
-      { id: "rcpt_jgn_126", label: "Discount negotiated", amountUsd: 18, status: "cleared" },
-    ],
-    detailHref: "/agent/jiagon-negotiator",
-    runHref: "/agent/jiagon-negotiator?mode=run",
-    subscribeHref: "/agent/jiagon-negotiator?mode=subscribe",
-    forkHref: "/agent/jiagon-negotiator?mode=license",
-    receiptsHref: "/leaderboard",
+    slug: "sll-r",
+    code: "SLR",
+    name: "SLL-R",
+    title: "Seller and service agent collection",
+    summary: "Merchant-service NFAs for order handling, settlement, refunds, and receipt-backed credit.",
+    creator: "Jiagon / Maiat Dojo",
+    coverSeed: "sll-r-collection",
+    itemSlugs: ["sll-r-raposa", "sll-r-solyd"],
+    floorUsd: 79,
+    volumeUsd: 92800,
+    royaltyBps: 750,
   },
   {
+    slug: "r8",
+    code: "R8",
+    name: "R8",
+    title: "Review and reputation collection",
+    summary: "Review NFAs that score receipts and turn verified consumption into portable reputation.",
+    creator: "Maiat Dojo",
+    coverSeed: "r8-collection",
+    itemSlugs: ["r8"],
+    floorUsd: 0.5,
+    volumeUsd: 21200,
+    royaltyBps: 0,
+  },
+];
+
+export const AGENT_SERVICE_CARDS: AgentServiceCard[] = [
+  {
     id: "agent-raposa-coffee",
-    slug: "raposa-coffee-agent",
-    name: "Raposa Coffee Agent",
-    nfaId: "NFA-NEG-0001-F01",
-    agentId: "erc8004:neg:raposa",
-    familyCode: "NEG",
-    familyName: "Negotiator Agents",
-    familyRole: "Resolve merchant orders, refunds, claims, and settlement outcomes.",
+    slug: "sll-r-raposa",
+    collectionSlug: "sll-r",
+    name: "SLL-R Raposa",
+    nfaId: "NFA-SLL-R-0001-G01",
+    agentId: "erc8004:sll-r:raposa",
+    familyCode: "SLR",
+    familyName: "SLL-R Agent Family",
+    familyRole: "Represent merchant services, order handling, fulfillment, and receipt-backed credit.",
     proofLevel: "execution",
     proofSummary:
-      "Forked agent identity with merchant-specific workflow deck, cleared pickup receipts, and royalty lineage to Jiagon.",
+      "Gen1 fork with merchant-specific workflow deck, cleared pickup receipts, and royalty lineage to SLL-R.",
     ownerIdentity: "Raposa Coffee fork",
-    collection: "NEG Agent Family",
-    role: "Coffee-shop order issue agent forked from Jiagon.",
-    archetype: "Merchant NEG fork",
+    collection: "SLL-R Gen1",
+    role: "Coffee-shop order issue agent forked from SLL-R.",
+    archetype: "SLL-R Gen1 merchant fork",
     summary:
       "A cafe-specific fork that handles paid pickup issues, refund requests, loyalty make-goods, and claim receipts for Raposa-style merchants.",
     status: "merchant-fork",
@@ -223,7 +191,8 @@ export const AGENT_SERVICE_CARDS: AgentServiceCard[] = [
     ],
     attributes: [
       { label: "Class", value: "Cafe fork" },
-      { label: "Parent", value: "Jiagon" },
+      { label: "Generation", value: "Gen1" },
+      { label: "Parent", value: "SLL-R" },
       { label: "Royalty", value: "3.0%" },
       { label: "Credit", value: "B+" },
     ],
@@ -235,11 +204,11 @@ export const AGENT_SERVICE_CARDS: AgentServiceCard[] = [
       royaltyBps: 300,
     },
     lineage: {
-      root: "Jiagon",
-      parent: "Jiagon Negotiator",
-      forks: ["Raposa Agent"],
+      root: "SLL-R",
+      parent: "SLL-R",
+      forks: ["SLL-R Raposa"],
       generation: 1,
-      royaltyTo: "Jiagon",
+      royaltyTo: "SLL-R",
     },
     reputation: {
       receiptsCleared: 46,
@@ -254,28 +223,29 @@ export const AGENT_SERVICE_CARDS: AgentServiceCard[] = [
       { id: "rcpt_rap_045", label: "Remake approved", amountUsd: 12, status: "cleared" },
       { id: "rcpt_rap_044", label: "Refund avoided", amountUsd: 31, status: "cleared" },
     ],
-    detailHref: "/agent/raposa-coffee-agent",
-    runHref: "/agent/raposa-coffee-agent?mode=run",
-    subscribeHref: "/agent/raposa-coffee-agent?mode=subscribe",
-    forkHref: "/agent/raposa-coffee-agent?mode=license",
+    detailHref: "/agent/sll-r-raposa",
+    runHref: "/agent/sll-r-raposa?mode=run",
+    subscribeHref: "/agent/sll-r-raposa?mode=subscribe",
+    forkHref: "/agent/sll-r-raposa?mode=license",
     receiptsHref: "/leaderboard",
   },
   {
     id: "agent-solyd-commerce",
-    slug: "solyd-commerce-agent",
-    name: "SOLYD Commerce Agent",
-    nfaId: "NFA-NEG-0001-F02",
-    agentId: "erc8004:neg:solyd",
-    familyCode: "NEG",
-    familyName: "Negotiator Agents",
-    familyRole: "Resolve merchant orders, refunds, claims, and settlement outcomes.",
+    slug: "sll-r-solyd",
+    collectionSlug: "sll-r",
+    name: "SLL-R SOLYD",
+    nfaId: "NFA-SLL-R-0001-G02",
+    agentId: "erc8004:sll-r:solyd",
+    familyCode: "SLR",
+    familyName: "SLL-R Agent Family",
+    familyRole: "Represent merchant services, order handling, fulfillment, and receipt-backed credit.",
     proofLevel: "settlement",
     proofSummary:
       "Payment-native fork with wallet evidence, receipt API, settlement routing, and verified commerce volume.",
     ownerIdentity: "SOLYD merchant fork",
-    collection: "NEG Agent Family",
+    collection: "SLL-R Gen1",
     role: "Onchain settlement assistant for commerce payments and claims.",
-    archetype: "Settlement NEG fork",
+    archetype: "SLL-R Gen1 settlement fork",
     summary:
       "A payment-native fork for merchants that need order proofs, customer claims, and chain-backed settlement records before issuing credit.",
     status: "verified-service",
@@ -301,7 +271,8 @@ export const AGENT_SERVICE_CARDS: AgentServiceCard[] = [
     ],
     attributes: [
       { label: "Class", value: "Verifier" },
-      { label: "Parent", value: "Jiagon" },
+      { label: "Generation", value: "Gen1" },
+      { label: "Parent", value: "SLL-R" },
       { label: "Royalty", value: "4.0%" },
       { label: "Credit", value: "A" },
     ],
@@ -313,11 +284,11 @@ export const AGENT_SERVICE_CARDS: AgentServiceCard[] = [
       royaltyBps: 400,
     },
     lineage: {
-      root: "Jiagon",
-      parent: "Jiagon Negotiator",
-      forks: ["SOLYD Agent"],
+      root: "SLL-R",
+      parent: "SLL-R",
+      forks: ["SLL-R SOLYD"],
       generation: 1,
-      royaltyTo: "Jiagon",
+      royaltyTo: "SLL-R",
     },
     reputation: {
       receiptsCleared: 73,
@@ -332,13 +303,98 @@ export const AGENT_SERVICE_CARDS: AgentServiceCard[] = [
       { id: "rcpt_sld_072", label: "Claim approved", amountUsd: 118, status: "cleared" },
       { id: "rcpt_sld_071", label: "Settlement routed", amountUsd: 360, status: "cleared" },
     ],
-    detailHref: "/agent/solyd-commerce-agent",
-    runHref: "/agent/solyd-commerce-agent?mode=run",
-    subscribeHref: "/agent/solyd-commerce-agent?mode=subscribe",
-    forkHref: "/agent/solyd-commerce-agent?mode=license",
+    detailHref: "/agent/sll-r-solyd",
+    runHref: "/agent/sll-r-solyd?mode=run",
+    subscribeHref: "/agent/sll-r-solyd?mode=subscribe",
+    forkHref: "/agent/sll-r-solyd?mode=license",
+    receiptsHref: "/leaderboard",
+  },
+  {
+    id: "agent-r8",
+    slug: "r8",
+    collectionSlug: "r8",
+    name: "R8",
+    nfaId: "NFA-R8-0001",
+    agentId: "erc8004:r8:genesis",
+    familyCode: "R8",
+    familyName: "R8 Agent Family",
+    familyRole: "Rate completed work and convert verified consumption into portable reputation.",
+    proofLevel: "execution",
+    proofSummary:
+      "Genesis review identity with execution evidence, scored receipts, and portable rating history.",
+    ownerIdentity: "Maiat Dojo",
+    collection: "R8 Genesis",
+    role: "Genesis review agent for rating receipts, scoring delivery quality, and building reputation.",
+    archetype: "R8 genesis NFA",
+    summary:
+      "The root R8 review family. It reads completed receipts, evaluates outcome quality, and turns verified consumption into reputation that other agents can trust.",
+    status: "root-template",
+    category: "Review Reputation",
+    avatarSeed: "r8-genesis-review",
+    paymentRails: ["BNB", "USDC"],
+    integrations: ["Receipt API", "Evaluator policy", "Reputation ledger"],
+    abilities: [
+      "Rate receipt",
+      "Score delivery",
+      "Review evidence",
+      "Build reputation",
+    ],
+    workflowDeck: [
+      "Receipt review",
+      "Evaluator scoring",
+      "Reputation update",
+    ],
+    receiptKinds: [
+      "Rated receipts",
+      "Scored runs",
+      "Review-backed claims",
+    ],
+    attributes: [
+      { label: "Class", value: "R8" },
+      { label: "Generation", value: "Genesis" },
+      { label: "Royalty", value: "0.0%" },
+      { label: "Credit", value: "A" },
+    ],
+    pricing: {
+      setupFeeUsd: 0,
+      monthlyUsd: 0,
+      perClearedCaseUsd: 0.5,
+      successFeeBps: 0,
+      royaltyBps: 0,
+    },
+    lineage: {
+      root: "R8",
+      forks: ["R8 Ronin"],
+      generation: 0,
+    },
+    reputation: {
+      receiptsCleared: 64,
+      successRate: 0.96,
+      savedAmountUsd: 0,
+      verifiedVolumeUsd: 21200,
+      disputes: 0,
+      creditScore: 91,
+    },
+    receipts: [
+      { id: "rcpt_r8_064", label: "Receipt rated", amountUsd: 66, status: "cleared" },
+      { id: "rcpt_r8_063", label: "Delivery scored", amountUsd: 128, status: "cleared" },
+      { id: "rcpt_r8_062", label: "Review evidence accepted", amountUsd: 44, status: "cleared" },
+    ],
+    detailHref: "/agent/r8",
+    runHref: "/agent/r8?mode=run",
+    subscribeHref: "/agent/r8?mode=subscribe",
+    forkHref: "/agent/r8?mode=license",
     receiptsHref: "/leaderboard",
   },
 ];
+
+export function agentFamilyDisplayCode(code: AgentFamilyCode) {
+  return code === "SLR" ? "SLL-R" : code;
+}
+
+export function agentGenerationLabel(generation: number) {
+  return generation === 0 ? "Genesis" : `Gen${generation}`;
+}
 
 export function agentCardStatusLabel(status: AgentServiceCard["status"]) {
   if (status === "root-template") return "Root template";
